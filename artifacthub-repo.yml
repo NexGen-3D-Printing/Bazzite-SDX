@@ -1,0 +1,25 @@
+# This file is completely optional, but if you want to index your image on https://artifacthub.io/ you can 
+# Sign up and add the Repository ID to the right field. Owners fields are optional.
+# Examples: https://artifacthub.io/packages/search?ts_query_web=ublue&sort=relevance&page=1 
+
+repositoryID: my-custom-id-here # Fill in with your own credentials from artifacthub.io
+owners: # (optional, used to claim repository ownership)
+  - name: NexGen-3D-Printing
+    email: nexgen3d@example.com
+
+# Social links for your repository
+documentation: https://github.com/NexGen-3D-Printing/bazzite-sdx/blob/main/README.md
+website: https://nexgen3d.bigcartel.com/
+bugTracker: https://github.com/NexGen-3D-Printing/bazzite-sdx/issues
+support: https://www.youtube.com/@NexGen-3D
+socialLinks:
+  - name: YouTube
+    url: https://www.youtube.com/@NexGen-3D
+  - name: GitHub
+    url: https://github.com/NexGen-3D-Printing
+  - name: Printables
+    url: https://www.printables.com/@NexGen3D
+  - name: Reddit
+    url: https://www.reddit.com/user/NexGen-3D/
+  - name: Ko-fi
+    url: https://ko-fi.com/nexgen3d
