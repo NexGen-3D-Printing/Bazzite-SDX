@@ -1,6 +1,9 @@
+# Cosign signing keys
 cosign.key
+
+# Build artifacts
 _build_*
 output
-_build-*/**
-*_chunkah_*
-*_rpm-ostree_*
+_build-*/**/*
+*_chunkah_*_*
+*_rpm-ostree_*_*
