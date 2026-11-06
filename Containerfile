@@ -9,7 +9,7 @@ FROM ghcr.io/ublue-os/bazzite:stable
 ## Install Linux Surface kernel packages directly from the Surface Linux repository
 
 ## Import GPG key for Surface Linux repository
-RUN curl -fsSL https://raw.githubusercontent.com/linux-surface/linux-surface/master/pkg/keys/surface.asc | gpg --dearmor -o /usr/share/keyrings/linux-surface.gpg
+RUN mkdir -p /usr/share/keyrings && curl -fsSL https://raw.githubusercontent.com/linux-surface/linux-surface/master/pkg/keys/surface.asc | gpg --dearmor -o /usr/share/keyrings/linux-surface.gpg
 
 ## Add Surface Linux repository
 RUN cat > /etc/yum.repos.d/linux-surface.repo << 'SURFACE_REPO'
