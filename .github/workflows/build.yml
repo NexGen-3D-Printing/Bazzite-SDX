@@ -40,14 +40,18 @@ jobs:
 
       - name: Source environment
         run: |
-          set -a
-          source image-template.env
-          set +a
+          # Source environment variables from image-template.env
+          if [ -f image-template.env ]; then
+            set -a
+            source image-template.env
+            set +a
+          fi
+          
           # Export environment variables so they are available to subsequent steps
-          echo "IMAGE_NAME=${IMAGE_NAME}" >> ${GITHUB_ENV}
-          echo "REPO_ORGANIZATION=${REPO_ORGANIZATION}" >> ${GITHUB_ENV}
-          echo "IMAGE_DESC=${IMAGE_DESC}" >> ${GITHUB_ENV}
-          echo "DEFAULT_TAG=${DEFAULT_TAG}" >> ${GITHUB_ENV}
+          echo "IMAGE_NAME=${IMAGE_NAME:-}" >> ${GITHUB_ENV}
+          echo "REPO_ORGANIZATION=${REPO_ORGANIZATION:-}" >> ${GITHUB_ENV}
+          echo "IMAGE_DESC=${IMAGE_DESC:-}" >> ${GITHUB_ENV}
+          echo "DEFAULT_TAG=${DEFAULT_TAG:-}" >> ${GITHUB_ENV}
 
       - name: Debug environment
         run: |
@@ -79,7 +83,7 @@ jobs:
           )
 
           # Build the image
-          podman build "${LABELS[@]}" --pull=newer --tag "${IMAGE_NAME}:${DEFAULT_TAG}" --file Containerfile .
+          podman build "${LABELS[@]}" --report=plain --pull=newer --tag "${IMAGE_NAME}:${DEFAULT_TAG}" --file Containerfile .
 
       # This is optional, this provides smaller delta updates
       - name: Rechunk with rpm-ostree
