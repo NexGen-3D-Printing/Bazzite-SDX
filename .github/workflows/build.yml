@@ -55,7 +55,7 @@ jobs:
           echo "DEFAULT_TAG=${DEFAULT_TAG:-}" >> ${GITHUB_ENV}
           
           # Output them for verification
-          echo "IMAGE_NAME=${IMAGE_NAME:-}" > ${GITHUB_OUTPUT}
+          echo "IMAGE_NAME=${IMAGE_NAME:-}" | tr -d '\\n' > ${GITHUB_OUTPUT}
           echo "REPO_ORGANIZATION=${REPO_ORGANIZATION:-}" >> ${GITHUB_OUTPUT}
           echo "IMAGE_DESC=${IMAGE_DESC:-}" >> ${GITHUB_OUTPUT}
           echo "DEFAULT_TAG=${DEFAULT_TAG:-}" >> ${GITHUB_OUTPUT}
