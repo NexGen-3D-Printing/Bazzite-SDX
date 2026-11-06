@@ -1,10 +1,10 @@
 set dotenv-filename := "image-template.env"
 set dotenv-load
 
-export image_name := env_var("IMAGE_NAME")
-export repo_organization := env_var("REPO_ORGANIZATION")
-export image_desc := env_var("IMAGE_DESC")
-export default_tag := env_var("DEFAULT_TAG")
+export image_name := dotenv_var("IMAGE_NAME")
+export repo_organization := dotenv_var("REPO_ORGANIZATION")
+export image_desc := dotenv_var("IMAGE_DESC")
+export default_tag := dotenv_var("DEFAULT_TAG")
 
 # Build the image using the specified parameters
 build:
