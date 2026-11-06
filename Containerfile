@@ -11,22 +11,11 @@ FROM ghcr.io/ublue-os/bazzite:stable
 ## Import GPG key for Surface Linux repository
 RUN mkdir -p /usr/share/keyrings && curl -fsSL https://raw.githubusercontent.com/linux-surface/linux-surface/master/pkg/keys/surface.asc | gpg --dearmor -o /usr/share/keyrings/linux-surface.gpg
 
-## Add Surface Linux repository
-RUN cat > /etc/yum.repos.d/linux-surface.repo << 'SURFACE_REPO'
-[linux-surface]
-name=linux-surface
-baseurl=https://pkg.surfacelinux.com/fedora/f44/
-enabled=1
-skip_if_unavailable=1
-gpgkey=file:///usr/share/keyrings/linux-surface.gpg
-gpgcheck=1
-enabled_metadata=1
-type=rpm-md
-repo_gpgcheck=0
-SURFACE_REPO
+## Add Surface Linux repository using the official method
+RUN dnf config-manager --add-repo https://pkg.surfacelinux.com/fedora/linux-surface.repo
 
 ## Install Linux Surface kernel packages
-RUN dnf5 install -y --enablerepo=linux-surface \
+RUN dnf5 install -y \
     kernel-surface \
     kernel-surface-default \
     iptsd \
@@ -35,9 +24,8 @@ RUN dnf5 install -y --enablerepo=linux-surface \
     surface-control \
     surface-dtx-daemon
 
-## Clean up repository files
+## Clean up GPG key
 RUN rm -f /usr/share/keyrings/linux-surface.gpg
-RUN rm -f /etc/yum.repos.d/linux-surface.repo
 
 ## Create release info file
 RUN mkdir -p /etc/bazzite-sdx && cat > /etc/bazzite-sdx/release-info.toml << EOF
