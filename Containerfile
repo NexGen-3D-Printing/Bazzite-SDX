@@ -11,8 +11,8 @@ FROM ghcr.io/ublue-os/bazzite:stable
 ## Import GPG key for Surface Linux repository
 RUN mkdir -p /usr/share/keyrings && curl -fsSL https://raw.githubusercontent.com/linux-surface/linux-surface/master/pkg/keys/surface.asc | gpg --dearmor -o /usr/share/keyrings/linux-surface.gpg
 
-## Add Surface Linux repository using the official method
-RUN dnf config-manager --add-repo https://pkg.surfacelinux.com/fedora/linux-surface.repo
+## Add Surface Linux repository using the official dnf5 method
+RUN dnf config-manager addrepo --from-repofile=https://pkg.surfacelinux.com/fedora/linux-surface.repo
 
 ## Install Linux Surface kernel packages
 RUN dnf5 install -y \
