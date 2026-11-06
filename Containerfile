@@ -15,9 +15,8 @@ RUN mkdir -p /usr/share/keyrings && curl -fsSL https://raw.githubusercontent.com
 RUN dnf config-manager addrepo --from-repofile=https://pkg.surfacelinux.com/fedora/linux-surface.repo
 
 ## Install Linux Surface kernel packages
-RUN dnf5 install -y \
+RUN dnf5 install -y --allowerasing \
     kernel-surface \
-    kernel-surface-default \
     iptsd \
     libwacom-surface \
     libwacom-surface-data \
