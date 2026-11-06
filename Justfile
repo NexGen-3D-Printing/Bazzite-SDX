@@ -14,10 +14,10 @@ build:
     # Image metadata
     LABELS=()
     LABELS+=("--label" "io.artifacthub.package.deprecated=false")
-    LABELS+=("--label" "org.opencontainers.image.title=$image_name")
-    LABELS+=("--label" "org.opencontainers.image.description=$image_desc")
-    LABELS+=("--label" "org.opencontainers.image.vendor=$repo_organization")
-    LABELS+=("--label" "org.opencontainers.image.version=$default_tag")
+    LABELS+=("--label" "org.opencontainers.image.title=${image_name}")
+    LABELS+=("--label" "org.opencontainers.image.description=${image_desc}")
+    LABELS+=("--label" "org.opencontainers.image.vendor=${repo_organization}")
+    LABELS+=("--label" "org.opencontainers.image.version=${default_tag}")
 
     # This actually builds the image!
     PODMAN_BUILD_ARGS=("${LABELS[@]}" --pull=newer --tag "${IMAGE_NAME}:${DEFAULT_TAG}" --file Containerfile)

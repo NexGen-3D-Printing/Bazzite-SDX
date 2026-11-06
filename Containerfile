@@ -59,4 +59,5 @@ EOF
 
 ### LINTING
 ## Verify final image and contents are correct.
-RUN bootc container lint
+## Note: bootc container lint requires bootc which is not available in GH Actions
+# RUN bootc container lint
