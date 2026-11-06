@@ -186,4 +186,4 @@ jobs:
         run: |
           # Create a temporary key file from the secret
           echo "${{ secrets.COSIGN_PRIVATE_KEY }}" > /tmp/cosign.key
-          cosign sign --key /tmp/cosign.key ${IMAGE_REGISTRY}/${IMAGE_NAME}@${DIGEST}
+          cosign sign --key /tmp/cosign.key "${IMAGE_REGISTRY}/${IMAGE_NAME}@${DIGEST}"
