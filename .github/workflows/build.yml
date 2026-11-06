@@ -49,16 +49,16 @@ jobs:
           fi
           
           # Export environment variables so they are available to subsequent steps
-          echo "IMAGE_NAME=${IMAGE_NAME:-}" >> ${GITHUB_ENV}
-          echo "REPO_ORGANIZATION=${REPO_ORGANIZATION:-}" >> ${GITHUB_ENV}
-          echo "IMAGE_DESC=${IMAGE_DESC:-}" >> ${GITHUB_ENV}
-          echo "DEFAULT_TAG=${DEFAULT_TAG:-}" >> ${GITHUB_ENV}
+          echo "IMAGE_NAME=${IMAGE_NAME%%[[:space:]]*}" >> ${GITHUB_ENV}
+          echo "REPO_ORGANIZATION=${REPO_ORGANIZATION%%[[:space:]]*}" >> ${GITHUB_ENV}
+          echo "IMAGE_DESC=${IMAGE_DESC%%[[:space:]]*}" >> ${GITHUB_ENV}
+          echo "DEFAULT_TAG=${DEFAULT_TAG%%[[:space:]]*}" >> ${GITHUB_ENV}
           
           # Output them for verification
-          printf "IMAGE_NAME=%s\n" "${IMAGE_NAME:-}" > ${GITHUB_OUTPUT}
-          printf "REPO_ORGANIZATION=%s\n" "${REPO_ORGANIZATION:-}" >> ${GITHUB_OUTPUT}
-          printf "IMAGE_DESC=%s\n" "${IMAGE_DESC:-}" >> ${GITHUB_OUTPUT}
-          printf "DEFAULT_TAG=%s\n" "${DEFAULT_TAG:-}" >> ${GITHUB_OUTPUT}
+          printf "IMAGE_NAME=%s\n" "${IMAGE_NAME%%[[:space:]]*}" > ${GITHUB_OUTPUT}
+          printf "REPO_ORGANIZATION=%s\n" "${REPO_ORGANIZATION%%[[:space:]]*}" >> ${GITHUB_OUTPUT}
+          printf "IMAGE_DESC=%s\n" "${IMAGE_DESC%%[[:space:]]*}" >> ${GITHUB_OUTPUT}
+          printf "DEFAULT_TAG=%s\n" "${DEFAULT_TAG%%[[:space:]]*}" >> ${GITHUB_OUTPUT}
 
       - name: Debug environment
         run: |
