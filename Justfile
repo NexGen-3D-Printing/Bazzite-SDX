@@ -23,10 +23,10 @@ check:
     #!/usr/bin/env bash
     find . -type f -name "*.just" | while read -r file; do
     	echo "Checking syntax: $file"
-    	just --unstable --fmt --check -f $file
+    	just --fmt --check -f $file
     done
     echo "Checking syntax: Justfile"
-    just --unstable --fmt --check -f Justfile
+    just --fmt --check -f Justfile
 
 # Fix Just Syntax
 [group('Just')]
@@ -34,10 +34,10 @@ fix:
     #!/usr/bin/env bash
     find . -type f -name "*.just" | while read -r file; do
     	echo "Checking syntax: $file"
-    	just --unstable --fmt -f $file
+    	just --fmt -f $file
     done
     echo "Checking syntax: Justfile"
-    just --unstable --fmt -f Justfile || { exit 1; }
+    just --fmt -f Justfile || { exit 1; }
 
 # Clean Repo
 [group('Utility')]
@@ -93,36 +93,24 @@ sudoif command *args:
 #
 
 # Build the image using the specified parameters
-build $target_image=image_name $tag=default_tag:
+build $target_image="image_name" $tag="default_tag":
     #!/usr/bin/env bash
 
     set -euox pipefail
 
-    BUILD_ARGS=()
+    # Don't include git SHA in labels for stable builds (requires unstable just)
     LABELS=()
-    if [[ -z "$(git status -s)" ]]; then
-        GIT_SHA=$(git rev-parse --short HEAD)
-        LABELS+=("--label" "io.artifacthub.package.readme-url=https://raw.githubusercontent.com/{{ repo_organization }}/{{ image_name }}/${GIT_SHA}/README.md")
-        LABELS+=("--label" "org.opencontainers.image.documentation=https://raw.githubusercontent.com/{{ repo_organization }}/{{ image_name }}/${GIT_SHA}/README.md")
-        LABELS+=("--label" "org.opencontainers.image.source=https://github.com/{{ repo_organization }}/{{ image_name }}/blob/${GIT_SHA}/Containerfile")
-        LABELS+=("--label" "org.opencontainers.image.url=https://github.com/{{ repo_organization }}/{{ image_name }}/tree/${GIT_SHA}")
-        LABELS+=("--label" "org.opencontainers.image.version={{ default_tag }}.$(date +%Y%m%d)-${GIT_SHA}")
-    fi
 
     # Image metadata for https://artifacthub.io/ - This is optional but is highly recommended so we all can get a index of all the custom images
     # The metadata by itself is not going to do anything, you choose if you want your image to be on ArtifactHub or not.
     LABELS+=("--label" "io.artifacthub.package.deprecated=false")
-    LABELS+=("--label" "io.artifacthub.package.keywords={{ image_keywords }}")
-    LABELS+=("--label" "io.artifacthub.package.license=Apache-2.0")
-    LABELS+=("--label" "io.artifacthub.package.logo-url={{ image_logo_url }}")
-    LABELS+=("--label" "io.artifacthub.package.prerelease=false")
-    LABELS+=("--label" "org.opencontainers.image.created=$(date -u +%Y\-%m\-%d\T%H\:%M\:%S\Z)")
-    LABELS+=("--label" "org.opencontainers.image.description={{ image_desc }}")
     LABELS+=("--label" "org.opencontainers.image.title={{ image_name }}")
+    LABELS+=("--label" "org.opencontainers.image.description={{ image_desc }}")
     LABELS+=("--label" "org.opencontainers.image.vendor={{ repo_organization }}")
+    LABELS+=("--label" "org.opencontainers.image.version={{ default_tag }}")
 
     # This actually builds the image!
-    PODMAN_BUILD_ARGS=("${BUILD_ARGS[@]}" "${LABELS[@]}" --pull=newer --tag "${target_image}:${tag}" --file Containerfile)
+    PODMAN_BUILD_ARGS=("${LABELS[@]}" --pull=newer --tag "${target_image}:${tag}" --file Containerfile)
 
     podman build "${PODMAN_BUILD_ARGS[@]}" .
 
@@ -196,20 +184,12 @@ generate-default-tag $tag=default_tag:
 
 # Generate Tags
 [group('Utility')]
-generate-build-tags $target_image=image_name $tag=default_tag:
+generate-build-tags $target_image="image_name" $tag="default_tag":
     #!/usr/bin/env bash
     set -eoux pipefail
 
     DATE=$(date +%Y%m%d)
     BUILD_TAGS=()
-    if [[ -z "$(git status -s)" ]]; then
-        GIT_SHA=$(git rev-parse --short HEAD)
-        BUILD_TAGS+=("${tag}-${GIT_SHA}")
-        BUILD_TAGS+=("${tag}-${DATE}-${GIT_SHA}")
-        BUILD_TAGS+=("${DATE}-${GIT_SHA}")
-    fi
-
-    BUILD_TAGS+=("${DATE}")
     BUILD_TAGS+=("${tag}")
     BUILD_TAGS+=("${tag}-${DATE}")
 
@@ -217,7 +197,7 @@ generate-build-tags $target_image=image_name $tag=default_tag:
 
 # Tag Images
 [group('Utility')]
-tag-images $target_image=image_name $tag=default_tag tags="":
+tag-images $target_image="image_name" $tag="default_tag" tags="":
     #!/usr/bin/env bash
     set -eoux pipefail
 
@@ -226,7 +206,7 @@ tag-images $target_image=image_name $tag=default_tag tags="":
     podman untag ${IMAGE}
 
     # Tag Image
-    for tag in {{ tags }}; do
+    for tag in ${tags}; do
         podman tag $IMAGE "${target_image}:${tag}"
     done
 
@@ -259,7 +239,7 @@ image_name $target_image=image_name:
 # 3. If the image is found, load it into rootful podman using podman scp.
 # 4. If the image is not found, pull it from the remote repository into rootful podman.
 
-_rootful_load_image $target_image=image_name $tag=default_tag:
+_rootful_load_image $target_image="image_name" $tag="default_tag":
     #!/usr/bin/env bash
     set -eoux pipefail
 
@@ -275,11 +255,11 @@ _rootful_load_image $target_image=image_name $tag=default_tag:
     return_code=$?
     set -e
 
-    USER_IMG_ID=$(podman images --filter reference="${target_image}:${tag}" --format "'{{.ID}}'")
+    USER_IMG_ID=$(podman images --filter reference="${target_image}:${tag}" --format '{{.ID}}')
 
     if [[ $return_code -eq 0 ]]; then
         # If the image is found, load it into rootful podman
-        ID=$(just sudoif podman images --filter reference="${target_image}:${tag}" --format "'{{.ID}}'")
+        ID=$(just sudoif podman images --filter reference="${target_image}:${tag}" --format '{{.ID}}')
         if [[ "$ID" != "$USER_IMG_ID" ]]; then
             # If the image ID is not found or different from user, copy the image from user podman to root podman
             COPYTMP=$(mktemp -p "${PWD}" -d -t _build_podman_scp.XXXXXXXXXX)
@@ -419,21 +399,21 @@ run-vm-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_run-
 
 # Run a virtual machine using systemd-vmspawn
 [group('Run Virtal Machine')]
-spawn-vm rebuild="0" type="qcow2" ram="6G":
+spawn-vm rebuild=0 type=qcow2 ram="6G":
     #!/usr/bin/env bash
 
     set -euo pipefail
 
-    [ "{{ rebuild }}" -eq 1 ] && echo "Rebuilding the ISO" && just build-vm {{ rebuild }} {{ type }}
+    [ "${rebuild}" -eq 1 ] && echo "Rebuilding the ISO" && just build-vm "${rebuild}" "${type}"
 
     systemd-vmspawn \
       -M "bootc-image" \
       --console=gui \
       --cpus=2 \
-      --ram=$(echo {{ ram }}| numfmt --from=iec) \
+      --ram=$(echo "${ram}"| numfmt --from=iec) \
       --network-user-mode \
       --vsock=false --pass-ssh-key=false \
-      -i ./output/**/*.{{ type }}
+      -i ./output/**/*.${type}
 
 # Runs shell check on all Bash scripts
 lint:
