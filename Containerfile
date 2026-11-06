@@ -3,7 +3,7 @@ FROM scratch AS ctx
 COPY build_files /
 COPY system_files /system_files
 
-# Base Image - Using Bazzite-DX Stable (Fedora 45)
+# Base Image - Using Bazzite-DX Stable (Fedora 44)
 FROM ghcr.io/ublue-os/bazzite:stable
 
 ### MODIFICATIONS
