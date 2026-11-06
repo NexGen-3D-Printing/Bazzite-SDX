@@ -63,6 +63,12 @@ jobs:
         run: |
           set -euox pipefail
 
+          # Debug: print environment variables
+          echo "DEBUG: IMAGE_NAME=${IMAGE_NAME}"
+          echo "DEBUG: IMAGE_DESC=${IMAGE_DESC}"
+          echo "DEBUG: REPO_ORGANIZATION=${REPO_ORGANIZATION}"
+          echo "DEBUG: DEFAULT_TAG=${DEFAULT_TAG}"
+
           # Image metadata
           LABELS=(
             "--label" "io.artifacthub.package.deprecated=false"
