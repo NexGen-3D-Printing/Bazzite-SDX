@@ -49,9 +49,6 @@ jobs:
           echo "IMAGE_DESC=${IMAGE_DESC}" >> ${GITHUB_ENV}
           echo "DEFAULT_TAG=${DEFAULT_TAG}" >> ${GITHUB_ENV}
 
-      - name: Install just
-        uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 #v4.0.0
-
       - name: Debug environment
         run: |
           echo "=== Environment Variables ==="
@@ -59,29 +56,33 @@ jobs:
           echo "REPO_ORGANIZATION=${REPO_ORGANIZATION}"
           echo "IMAGE_DESC=${IMAGE_DESC}"
           echo "DEFAULT_TAG=${DEFAULT_TAG}"
-          echo ""
-          echo "=== Just file variables ==="
-          just image-name
-          just generate-default-tag
-
-      - name: Check Just Syntax
-        shell: bash
-        run: |
-          just --fmt --check -f Justfile
 
       # This actually builds the container image
       - name: Build Image
         id: build-image
         run: |
-          just build
+          set -euox pipefail
+
+          # Image metadata
+          LABELS=(
+            "--label" "io.artifacthub.package.deprecated=false"
+            "--label" "org.opencontainers.image.title=${IMAGE_NAME}"
+            "--label" "org.opencontainers.image.description=${IMAGE_DESC}"
+            "--label" "org.opencontainers.image.vendor=${REPO_ORGANIZATION}"
+            "--label" "org.opencontainers.image.version=${DEFAULT_TAG}"
+          )
+
+          # Build the image
+          podman build "${LABELS[@]}" --pull=newer --tag "${IMAGE_NAME}:${DEFAULT_TAG}" --file Containerfile .
 
       # This is optional, this provides smaller delta updates
       - name: Rechunk with rpm-ostree
         id: rechunk
         run: |
-          just ostree-rechunk \
-            ${IMAGE_NAME} \
-            ${DEFAULT_TAG}
+          IMAGE=$(podman inspect "${IMAGE_NAME}:${DEFAULT_TAG}" | jq -r '.[0].Id')
+          podman untag "${IMAGE}"
+          podman tag "${IMAGE}" "${IMAGE_NAME}:${DEFAULT_TAG}"
+          podman images
 
       # If you are feeling adventurous, use the new distro agnostic rechunker
       # https://github.com/coreos/chunkah
@@ -96,17 +97,33 @@ jobs:
       - name: Generate Build Tags
         id: gen-build-tags
         run: |
-          alias_tags="$(just generate-build-tags)"
+          set -euo pipefail
+          DATE=$(date +%Y%m%d)
+          BUILD_TAGS=()
+          BUILD_TAGS+=("${DEFAULT_TAG}")
+          BUILD_TAGS+=("${DEFAULT_TAG}-${DATE}")
           echo "Tags for this Action..."
-          echo "${alias_tags}"
-          echo "alias_tags=${alias_tags}" >> $GITHUB_OUTPUT
+          echo "${BUILD_TAGS[@]}"
+          echo "alias_tags=${BUILD_TAGS[@]}" >> $GITHUB_OUTPUT
 
       - name: Tag Image
         id: tag-images
         env:
           ALIAS_TAGS: ${{ steps.gen-build-tags.outputs.alias_tags }}
         run: |
-          just tag-images
+          set -euo pipefail
+
+          # Get Image ID
+          IMAGE=$(podman inspect "${IMAGE_NAME}:${DEFAULT_TAG}" | jq -r '.[0].Id')
+          podman untag "${IMAGE}"
+
+          # Tag Image
+          for tag in ${ALIAS_TAGS}; do
+            podman tag "${IMAGE}" "${IMAGE_NAME}:${tag}"
+          done
+
+          # Show Images
+          podman images
 
       # These `if` statements are so that pull requests for your custom images do not make it publish any packages under your name without you knowing
       # They also check if the runner is on the default branch so that things like the merge queue (if you enable it), are going to work
@@ -124,7 +141,7 @@ jobs:
         env:
           ALIAS_TAGS: ${{ steps.gen-build-tags.outputs.alias_tags }}
         run: |
-          set -euox pipefail
+          set -euo pipefail
           for tag in ${ALIAS_TAGS}; do
             podman push --digestfile=/tmp/digestfile ${IMAGE_NAME}:${tag} ${IMAGE_REGISTRY}/${IMAGE_NAME}:${tag}
           done
