@@ -5,8 +5,7 @@ set -ouex pipefail
 # Copy the contents of system_files/ of the git repo to /
 cp -avf "/ctx/system_files"/. /
 
-# Install dnf config-manager if needed
-dnf5 install -y dnf-command(config-manager)
+# dnf5 config-manager is available by default in Fedora 44+
 
 # Download the latest Surface kernel repository configuration
 # This always fetches the latest Fedora 45 Surface kernel packages
