@@ -172,7 +172,7 @@ jobs:
         run: |
           set -euo pipefail
           for tag in ${ALIAS_TAGS}; do
-            podman push --digestfile=/tmp/digestfile "docker://${IMAGE_NAME}:${tag}" "docker://${IMAGE_REGISTRY}/${IMAGE_NAME}:${tag}"
+            podman push --digestfile=/tmp/digestfile "${IMAGE_NAME}:${tag}" "${IMAGE_REGISTRY}/${IMAGE_NAME}:${tag}"
           done
           digest=$(< /tmp/digestfile)
           echo "Digest=${digest}" >> $GITHUB_OUTPUT
@@ -186,4 +186,4 @@ jobs:
         run: |
           # Create a temporary key file from the secret
           echo "${{ secrets.COSIGN_PRIVATE_KEY }}" > /tmp/cosign.key
-          cosign sign --key /tmp/cosign.key "docker://${IMAGE_REGISTRY}/${IMAGE_NAME}@${DIGEST}"
+          cosign sign --key /tmp/cosign.key "${IMAGE_REGISTRY}/${IMAGE_NAME}@${DIGEST}"
