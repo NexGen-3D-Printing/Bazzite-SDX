@@ -5,16 +5,13 @@ export image_name := env_var("IMAGE_NAME")
 export repo_organization := env_var("REPO_ORGANIZATION")
 export image_desc := env_var("IMAGE_DESC")
 export default_tag := env_var("DEFAULT_TAG")
-export bib_image := env_var("BIB_IMAGE")
 
 # Build the image using the specified parameters
-build $target_image env.image_name $tag env.default_tag:
+build:
     #!/usr/bin/env bash
-
     set -euox pipefail
 
-    # Image metadata for https://artifacthub.io/ - This is optional but is highly recommended so we all can get a index of all the custom images
-    # The metadata by itself is not going to do anything, you choose if you want your image to be on ArtifactHub or not.
+    # Image metadata
     LABELS=()
     LABELS+=("--label" "io.artifacthub.package.deprecated=false")
     LABELS+=("--label" "org.opencontainers.image.title=$image_name")
@@ -23,50 +20,36 @@ build $target_image env.image_name $tag env.default_tag:
     LABELS+=("--label" "org.opencontainers.image.version=$default_tag")
 
     # This actually builds the image!
-    PODMAN_BUILD_ARGS=("${LABELS[@]}" --pull=newer --tag "${target_image}:${tag}" --file Containerfile)
+    PODMAN_BUILD_ARGS=("${LABELS[@]}" --pull=newer --tag "${IMAGE_NAME}:${DEFAULT_TAG}" --file Containerfile)
 
     podman build "${PODMAN_BUILD_ARGS[@]}" .
 
 # Generate Default Tag
-generate-default-tag $tag=env.default_tag:
+generate-default-tag:
     #!/usr/bin/env bash
     set -eoux pipefail
-
-    echo "${tag}"
+    echo "${DEFAULT_TAG}"
 
 # Generate Tags
-generate-build-tags $target_image=env.image_name $tag=env.default_tag:
+generate-build-tags:
     #!/usr/bin/env bash
     set -eoux pipefail
-
     DATE=$(date +%Y%m%d)
-    BUILD_TAGS=()
-    BUILD_TAGS+=("${tag}")
-    BUILD_TAGS+=("${tag}-${DATE}")
-
-    echo "${BUILD_TAGS[@]}"
+    echo "${DEFAULT_TAG}"
+    echo "${DEFAULT_TAG}-${DATE}"
 
 # Tag Images
-tag-images $target_image=env.image_name $tag=env.default_tag tags="":
+tag-images:
     #!/usr/bin/env bash
     set -eoux pipefail
-
     # Get Image, and untag
-    IMAGE=$(podman inspect ${target_image}:${tag} | jq -r .[].Id)
-    podman untag ${IMAGE}
-
-    # Tag Image
-    for tag in ${tags}; do
-        podman tag $IMAGE "${target_image}:${tag}"
-    done
-
-    # Show Images
+    IMAGE=$(podman inspect "${IMAGE_NAME}:${DEFAULT_TAG}" | jq -r .[].Id)
+    podman untag "${IMAGE}"
+    podman tag "${IMAGE}" "${IMAGE_NAME}:${DEFAULT_TAG}"
     podman images
 
 # Image Name
-[private]
-image_name:
+image-name:
     #!/usr/bin/env bash
     set -eoux pipefail
-
-    echo "${image_name}"
+    echo "${IMAGE_NAME}"
