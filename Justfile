@@ -8,7 +8,7 @@ export default_tag := env_var("DEFAULT_TAG")
 export bib_image := env_var("BIB_IMAGE")
 
 # Build the image using the specified parameters
-build $target_image="image_name" $tag="default_tag":
+build $target_image env.image_name $tag env.default_tag:
     #!/usr/bin/env bash
 
     set -euox pipefail
@@ -17,10 +17,10 @@ build $target_image="image_name" $tag="default_tag":
     # The metadata by itself is not going to do anything, you choose if you want your image to be on ArtifactHub or not.
     LABELS=()
     LABELS+=("--label" "io.artifacthub.package.deprecated=false")
-    LABELS+=("--label" "org.opencontainers.image.title={{ image_name }}")
-    LABELS+=("--label" "org.opencontainers.image.description={{ image_desc }}")
-    LABELS+=("--label" "org.opencontainers.image.vendor={{ repo_organization }}")
-    LABELS+=("--label" "org.opencontainers.image.version={{ default_tag }}")
+    LABELS+=("--label" "org.opencontainers.image.title=$image_name")
+    LABELS+=("--label" "org.opencontainers.image.description=$image_desc")
+    LABELS+=("--label" "org.opencontainers.image.vendor=$repo_organization")
+    LABELS+=("--label" "org.opencontainers.image.version=$default_tag")
 
     # This actually builds the image!
     PODMAN_BUILD_ARGS=("${LABELS[@]}" --pull=newer --tag "${target_image}:${tag}" --file Containerfile)
@@ -28,14 +28,14 @@ build $target_image="image_name" $tag="default_tag":
     podman build "${PODMAN_BUILD_ARGS[@]}" .
 
 # Generate Default Tag
-generate-default-tag $tag="default_tag":
+generate-default-tag $tag=env.default_tag:
     #!/usr/bin/env bash
     set -eoux pipefail
 
     echo "${tag}"
 
 # Generate Tags
-generate-build-tags $target_image="image_name" $tag="default_tag":
+generate-build-tags $target_image=env.image_name $tag=env.default_tag:
     #!/usr/bin/env bash
     set -eoux pipefail
 
@@ -47,7 +47,7 @@ generate-build-tags $target_image="image_name" $tag="default_tag":
     echo "${BUILD_TAGS[@]}"
 
 # Tag Images
-tag-images $target_image="image_name" $tag="default_tag" tags="":
+tag-images $target_image=env.image_name $tag=env.default_tag tags="":
     #!/usr/bin/env bash
     set -eoux pipefail
 
@@ -65,7 +65,7 @@ tag-images $target_image="image_name" $tag="default_tag" tags="":
 
 # Image Name
 [private]
-image_name $target_image="image_name":
+image_name:
     #!/usr/bin/env bash
     set -eoux pipefail
 
