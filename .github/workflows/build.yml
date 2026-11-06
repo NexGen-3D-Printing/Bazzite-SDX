@@ -95,7 +95,7 @@ jobs:
           )
 
           # Build the image
-          podman build "${LABELS[@]}" --report=plain --pull=newer --tag "${IMAGE_NAME}:${DEFAULT_TAG}" --file Containerfile .
+          podman build "${LABELS[@]}" --pull=newer --tag "${IMAGE_NAME}:${DEFAULT_TAG}" --file Containerfile .
 
       # This is optional, this provides smaller delta updates
       - name: Rechunk with rpm-ostree
