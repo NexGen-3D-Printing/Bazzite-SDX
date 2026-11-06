@@ -56,9 +56,9 @@ jobs:
           
           # Output them for verification
           printf "IMAGE_NAME=%s\n" "${IMAGE_NAME:-}" > ${GITHUB_OUTPUT}
-          echo "REPO_ORGANIZATION=${REPO_ORGANIZATION:-}" >> ${GITHUB_OUTPUT}
-          echo "IMAGE_DESC=${IMAGE_DESC:-}" >> ${GITHUB_OUTPUT}
-          echo "DEFAULT_TAG=${DEFAULT_TAG:-}" >> ${GITHUB_OUTPUT}
+          printf "REPO_ORGANIZATION=%s\n" "${REPO_ORGANIZATION:-}" >> ${GITHUB_OUTPUT}
+          printf "IMAGE_DESC=%s\n" "${IMAGE_DESC:-}" >> ${GITHUB_OUTPUT}
+          printf "DEFAULT_TAG=%s\n" "${DEFAULT_TAG:-}" >> ${GITHUB_OUTPUT}
 
       - name: Debug environment
         run: |
