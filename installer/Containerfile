@@ -6,9 +6,10 @@ FROM $BASE_IMAGE
 ARG BASE_IMAGE
 
 # Copy all necessary files from context (context is installer/)
-COPY . /src/
+# Use COPY .. to get the parent directory (repo root) to access system_files
+COPY .. /src/
 
-# Build ISO (system_files is at /src/../system_files/iso.yaml relative to build.sh)
+# Build ISO (system_files is at /src/system_files/iso.yaml)
 RUN mkdir -p /usr/lib/bootc-image-builder && \
-    cp /src/../system_files/iso.yaml /usr/lib/bootc-image-builder/iso.yaml && \
-    /src/build.sh
+    cp /src/system_files/iso.yaml /usr/lib/bootc-image-builder/iso.yaml && \
+    /src/installer/build.sh

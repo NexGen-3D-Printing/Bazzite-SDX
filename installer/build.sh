@@ -24,4 +24,4 @@ dnf install -y --setopt=install_weak_deps=False \
 
 # Copy in the iso config for image-builder
 mkdir -p /usr/lib/bootc-image-builder
-cp /src/../system_files/iso.yaml /usr/lib/bootc-image-builder/iso.yaml
+cp /src/system_files/iso.yaml /usr/lib/bootc-image-builder/iso.yaml
