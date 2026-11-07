@@ -26,14 +26,29 @@ RUN dnf5 install -y --allowerasing \
 ## Clean up GPG key
 RUN rm -f /usr/share/keyrings/linux-surface.gpg
 
+## Remove stock kernel to ensure exactly one /usr/lib/modules kernel directory
+## bootc requires exactly one kernel; version sorting would prefer ogc1.1 over surface.fc45
+## This cascade removes ~50 packages including stock-kernel kmods (nvidia, xone, ryzen_smu, etc.)
+RUN dnf5 remove -y --setopt=protected_packages= \
+    kernel kernel-core kernel-modules kernel-devel kernel-devel-matched && \
+    ## Delete non-surface module directories (should be empty, unowned leftovers)
+    for d in /usr/lib/modules/*/; do \
+        if [[ ! "$d" =~ surface ]]; then \
+            rm -rf "$d"; \
+        fi; \
+    done && \
+    ## Assert exactly one module directory and kernel-surface installed
+    test "$(ls -1 /usr/lib/modules/ | wc -l)" -eq 1 && \
+    rpm -q kernel-surface
+
 ## Create release info file
 RUN mkdir -p /etc/bazzite-sdx && printf '%s\\n' \
     '# Bazzite-SDX Release Information' \
     '' \
     'version = "1.0.0"' \
-    'fedora_version = 44' \
+    'fedora_version = 45' \
     'base_image = "ghcr.io/ublue-os/bazzite:stable"' \
-    'linux_surface_kernel = "latest-available"' \
+    'linux_surface_kernel = "7.2.15-1.surface.fc45"' \
     '' \
     '[links]' \
     'github = "https://github.com/NexGen-3D-Printing/bazzite-sdx"' \
@@ -44,7 +59,5 @@ RUN mkdir -p /etc/bazzite-sdx && printf '%s\\n' \
     'kofi = "https://ko-fi.com/nexgen3d"' \
     > /etc/bazzite-sdx/release-info.toml
 
-### LINTING
-## Verify final image and contents are correct.
-## Note: bootc container lint requires bootc which is not available in GH Actions
-# RUN bootc container lint
+## Titanoboa ISO contract: copy iso.yaml (required /usr/lib/bootc-image-builder/iso.yaml)
+COPY --chmod=644 system_files/iso.yaml /usr/lib/bootc-image-builder/iso.yaml

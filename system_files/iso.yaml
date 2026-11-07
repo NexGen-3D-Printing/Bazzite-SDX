@@ -1,0 +1,10 @@
+label: "Bazzite-SDX"
+grub2:
+  timeout: 5
+  entries:
+    - name: "Launch Bazzite-SDX Installer"
+      linux: "/images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=Bazzite-SDX enforcing=0 rd.live.image"
+      initrd: "/images/pxeboot/initramfs.img"
+    - name: "Launch Bazzite-SDX Installer (Basic Graphics Mode)"
+      linux: "/images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=Bazzite-SDX enforcing=0 rd.live.image nomodeset"
+      initrd: "/images/pxeboot/initramfs.img"
