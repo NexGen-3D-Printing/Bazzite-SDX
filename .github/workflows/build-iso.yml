@@ -63,18 +63,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull container image (optional - Titanoboa will pull if needed)
+      - name: Get image digest
         run: |
           sudo apt-get update -y
           sudo apt-get install -y podman
           podman login -u "${{ github.actor }}" -p "${{ secrets.GITHUB_TOKEN }}" ghcr.io
           podman pull ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
+          DIGEST=$(podman inspect --format='{{index .Digest}}' ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }})
+          echo "IMAGE_DIGEST=$DIGEST" >> ${GITHUB_ENV}
 
       - name: Build ISO with Titanoboa
         id: build
         uses: ublue-os/titanoboa@main
         with:
-          image-ref: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
+          image-ref: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}@${{ env.IMAGE_DIGEST }}
           iso-dest: bazzite-sdx-${{ env.DEFAULT_TAG }}-amd64.iso
 
       - name: Generate SHA256 checksum
