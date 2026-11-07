@@ -50,7 +50,7 @@ This file documents each release of Bazzite-SDX, including the Linux Surface ker
 
 ```bash
 # Switch to Bazzite-SDX (stable release)
-sudo bootc switch ghcr.io/NexGen-3D-Printing/bazzite-sdx:stable
+sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:stable
 
 # Reboot to apply
 sudo reboot
@@ -111,7 +111,7 @@ sudo reboot
 ## Troubleshooting
 
 ### Image won't boot
-- Verify the image signature: `cosign verify --key cosign.pub ghcr.io/NexGen-3D-Printing/bazzite-sdx:stable`
+- Verify the image signature: `cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:stable`
 - Try an earlier build tag
 - Check the [issues](https://github.com/NexGen-3D-Printing/bazzite-sdx/issues)
 

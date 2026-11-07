@@ -31,7 +31,7 @@ Bazzite-SDX is a ready-to-use bootc image built from Bazzite with Linux Surface 
 
 ```bash
 # Switch to Bazzite-SDX (stable release)
-sudo bootc switch ghcr.io/NexGen-3D-Printing/bazzite-sdx:stable
+sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:stable
 
 # Reboot to apply
 sudo reboot
@@ -59,7 +59,7 @@ If you want to verify the image was signed by me (NexGen-3D-Printing):
 curl -fsSL https://raw.githubusercontent.com/NexGen-3D-Printing/bazzite-sdx/main/cosign.pub -o cosign.pub
 
 # Verify the image
-cosign verify --key cosign.pub ghcr.io/NexGen-3D-Printing/bazzite-sdx:stable
+cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:stable
 ```
 
 ## 📦 Supported Hardware
@@ -88,7 +88,7 @@ cosign verify --key cosign.pub ghcr.io/NexGen-3D-Printing/bazzite-sdx:stable
 Bazzite-SDX receives automatic updates from Bazzite. When new Surface kernel versions are available, they will be included in future builds.
 
 ```bash
-sudo bootc fetch ghcr.io/NexGen-3D-Printing/bazzite-sdx:stable
+sudo bootc fetch ghcr.io/nexgen-3d-printing/bazzite-sdx:stable
 sudo reboot
 ```
 
@@ -134,7 +134,7 @@ I'm NexGen-3D-Printing, creator of Bazzite-SDX. I'm a 3D printing enthusiast and
 ## 🛠️ Troubleshooting
 
 ### Image won't boot
-- Verify the image signature: `cosign verify --key cosign.pub ghcr.io/NexGen-3D-Printing/bazzite-sdx:stable`
+- Verify the image signature: `cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:stable`
 - Try an earlier build tag
 - Check the [issues](https://github.com/NexGen-3D-Printing/bazzite-sdx/issues)
 

@@ -24,7 +24,7 @@ Users installing Bazzite-SDX do **NOT** need cosign keys. The image is pre-built
 
 To install:
 ```bash
-sudo bootc switch ghcr.io/NexGen-3D-Printing/bazzite-sdx:stable
+sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:stable
 sudo reboot
 ```
 
@@ -37,7 +37,7 @@ If you want to verify the image was built by NexGen-3D-Printing:
 curl -fsSL https://raw.githubusercontent.com/NexGen-3D-Printing/bazzite-sdx/main/cosign.pub -o cosign.pub
 
 # Verify the image
-cosign verify --key cosign.pub ghcr.io/NexGen-3D-Printing/bazzite-sdx:stable
+cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:stable
 ```
 
 ## File Locations
