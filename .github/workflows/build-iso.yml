@@ -48,30 +48,43 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y podman
           podman login -u "${{ github.actor }}" -p "${{ secrets.GITHUB_TOKEN }}" ghcr.io
-          # Pull to both user and root storage (root storage is for Titanoboa)
-          podman pull ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
+
+      - name: Pull source image
+        run: |
           sudo podman pull ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
 
-      - name: Build ISO with Titanoboa
+      - name: Create ISO payload container
+        run: |
+          # Create a new container from the source image with ISO setup
+          sudo podman run --rm \
+            --privileged \
+            ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }} \
+            bash -c "dnf install -y grub2-efi-x64-cdboot && mkdir -p /boot/efi/EFI && cp -av /usr/lib/efi/shim/*/EFI/* /boot/efi/EFI/"
+
+      - name: Build ISO with bootc-image-builder
         id: build
-        uses: ublue-os/titanoboa@main
-        with:
-          image-ref: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
-          iso-dest: bazzite-sdx-${{ env.DEFAULT_TAG }}-amd64.iso
+        run: |
+          # Build ISO from the source image
+          sudo podman run --rm -i \
+            --privileged \
+            -v /var/lib/containers/storage:/var/lib/containers/storage \
+            -v "${{ github.workspace }}":/output \
+            quay.io/centos-bootc/bootc-image-builder:latest \
+            build --type iso --output /output ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
 
       - name: Generate SHA256 checksum
         shell: bash
         run: |
-          if [[ -f "${{ steps.build.outputs.iso-dest }}" ]]; then
-            cd $(dirname "${{ steps.build.outputs.iso-dest }}")
-            sha256sum $(basename "${{ steps.build.outputs.iso-dest }}") > $(basename "${{ steps.build.outputs.iso-dest }}").sha256
+          ISO_PATH="${{ github.workspace }}/bazzite-sdx-${{ env.DEFAULT_TAG }}-amd64.iso"
+          if [[ -f "$ISO_PATH" ]]; then
+            sha256sum "$ISO_PATH" > "${ISO_PATH}.sha256"
           fi
 
       - name: Upload ISO artifact
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          path: ${{ steps.build.outputs.iso-dest }}
+          path: "*.iso"
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
@@ -81,7 +94,7 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          path: ${{ steps.build.outputs.iso-dest }}.sha256
+          path: "*.sha256"
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
