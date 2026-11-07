@@ -69,7 +69,9 @@ jobs:
           echo "DEFAULT_TAG=${{ steps.load-env.outputs.DEFAULT_TAG }}"
 
       # Fail fast: confirm the token can actually write to GHCR before spending
-      # ~40 minutes building. No image push is needed to check this.
+      # ~40 minutes building. Opening a blob upload session is the exact request
+      # that a real `podman push` fails on, so it is an authoritative check and
+      # costs nothing (no layer data is transferred).
       - name: Verify GHCR write access
         if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         env:
@@ -80,20 +82,40 @@ jobs:
           set -euo pipefail
           REPO="${IMAGE_REGISTRY#ghcr.io/}/${IMAGE_NAME}"
           REPO="$(echo "${REPO}" | tr '[:upper:]' '[:lower:]')"
-          echo "Requesting push/pull token for repository:${REPO}"
-          TOKEN=$(curl -fsS \
-            -u "${GHCR_USER}:${GHCR_TOKEN}" \
+          echo "Checking write access to ghcr.io/${REPO}"
+
+          TOKEN=$(curl -fsS -u "${GHCR_USER}:${GHCR_TOKEN}" \
             "https://ghcr.io/token?service=ghcr.io&scope=repository:${REPO}:push,pull" \
             | jq -r '.token')
-          CLAIM=$(echo "${TOKEN}" | cut -d. -f2 | tr '_-' '/+' | base64 -d 2>/dev/null || true)
-          echo "GHCR token claims: ${CLAIM}"
-          if ! echo "${CLAIM}" | grep -q '"push"'; then
-            echo "::error::GITHUB_TOKEN has no push access to ghcr.io/${REPO}."
-            echo "::error::Fix in Settings -> Actions -> General -> Workflow permissions,"
-            echo "::error::or grant this repo write access on the package settings page."
-            exit 1
+
+          HEADERS=$(mktemp)
+          BODY=$(mktemp)
+          CODE=$(curl -sS -o "${BODY}" -D "${HEADERS}" -w '%{http_code}' \
+            -X POST \
+            -H "Authorization: Bearer ${TOKEN}" \
+            "https://ghcr.io/v2/${REPO}/blobs/uploads/")
+
+          echo "POST /v2/${REPO}/blobs/uploads/ -> HTTP ${CODE}"
+
+          if [ "${CODE}" = "202" ]; then
+            echo "GITHUB_TOKEN can write to ghcr.io/${REPO}"
+            LOCATION=$(grep -i '^location:' "${HEADERS}" | cut -d' ' -f2 | tr -d '\r' || true)
+            if [ -n "${LOCATION}" ]; then
+              curl -sS -o /dev/null -X DELETE \
+                -H "Authorization: Bearer ${TOKEN}" "${LOCATION}" || true
+            fi
+            exit 0
           fi
-          echo "Token has push access to ghcr.io/${REPO}"
+
+          echo "Registry response:"
+          cat "${BODY}"
+          echo "::error::GITHUB_TOKEN cannot write to ghcr.io/${REPO} (HTTP ${CODE})."
+          echo "::error::The token authenticates but is not authorised for this package."
+          echo "::error::Fix one of:"
+          echo "::error::  a) package settings -> Manage Actions access -> add NexGen-3D-Printing/bazzite-sdx with Write"
+          echo "::error::  b) delete the stale package so the next push recreates it linked to this repo"
+          echo "::error::  c) account Settings -> Actions -> General -> Workflow permissions -> Read and write"
+          exit 1
 
       # This actually builds the container image
       - name: Build Image
