@@ -174,8 +174,14 @@ jobs:
           ALIAS_TAGS: ${{ steps.gen-build-tags.outputs.alias_tags }}
         run: |
           set -euo pipefail
+          # Debug: show all environment variables
+          echo "DEBUG: IMAGE_NAME=${IMAGE_NAME}"
+          echo "DEBUG: IMAGE_REGISTRY=${IMAGE_REGISTRY}"
+          echo "DEBUG: ALIAS_TAGS=${ALIAS_TAGS}"
           for tag in ${ALIAS_TAGS}; do
-            PODMAN_PUSH_ARGS=("push" "--digestfile=/tmp/digestfile" "${IMAGE_NAME}:${tag}" "${IMAGE_REGISTRY}/${IMAGE_NAME}:${tag}")
+            DESTINATION="${IMAGE_REGISTRY}/${IMAGE_NAME}:${tag}"
+            echo "DEBUG: Pushing ${IMAGE_NAME}:${tag} to ${DESTINATION}"
+            PODMAN_PUSH_ARGS=("push" "--digestfile=/tmp/digestfile" "${IMAGE_NAME}:${tag}" "${DESTINATION}")
             podman "${PODMAN_PUSH_ARGS[@]}"
           done
           digest=$(< /tmp/digestfile)
