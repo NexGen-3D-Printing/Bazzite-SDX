@@ -3,7 +3,7 @@
 [![Build container image](https://github.com/NexGen-3D-Printing/bazzite-sdx/actions/workflows/build.yml/badge.svg)](https://github.com/NexGen-3D-Printing/bazzite-sdx/actions/workflows/build.yml)
 
 [![Universal Blue](https://img.shields.io/badge/Universal%20Blue-303030?style=for-the-badge&logo=universalblue)](https://universal-blue.org/)
-[![Fedora](https://img.shields.io/badge/Fedora-45-294172?style=for-the-badge&logo=fedora)](https://fedoraproject.org/)
+[![Fedora](https://img.shields.io/badge/Fedora-44-294172?style=for-the-badge&logo=fedora)](https://fedoraproject.org/)
 
 Bazzite-SDX is a ready-to-use bootc image built from Bazzite with Linux Surface kernel packages pre-installed. This makes it ideal for Microsoft Surface devices while maintaining all the gaming and desktop features of Bazzite.
 
