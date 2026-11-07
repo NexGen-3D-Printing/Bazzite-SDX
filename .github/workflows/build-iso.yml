@@ -16,6 +16,10 @@ on:
         options:
           - amd64
           - arm64
+      tag:
+        description: "Git tag for release (e.g., v1.0.0 or 20261107)"
+        required: true
+        default: "20261107"
   pull_request:
     branches:
       - main
@@ -39,7 +43,7 @@ jobs:
     name: Build ISO
     runs-on: ${{ inputs.platform == 'amd64' && 'ubuntu-26.04' || 'ubuntu-26.04-arm' }}
     permissions:
-      contents: read
+      contents: write
       packages: read
       id-token: write
 
@@ -63,30 +67,29 @@ jobs:
           image-ref: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
           iso-dest: bazzite-sdx-${{ env.DEFAULT_TAG }}-amd64.iso
 
+      - name: Generate SHA256 checksum
+        shell: bash
+        run: |
+          cd $(dirname "${{ steps.build.outputs.iso-dest }}")
+          sha256sum $(basename "${{ steps.build.outputs.iso-dest }}") > $(basename "${{ steps.build.outputs.iso-dest }}").sha256
+
       - name: Upload ISO and Checksum
         if: inputs.upload-to-s3 != true && github.event_name != 'pull_request'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           path: ${{ steps.build.outputs.iso-dest }}
           if-no-files-found: error
-          retention-days: 0
+          retention-days: 1
           compression-level: 0
           overwrite: true
 
-      - name: Generate ISO Checksum
-        if: inputs.upload-to-s3 != true && github.event_name != 'pull_request'
-        shell: bash
-        run: |
-          cd $(dirname "${{ steps.build.outputs.iso-dest }}")
-          sha256sum $(basename "${{ steps.build.outputs.iso-dest }}") > $(basename "${{ steps.build.outputs.iso-dest }}").sha256
-
-      - name: Upload ISO Checksum to Job Artifacts
+      - name: Upload ISO Checksum
         if: inputs.upload-to-s3 != true && github.event_name != 'pull_request'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           path: ${{ steps.build.outputs.iso-dest }}.sha256
           if-no-files-found: error
-          retention-days: 0
+          retention-days: 1
           compression-level: 0
           overwrite: true
 
@@ -105,3 +108,33 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y rclone
           rclone copy $SOURCE_DIR S3:${{ secrets.S3_BUCKET_NAME }}
+
+      - name: Prepare release
+        id: prep
+        shell: bash
+        run: |
+          TAG="${{ inputs.tag }}"
+          SHA_SHORT=$(git rev-parse --short HEAD)
+          echo "tag=${TAG}-${SHA_SHORT}" >> $GITHUB_OUTPUT
+          echo "name=Bazzite-SDX $TAG" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@01570d5c94564605e56de3056d071533d9637614 # v2
+        with:
+          tag_name: ${{ steps.prep.outputs.tag }}
+          name: ${{ steps.prep.outputs.name }}
+          body: |
+            ### Bazzite-SDX ISO Release
+            
+            This ISO can be flashed to a USB drive and used to install Bazzite-SDX on Surface devices.
+            
+            **Contains:**
+            - Linux Surface kernel 7.2.15-1.surface.fc45
+            - iptsd, libwacom-surface, surface-control
+            - Fedora 45 base with all Surface drivers
+            
+            **SHA256:** See attached checksum file
+          files: ${{ steps.build.outputs.iso-dest }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
