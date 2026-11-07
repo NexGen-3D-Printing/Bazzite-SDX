@@ -1,0 +1,111 @@
+name: Upload ISO to Google Drive
+
+on:
+  workflow_run:
+    workflows: ["Build Live ISO"]
+    types:
+      - completed
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  upload-to-drive:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@fa0a91e5b0e557e1b4ec7d9d77a531780b989638 # v2.1.0
+        with:
+          name: bazzite-sdx-iso
+          path: /tmp/iso
+
+      - name: Upload to Google Drive
+        env:
+          GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY }}
+        run: |
+          pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib > /dev/null
+
+          ISO_PATH=$(find /tmp/iso -name "*.iso" -type f | head -1)
+          ISO_NAME=$(basename "$ISO_PATH")
+
+          python3 << 'PYEOF'
+import json
+import os
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+
+# Load service account
+sa_key = json.loads(os.environ['GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY'])
+creds = Credentials.from_service_account_info(sa_key, scopes=['https://www.googleapis.com/auth/drive'])
+drive = build('drive', 'v3', credentials=creds)
+
+# File settings
+FOLDER_ID = '1FAslY7-NI2TBG0ksUxUhwOe15yV1KFh0'
+ISO_PATH = os.environ['ISO_PATH']
+ISO_NAME = os.environ['ISO_NAME']
+
+# Upload the ISO
+file_metadata = {'name': ISO_NAME, 'parents': [FOLDER_ID]}
+media = MediaFileUpload(ISO_PATH, mimetype='application/x-iso9660', resumable=True)
+
+response = drive.files().create(
+    body=file_metadata,
+    media_body=media,
+    fields='id, webContentLink',
+    supportsAllDrives=True
+).execute()
+
+print(f"Uploaded to Google Drive: {response['webContentLink']}")
+print(f"File ID: {response['id']}")
+PYEOF
+
+      - name: Upload checksum to Google Drive
+        if: success()
+        env:
+          GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY }}
+        run: |
+          ISO_PATH=$(find /tmp/iso -name "*.iso" -type f | head -1)
+          CHECKSUM_PATH="${ISO_PATH}.sha256"
+          CHECKSUM_NAME="$(basename "$ISO_PATH").sha256"
+
+          if [ -f "$CHECKSUM_PATH" ]; then
+            python3 << 'PYEOF'
+import json
+import os
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+
+# Load service account
+sa_key = json.loads(os.environ['GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY'])
+creds = Credentials.from_service_account_info(sa_key, scopes=['https://www.googleapis.com/auth/drive'])
+drive = build('drive', 'v3', credentials=creds)
+
+FOLDER_ID = '1FAslY7-NI2TBG0ksUxUhwOe15yV1KFh0'
+
+CHECKSUM_PATH = os.environ['CHECKSUM_PATH']
+CHECKSUM_NAME = os.environ['CHECKSUM_NAME']
+
+file_metadata = {'name': CHECKSUM_NAME, 'parents': [FOLDER_ID]}
+media = MediaFileUpload(CHECKSUM_PATH, mimetype='text/plain', resumable=True)
+
+response = drive.files().create(
+    body=file_metadata,
+    media_body=media,
+    fields='id, webContentLink',
+    supportsAllDrives=True
+).execute()
+
+print(f"Uploaded checksum to Google Drive: {response['webContentLink']}")
+print(f"File ID: {response['id']}")
+PYEOF
+          else
+            echo "No checksum file found, skipping"
+          fi
