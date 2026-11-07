@@ -5,9 +5,10 @@ ARG BASE_IMAGE=${BASE_IMAGE:-ghcr.io/nexgen-3d-printing/bazzite-sdx:latest}
 FROM $BASE_IMAGE
 ARG BASE_IMAGE
 
-# Copy build scripts first
-COPY build.sh /src/build.sh
-RUN chmod +x /src/build.sh
+# Copy all necessary files from context (context is installer/)
+COPY . /src/
 
-# Build ISO
-RUN /src/build.sh
+# Build ISO (system_files is at /src/../system_files/iso.yaml relative to build.sh)
+RUN mkdir -p /usr/lib/bootc-image-builder && \
+    cp /src/../system_files/iso.yaml /usr/lib/bootc-image-builder/iso.yaml && \
+    /src/build.sh
