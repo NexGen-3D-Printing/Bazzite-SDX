@@ -56,6 +56,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      - name: Log in to ghcr.io
+        uses: docker/login-action@74a56c699105136da25e0c468b73926c489927e0 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build ISO with Titanoboa
         id: build
         uses: ublue-os/titanoboa@main
