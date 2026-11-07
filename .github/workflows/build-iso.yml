@@ -14,6 +14,10 @@ on:
         options:
           - amd64
           - arm64
+  workflow_run:
+    workflows: ["Build container image"]
+    types:
+      - completed
 
 permissions:
   contents: read
