@@ -96,6 +96,9 @@ jobs:
 
           # Build the image
           podman build "${LABELS[@]}" --pull=newer --tag "${IMAGE_NAME}:${DEFAULT_TAG}" --file Containerfile .
+          
+          # List images to verify build
+          podman images
 
       # This is optional, this provides smaller delta updates
       - name: Rechunk with rpm-ostree
