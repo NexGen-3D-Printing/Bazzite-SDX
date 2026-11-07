@@ -1,10 +1,13 @@
---- 
-
 name: Build Live ISO
 
 on:
   workflow_dispatch:
     inputs:
+      upload-to-s3:
+        description: "Upload to S3"
+        required: false
+        default: false
+        type: boolean
       platform:
         required: true
         type: choice
@@ -12,10 +15,10 @@ on:
           - amd64
           - arm64
 
-env:
-  IMAGE_NAME: ${{ github.event.repository.name }}
-  IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"
-  DEFAULT_TAG: "stable"
+permissions:
+  contents: read
+  packages: write
+  id-token: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
@@ -24,32 +27,67 @@ concurrency:
 jobs:
   build-iso:
     name: Build ISO
-    runs-on: ${{ inputs.platform == 'amd64' && 'ubuntu-26.04' || 'ubuntu-26.04-arm' }}
+    runs-on: ${{ inputs.platform == 'amd64' && 'ubuntu-latest' || 'ubuntu-latest' }}
     permissions:
       contents: read
-      packages: read
+      packages: write
       id-token: write
 
     steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6 # v2.0.0
+        with:
+          tool-cache: true
+
+      - name: Mount Container Storage BTRFS Loopback
+        run: |
+          sudo truncate -s 110G /mnt/podman-storage.img
+          sudo mkfs.btrfs -f -m single -d single /mnt/podman-storage.img
+          sudo podman system reset --force
+          sudo systemctl stop podman.service
+          LOOP=$(sudo losetup --find --show --direct-io=on /mnt/podman-storage.img)
+          sudo mkdir -p /mnt/podman-storage
+          sudo mount -o compress-force=zstd:2,discard=async,noatime "$LOOP" /mnt/podman-storage
+          sudo mkdir -p /mnt/podman-storage/storage /mnt/podman-storage/tmp
+          sudo mount --bind /mnt/podman-storage/storage /var/lib/containers/storage
+          sudo systemctl start podman.service
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Build ISO with Titanoboa
-        id: build
-        uses: ublue-os/titanoboa@main
         with:
-          image-ref: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
-          iso-dest: bazzite-sdx-${{ env.DEFAULT_TAG }}-amd64.iso
+          submodules: recursive
+
+      - name: Setup podman
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y podman
+          podman login -u "${{ github.actor }}" -p "${{ secrets.GITHUB_TOKEN }}" ghcr.io
+      - name: Build Payload Container
+        run: |
+          sudo env TMPDIR=/mnt/podman-storage/tmp podman build \
+            --cap-add sys_admin \
+            --security-opt label=disable \
+            --build-arg BASE_IMAGE="ghcr.io/nexgen-3d-printing/bazzite-sdx:latest" \
+            -t localhost/payload:latest \
+            -f installer/Containerfile \
+            .
+      - name: Build ISO
+        id: build
+        uses: Zeglius/titanoboa@revamp-pr
+        with:
+          image-ref: localhost/payload:latest
+          iso-dest: bazzite-sdx-latest-amd64.iso
 
       - name: Generate SHA256 checksum
         shell: bash
         run: |
-          cd $(dirname "${{ steps.build.outputs.iso-dest }}")
-          sha256sum $(basename "${{ steps.build.outputs.iso-dest }}") > $(basename "${{ steps.build.outputs.iso-dest }}").sha256
-
+          if [[ -f "${{ steps.build.outputs.iso-dest }}" ]]; then
+            cd $(dirname "${{ steps.build.outputs.iso-dest }}")
+            sha256sum $(basename "${{ steps.build.outputs.iso-dest }}") > $(basename "${{ steps.build.outputs.iso-dest }}").sha256
+          fi
       - name: Upload ISO artifact
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
+          name: bazzite-sdx-iso
           path: ${{ steps.build.outputs.iso-dest }}
           if-no-files-found: error
           retention-days: 7
@@ -57,8 +95,9 @@ jobs:
           overwrite: true
 
       - name: Upload Checksum artifact
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
+          name: bazzite-sdx-checksum
           path: ${{ steps.build.outputs.iso-dest }}.sha256
           if-no-files-found: error
           retention-days: 7
