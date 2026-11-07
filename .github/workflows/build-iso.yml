@@ -21,8 +21,6 @@ permissions:
   contents: read
   packages: write
   id-token: write
-  attestations: write
-  artifact-metadata: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
@@ -36,8 +34,6 @@ jobs:
       contents: read
       packages: write
       id-token: write
-      attestations: write
-      artifact-metadata: write
 
     steps:
       - name: Free Disk Space (Ubuntu)
@@ -61,24 +57,52 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Setup Just
-        uses: extractions/setup-just@e33e0265a09d6d736e2ee1e0eb685ef1de4669ff # v3
+      - name: Setup podman
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y podman
+          podman login -u "${{ github.actor }}" -p "${{ secrets.GITHUB_TOKEN }}" ghcr.io
+
+      - name: Pull source image
+        run: |
+          sudo podman pull ghcr.io/nexgen-3d-printing/bazzite-sdx:latest
+
+      - name: Build payload container
+        run: |
+          sudo podman build --cap-add=sys_admin --security-opt label=disable -t localhost/payload:latest - <<'EOF'
+          FROM ghcr.io/nexgen-3d-printing/bazzite-sdx:latest
+          
+          # Install ISO builder tools
+          RUN dnf install -y --setopt=install_weak_deps=False \
+              grub2-efi-x64-cdboot \
+              xorriso \
+              squashfs-tools \
+              mksquashfs && \
+              # Set up EFI directory
+              mkdir -p /boot/efi/EFI && \
+              cp -av /usr/lib/efi/shim/*/EFI/* /boot/efi/EFI/ && \
+              # Remove fallback efi
+              cp -v /boot/efi/EFI/fedora/grubx64.efi /boot/efi/EFI/BOOT/fbx64.efi && \
+              # Clean up
+              dnf clean all
+          EOF
 
       - name: Build ISO
         id: build
         uses: Zeglius/titanoboa@revamp-pr
         with:
-          image-ref: ghcr.io/nexgen-3d-printing/bazzite-sdx:latest
+          image-ref: localhost/payload:latest
           iso-dest: bazzite-sdx-latest-amd64.iso
 
       - name: Generate SHA256 checksum
         shell: bash
         run: |
-          cd $(dirname "${{ steps.build.outputs.iso-dest }}")
-          sha256sum $(basename "${{ steps.build.outputs.iso-dest }}") > $(basename "${{ steps.build.outputs.iso-dest }}").sha256
+          if [[ -f "${{ steps.build.outputs.iso-dest }}" ]]; then
+            cd $(dirname "${{ steps.build.outputs.iso-dest }}")
+            sha256sum $(basename "${{ steps.build.outputs.iso-dest }}") > $(basename "${{ steps.build.outputs.iso-dest }}").sha256
+          fi
 
       - name: Upload ISO artifact
-        if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           path: ${{ steps.build.outputs.iso-dest }}
@@ -88,7 +112,6 @@ jobs:
           overwrite: true
 
       - name: Upload Checksum artifact
-        if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           path: ${{ steps.build.outputs.iso-dest }}.sha256
