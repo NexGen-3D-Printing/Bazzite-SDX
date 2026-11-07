@@ -172,7 +172,7 @@ jobs:
         run: |
           set -euo pipefail
           for tag in ${ALIAS_TAGS}; do
-            PODMAN_PUSH_ARGS=("push" "--digestfile=/tmp/digestfile" "${IMAGE_NAME}:${tag}" "docker://${IMAGE_REGISTRY}/${IMAGE_NAME}:${tag}")
+            PODMAN_PUSH_ARGS=("push" "--digestfile=/tmp/digestfile" "${IMAGE_NAME}:${tag}" "${IMAGE_REGISTRY}/${IMAGE_NAME}:${tag}")
             podman "${PODMAN_PUSH_ARGS[@]}"
           done
           digest=$(< /tmp/digestfile)
