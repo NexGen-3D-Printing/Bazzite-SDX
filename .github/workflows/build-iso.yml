@@ -109,3 +109,51 @@ jobs:
           retention-days: 7
           compression-level: 0
           overwrite: true
+
+      - name: Upload to Google Drive
+        uses: actions/setup-python@0a5c6152126b7270c2e3f0c34e389e236842343b # v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Google Drive client
+        run: |
+          pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib
+
+      - name: Upload ISO to Google Drive
+        env:
+          GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY }}
+        run: |
+          # Save service account key
+          echo "${GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY}" > /tmp/sa-key.json
+          
+          # Create Python script to upload
+          python3 << 'PYEOF'
+import json
+import os
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+
+# Load service account
+sa_key = json.loads(os.environ['GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY'])
+creds = Credentials.from_service_account_info(sa_key, scopes=['https://www.googleapis.com/auth/drive'])
+drive = build('drive', 'v3', credentials=creds)
+
+# File settings
+FOLDER_ID = '1FAslY7-NI2TBG0ksUxUhwOe15yV1KFh0'
+ISO_PATH = 'bazzite-sdx-latest-amd64.iso'
+ISO_NAME = 'bazzite-sdx-latest.iso'  # Always overwrite this file
+
+# Upload the ISO
+file_metadata = {'name': ISO_NAME, 'parents': [FOLDER_ID]}
+media = {'file': ISO_PATH, 'mimeType': 'application/x-iso9660-image'}
+
+response = drive.files().create(
+    body=file_metadata,
+    media_body=media,
+    fields='id, webContentLink',
+    supportsAllDrives=True
+).execute()
+
+print(f"Uploaded to Google Drive: {response['webContentLink']}")
+print(f"File ID: {response['id']}")
+PYEOF
