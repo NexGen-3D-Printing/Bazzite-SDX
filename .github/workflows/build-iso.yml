@@ -31,15 +31,6 @@ jobs:
       id-token: write
 
     steps:
-      - name: Prepare environment
-        run: |
-          USER_UID=$(id -u)
-          USER_GID=$(id -g)
-          echo "IMAGE_REGISTRY=${IMAGE_REGISTRY,,}" >> ${GITHUB_ENV}
-          echo "IMAGE_NAME=${IMAGE_NAME,,}" >> ${GITHUB_ENV}
-          echo "USER_UID=${USER_UID}" >> ${GITHUB_ENV}
-          echo "USER_GID=${USER_GID}" >> ${GITHUB_ENV}
-
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -53,38 +44,43 @@ jobs:
         run: |
           sudo podman pull ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
 
-      - name: Create ISO payload container
+      - name: Build payload container with ISO setup
         run: |
-          # Create a new container from the source image with ISO setup
-          sudo podman run --rm \
-            --privileged \
-            ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }} \
-            bash -c "dnf install -y grub2-efi-x64-cdboot && mkdir -p /boot/efi/EFI && cp -av /usr/lib/efi/shim/*/EFI/* /boot/efi/EFI/"
+          # Build a payload container that has ISO setup
+          sudo podman build --cap-add=sys_admin -t localhost/payload:latest - <<'EOF'
+          FROM ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
+          
+          # Install ISO builder tools
+          RUN dnf install -y grub2-efi-x64-cdboot xorriso squashfs-tools mksquashfs && \
+              # Set up EFI directory
+              mkdir -p /boot/efi/EFI && \
+              cp -av /usr/lib/efi/shim/*/EFI/* /boot/efi/EFI/ && \
+              # Remove fallback efi
+              cp -v /boot/efi/EFI/fedora/grubx64.efi /boot/efi/EFI/BOOT/fbx64.efi && \
+              # Clean up
+              dnf clean all
+          EOF
 
-      - name: Build ISO with bootc-image-builder
+      - name: Build ISO with Titanoboa
         id: build
-        run: |
-          # Build ISO from the source image
-          sudo podman run --rm -i \
-            --privileged \
-            -v /var/lib/containers/storage:/var/lib/containers/storage \
-            -v "${{ github.workspace }}":/output \
-            quay.io/centos-bootc/bootc-image-builder:latest \
-            build --type iso --output /output ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
+        uses: ublue-os/titanoboa@main
+        with:
+          image-ref: localhost/payload:latest
+          iso-dest: bazzite-sdx-${{ env.DEFAULT_TAG }}-amd64.iso
 
       - name: Generate SHA256 checksum
         shell: bash
         run: |
-          ISO_PATH="${{ github.workspace }}/bazzite-sdx-${{ env.DEFAULT_TAG }}-amd64.iso"
-          if [[ -f "$ISO_PATH" ]]; then
-            sha256sum "$ISO_PATH" > "${ISO_PATH}.sha256"
+          if [[ -f "${{ steps.build.outputs.iso-dest }}" ]]; then
+            cd $(dirname "${{ steps.build.outputs.iso-dest }}")
+            sha256sum $(basename "${{ steps.build.outputs.iso-dest }}") > $(basename "${{ steps.build.outputs.iso-dest }}").sha256
           fi
 
       - name: Upload ISO artifact
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          path: "*.iso"
+          path: ${{ steps.build.outputs.iso-dest }}
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
@@ -94,7 +90,7 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          path: "*.sha256"
+          path: ${{ steps.build.outputs.iso-dest }}.sha256
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
