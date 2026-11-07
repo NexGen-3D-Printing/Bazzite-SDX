@@ -56,6 +56,8 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          submodules: recursive
 
       - name: Setup podman
         run: |
@@ -63,29 +65,15 @@ jobs:
           sudo apt-get install -y podman
           podman login -u "${{ github.actor }}" -p "${{ secrets.GITHUB_TOKEN }}" ghcr.io
 
-      - name: Pull source image
+      - name: Build Payload Container
         run: |
-          sudo podman pull ghcr.io/nexgen-3d-printing/bazzite-sdx:latest
-
-      - name: Build payload container
-        run: |
-          sudo podman build --cap-add=sys_admin --security-opt label=disable -t localhost/payload:latest - <<'EOF'
-          FROM ghcr.io/nexgen-3d-printing/bazzite-sdx:latest
-          
-          # Install ISO builder tools
-          RUN dnf install -y --setopt=install_weak_deps=False \
-              grub2-efi-x64-cdboot \
-              xorriso \
-              squashfs-tools \
-              mksquashfs && \
-              # Set up EFI directory
-              mkdir -p /boot/efi/EFI && \
-              cp -av /usr/lib/efi/shim/*/EFI/* /boot/efi/EFI/ && \
-              # Remove fallback efi
-              cp -v /boot/efi/EFI/fedora/grubx64.efi /boot/efi/EFI/BOOT/fbx64.efi && \
-              # Clean up
-              dnf clean all
-          EOF
+          sudo env TMPDIR=/mnt/podman-storage/tmp podman build \
+            --cap-add sys_admin \
+            --security-opt label=disable \
+            --build-arg BASE_IMAGE="ghcr.io/nexgen-3d-printing/bazzite-sdx:latest" \
+            -t localhost/payload:latest \
+            -f installer/Containerfile \
+            installer/
 
       - name: Build ISO
         id: build
