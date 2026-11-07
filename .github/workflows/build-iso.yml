@@ -73,7 +73,7 @@ jobs:
             --build-arg BASE_IMAGE="ghcr.io/nexgen-3d-printing/bazzite-sdx:latest" \
             -t localhost/payload:latest \
             -f installer/Containerfile \
-            installer/
+            .
 
       - name: Build ISO
         id: build
