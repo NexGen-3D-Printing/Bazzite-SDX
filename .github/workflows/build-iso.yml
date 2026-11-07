@@ -5,11 +5,6 @@ name: Build Live ISO
 on:
   workflow_dispatch:
     inputs:
-      upload-to-s3:
-        description: "Upload to S3"
-        required: false
-        default: false
-        type: boolean
       platform:
         required: true
         type: choice
@@ -18,10 +13,9 @@ on:
           - arm64
 
 env:
-  IMAGE_NAME: ${{ github.event.repository.name }} # output of build.yml, keep in sync
+  IMAGE_NAME: ${{ github.event.repository.name }}
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"
   DEFAULT_TAG: "stable"
-  TITANOBOA_IMAGE: "ghcr.io/ublue-os/titanoboa:main"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
@@ -49,12 +43,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Log in to ghcr.io
-        uses: docker/login-action@v3.3.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup podman
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y podman
+          podman login -u "${{ github.actor }}" -p "${{ secrets.GITHUB_TOKEN }}" ghcr.io
+          # Pull to both user and root storage (root storage is for Titanoboa)
+          podman pull ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
+          sudo podman pull ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
 
       - name: Build ISO with Titanoboa
         id: build
@@ -66,8 +62,10 @@ jobs:
       - name: Generate SHA256 checksum
         shell: bash
         run: |
-          cd $(dirname "${{ steps.build.outputs.iso-dest }}")
-          sha256sum $(basename "${{ steps.build.outputs.iso-dest }}") > $(basename "${{ steps.build.outputs.iso-dest }}").sha256
+          if [[ -f "${{ steps.build.outputs.iso-dest }}" ]]; then
+            cd $(dirname "${{ steps.build.outputs.iso-dest }}")
+            sha256sum $(basename "${{ steps.build.outputs.iso-dest }}") > $(basename "${{ steps.build.outputs.iso-dest }}").sha256
+          fi
 
       - name: Upload ISO artifact
         if: github.event_name != 'pull_request'
