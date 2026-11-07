@@ -32,7 +32,7 @@ jobs:
           pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib > /dev/null
           ISO_PATH=$(find /tmp/iso -name "*.iso" -type f | head -1)
           ISO_NAME=$(basename "$ISO_PATH")
-          python3 - <<'PYEND'
+          python3 <<'ENDPYTHON'
 import json, os
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
@@ -45,4 +45,4 @@ file_metadata = {'name': os.environ['ISO_NAME'], 'parents': [FOLDER_ID]}
 media = MediaFileUpload(os.environ['ISO_PATH'], mimetype='application/x-iso9660', resumable=True)
 response = drive.files().create(body=file_metadata, media_body=media, fields='id, webContentLink', supportsAllDrives=True).execute()
 print(f"Uploaded: {response['webContentLink']}")
-PYEND
+ENDPYTHON
