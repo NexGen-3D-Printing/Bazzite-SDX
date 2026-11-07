@@ -34,7 +34,7 @@ jobs:
           ISO_PATH=$(find /tmp/iso -name "*.iso" -type f | head -1)
           ISO_NAME=$(basename "$ISO_PATH")
 
-          cat > /tmp/upload_drive.py << 'EOF'
+          python3 /dev/stdin <<'PYTHON_SCRIPT'
 import json
 import os
 from google.oauth2.service_account import Credentials
@@ -61,9 +61,7 @@ response = drive.files().create(
 
 print(f'Uploaded to Google Drive: {response["webContentLink"]}')
 print(f'File ID: {response["id"]}')
-EOF
-
-          python3 /tmp/upload_drive.py
+PYTHON_SCRIPT
 
       - name: Upload checksum to Google Drive
         if: success()
@@ -75,7 +73,7 @@ EOF
           CHECKSUM_NAME="${ISO_PATH##*/}.sha256"
 
           if [ -f "$CHECKSUM_PATH" ]; then
-            cat > /tmp/upload_checksum.py << 'EOF'
+            python3 /dev/stdin <<'PYTHON_SCRIPT'
 import json
 import os
 from google.oauth2.service_account import Credentials
@@ -102,9 +100,7 @@ response = drive.files().create(
 
 print(f'Uploaded checksum to Google Drive: {response["webContentLink"]}')
 print(f'File ID: {response["id"]}')
-EOF
-
-            python3 /tmp/upload_checksum.py
+PYTHON_SCRIPT
           else
             echo "No checksum file found, skipping"
           fi
