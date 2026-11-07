@@ -68,6 +68,32 @@ jobs:
           echo "IMAGE_DESC=${{ steps.load-env.outputs.IMAGE_DESC }}"
           echo "DEFAULT_TAG=${{ steps.load-env.outputs.DEFAULT_TAG }}"
 
+      # Fail fast: confirm the token can actually write to GHCR before spending
+      # ~40 minutes building. No image push is needed to check this.
+      - name: Verify GHCR write access
+        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_NAME: ${{ steps.load-env.outputs.IMAGE_NAME }}
+        run: |
+          set -euo pipefail
+          REPO="${IMAGE_REGISTRY#ghcr.io/}/${IMAGE_NAME}"
+          REPO="$(echo "${REPO}" | tr '[:upper:]' '[:lower:]')"
+          echo "Requesting push/pull token for repository:${REPO}"
+          TOKEN=$(curl -fsS \
+            -H "Authorization: Bearer ${GHCR_TOKEN}" \
+            "https://ghcr.io/token?service=ghcr.io&scope=repository:${REPO}:push,pull" \
+            | jq -r '.token')
+          CLAIM=$(echo "${TOKEN}" | cut -d. -f2 | tr '_-' '/+' | base64 -d 2>/dev/null || true)
+          echo "GHCR token claims: ${CLAIM}"
+          if ! echo "${CLAIM}" | grep -q '"push"'; then
+            echo "::error::GITHUB_TOKEN has no push access to ghcr.io/${REPO}."
+            echo "::error::Fix in Settings -> Actions -> General -> Workflow permissions,"
+            echo "::error::or grant this repo write access on the package settings page."
+            exit 1
+          fi
+          echo "Token has push access to ghcr.io/${REPO}"
+
       # This actually builds the container image
       - name: Build Image
         id: build-image
@@ -92,6 +118,8 @@ jobs:
             "--label" "org.opencontainers.image.description=${IMAGE_DESC}"
             "--label" "org.opencontainers.image.vendor=${REPO_ORGANIZATION}"
             "--label" "org.opencontainers.image.version=${DEFAULT_TAG}"
+            "--label" "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}"
+            "--label" "org.opencontainers.image.revision=${GITHUB_SHA}"
           )
 
           # Build the image
@@ -154,18 +182,6 @@ jobs:
 
       # These `if` statements are so that pull requests for your custom images do not make it publish any packages under your name without you knowing
       # They also check if the runner is on the default branch so that things like the merge queue (if you enable it), are going to work
-      - name: Create package in GHCR
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
-        run: |
-          # Create the package in GHCR if it doesn't exist
-          # GHCR requires the package to be explicitly created for first-time pushes
-          curl -X POST \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            -d '{"package_type":"container"}' \
-            "https://ghcr.io/v2/nexgen-3d-printing/bazzite-sdx/settings"
-        continue-on-error: true
-
       - name: Login to GitHub Container Registry
         if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         run: |
