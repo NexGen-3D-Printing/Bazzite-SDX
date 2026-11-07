@@ -92,7 +92,7 @@ sudo bootc fetch ghcr.io/nexgen-3d-printing/bazzite-sdx:stable
 sudo reboot
 ```
 
-## 📖 Release Notes
+## Release Notes
 
 See [RELEASE-INFO.md](RELEASE-INFO.md) for detailed release information including current kernel version and feature highlights.
 
