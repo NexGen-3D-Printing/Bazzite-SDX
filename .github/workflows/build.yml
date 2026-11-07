@@ -178,8 +178,8 @@ jobs:
           for tag in ${ALIAS_TAGS}; do
             DESTINATION="${IMAGE_REGISTRY}/${IMAGE_NAME}:${tag}"
             echo "DEBUG: Pushing ${IMAGE_NAME}:${tag} to ${DESTINATION}"
-            PODMAN_PUSH_ARGS=("push" "--digestfile=/tmp/digestfile" "${IMAGE_NAME}:${tag}" "${DESTINATION}")
-            podman "${PODMAN_PUSH_ARGS[@]}"
+            # Podman might need transport prefix for the destination
+            podman push --digestfile=/tmp/digestfile "${IMAGE_NAME}:${tag}" "docker://${DESTINATION}"
           done
           digest=$(< /tmp/digestfile)
           echo "Digest=${digest}" >> $GITHUB_OUTPUT
