@@ -17,8 +17,8 @@ dnf install -y --setopt=install_weak_deps=False \
     # Set up EFI directory
     mkdir -p /boot/efi/EFI && \
     cp -av /usr/lib/efi/shim/*/EFI/* /boot/efi/EFI/ && \
-    # Remove fallback efi
-    cp -v /boot/efi/EFI/fedora/grubx64.efi /boot/efi/EFI/BOOT/fbx64.efi && \
+    # Remove fallback efi - copy from /usr/lib/efi/grub2/ instead
+    cp -v /usr/lib/efi/grub2/*/EFI/fedora/grubx64.efi /boot/efi/EFI/BOOT/fbx64.efi && \
     # Clean up
     dnf clean all
 
