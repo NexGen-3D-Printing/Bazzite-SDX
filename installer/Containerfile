@@ -1,20 +1,13 @@
 # run with --cap-add sys_admin --security-opt label=disable
 
 ARG BASE_IMAGE=${BASE_IMAGE:-ghcr.io/nexgen-3d-printing/bazzite-sdx:latest}
+ARG INSTALL_IMAGE_PAYLOAD=${INSTALL_IMAGE_PAYLOAD:-ghcr.io/nexgen-3d-printing/bazzite-sdx:latest}
 
 FROM $BASE_IMAGE
 ARG BASE_IMAGE
+ARG INSTALL_IMAGE_PAYLOAD
 
-# Install ISO builder tools
-RUN dnf install -y --setopt=install_weak_deps=False \
-    grub2-efi-x64-cdboot \
-    xorriso \
-    squashfs-tools \
-    mksquashfs && \
-    # Set up EFI directory
-    mkdir -p /boot/efi/EFI && \
-    cp -av /usr/lib/efi/shim/*/EFI/* /boot/efi/EFI/ && \
-    # Remove fallback efi
-    cp -v /boot/efi/EFI/fedora/grubx64.efi /boot/efi/EFI/BOOT/fbx64.efi && \
-    # Clean up
-    dnf clean all
+RUN --mount=type=bind,source=.,target=/src \
+    env \
+    BASE_IMAGE="$BASE_IMAGE" \
+    /src/build.sh
