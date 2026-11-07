@@ -37,7 +37,7 @@ concurrency:
 jobs:
   build-iso:
     name: Build ISO
-    runs-on: ${{ inputs.platform == 'amd64' ? 'ubuntu-26.04' : 'ubuntu-26.04-arm' }}
+    runs-on: ${{ inputs.platform == 'amd64' && 'ubuntu-26.04' || 'ubuntu-26.04-arm' }}
     permissions:
       contents: read
       packages: read
