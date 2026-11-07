@@ -27,57 +27,27 @@ jobs:
     runs-on: ${{ inputs.platform == 'amd64' && 'ubuntu-26.04' || 'ubuntu-26.04-arm' }}
     permissions:
       contents: read
-      packages: write
+      packages: read
       id-token: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Setup podman
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y podman
-          podman login -u "${{ github.actor }}" -p "${{ secrets.GITHUB_TOKEN }}" ghcr.io
-
-      - name: Pull source image
-        run: |
-          sudo podman pull ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
-
-      - name: Build payload container with ISO setup
-        run: |
-          # Build a payload container that has ISO setup
-          sudo podman build --cap-add=sys_admin -t localhost/payload:latest - <<'EOF'
-          FROM ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
-          
-          # Install ISO builder tools
-          RUN dnf install -y grub2-efi-x64-cdboot xorriso squashfs-tools mksquashfs && \
-              # Set up EFI directory
-              mkdir -p /boot/efi/EFI && \
-              cp -av /usr/lib/efi/shim/*/EFI/* /boot/efi/EFI/ && \
-              # Remove fallback efi
-              cp -v /boot/efi/EFI/fedora/grubx64.efi /boot/efi/EFI/BOOT/fbx64.efi && \
-              # Clean up
-              dnf clean all
-          EOF
-
       - name: Build ISO with Titanoboa
         id: build
         uses: ublue-os/titanoboa@main
         with:
-          image-ref: localhost/payload:latest
+          image-ref: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
           iso-dest: bazzite-sdx-${{ env.DEFAULT_TAG }}-amd64.iso
 
       - name: Generate SHA256 checksum
         shell: bash
         run: |
-          if [[ -f "${{ steps.build.outputs.iso-dest }}" ]]; then
-            cd $(dirname "${{ steps.build.outputs.iso-dest }}")
-            sha256sum $(basename "${{ steps.build.outputs.iso-dest }}") > $(basename "${{ steps.build.outputs.iso-dest }}").sha256
-          fi
+          cd $(dirname "${{ steps.build.outputs.iso-dest }}")
+          sha256sum $(basename "${{ steps.build.outputs.iso-dest }}") > $(basename "${{ steps.build.outputs.iso-dest }}").sha256
 
       - name: Upload ISO artifact
-        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           path: ${{ steps.build.outputs.iso-dest }}
@@ -87,7 +57,6 @@ jobs:
           overwrite: true
 
       - name: Upload Checksum artifact
-        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           path: ${{ steps.build.outputs.iso-dest }}.sha256
