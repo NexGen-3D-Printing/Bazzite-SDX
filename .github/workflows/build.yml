@@ -252,7 +252,10 @@ jobs:
         env:
           DIGEST: ${{ steps.push-image.outputs.digest }}
           IMAGE_NAME: ${{ steps.load-env.outputs.IMAGE_NAME }}
-          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          # The signing key uses an empty passphrase. cosign requires this
+          # variable to be PRESENT (even if empty) or it prompts for a password
+          # and fails on the non-interactive runner.
+          COSIGN_PASSWORD: ""
         run: |
           set -euo pipefail
           # Create a temporary key file from the secret
