@@ -1,13 +1,10 @@
+--- 
+
 name: Build Live ISO
 
 on:
   workflow_dispatch:
     inputs:
-      upload-to-s3:
-        description: "Upload to S3"
-        required: false
-        default: false
-        type: boolean
       platform:
         required: true
         type: choice
@@ -15,10 +12,10 @@ on:
           - amd64
           - arm64
 
-permissions:
-  contents: read
-  packages: write
-  id-token: write
+env:
+  IMAGE_NAME: ${{ github.event.repository.name }}
+  IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"
+  DEFAULT_TAG: "stable"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
@@ -27,71 +24,32 @@ concurrency:
 jobs:
   build-iso:
     name: Build ISO
-    runs-on: ${{ inputs.platform == 'amd64' && 'ubuntu-latest' || 'ubuntu-latest' }}
+    runs-on: ${{ inputs.platform == 'amd64' && 'ubuntu-26.04' || 'ubuntu-26.04-arm' }}
     permissions:
       contents: read
-      packages: write
+      packages: read
       id-token: write
 
     steps:
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6 # v2.0.0
-        with:
-          tool-cache: true
-
-      - name: Mount Container Storage BTRFS Loopback
-        run: |
-          sudo truncate -s 110G /mnt/podman-storage.img
-          sudo mkfs.btrfs -f -m single -d single /mnt/podman-storage.img
-          sudo podman system reset --force
-          sudo systemctl stop podman.service
-          LOOP=$(sudo losetup --find --show --direct-io=on /mnt/podman-storage.img)
-          sudo mkdir -p /mnt/podman-storage
-          sudo mount -o compress-force=zstd:2,discard=async,noatime "$LOOP" /mnt/podman-storage
-          sudo mkdir -p /mnt/podman-storage/storage /mnt/podman-storage/tmp
-          sudo mount --bind /mnt/podman-storage/storage /var/lib/containers/storage
-          sudo systemctl start podman.service
-
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          submodules: recursive
 
-      - name: Setup podman
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y podman
-          podman login -u "${{ github.actor }}" -p "${{ secrets.GITHUB_TOKEN }}" ghcr.io
-
-      - name: Build Payload Container
-        run: |
-          sudo env TMPDIR=/mnt/podman-storage/tmp podman build \
-            --cap-add sys_admin \
-            --security-opt label=disable \
-            --build-arg BASE_IMAGE="ghcr.io/nexgen-3d-printing/bazzite-sdx:latest" \
-            -t localhost/payload:latest \
-            -f installer/Containerfile \
-            .
-
-      - name: Build ISO
+      - name: Build ISO with Titanoboa
         id: build
-        uses: Zeglius/titanoboa@revamp-pr
+        uses: ublue-os/titanoboa@main
         with:
-          image-ref: localhost/payload:latest
-          iso-dest: bazzite-sdx-latest-amd64.iso
+          image-ref: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
+          iso-dest: bazzite-sdx-${{ env.DEFAULT_TAG }}-amd64.iso
 
       - name: Generate SHA256 checksum
         shell: bash
         run: |
-          if [[ -f "${{ steps.build.outputs.iso-dest }}" ]]; then
-            cd $(dirname "${{ steps.build.outputs.iso-dest }}")
-            sha256sum $(basename "${{ steps.build.outputs.iso-dest }}") > $(basename "${{ steps.build.outputs.iso-dest }}").sha256
-          fi
+          cd $(dirname "${{ steps.build.outputs.iso-dest }}")
+          sha256sum $(basename "${{ steps.build.outputs.iso-dest }}") > $(basename "${{ steps.build.outputs.iso-dest }}").sha256
 
       - name: Upload ISO artifact
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: bazzite-sdx-iso
           path: ${{ steps.build.outputs.iso-dest }}
           if-no-files-found: error
           retention-days: 7
@@ -99,59 +57,10 @@ jobs:
           overwrite: true
 
       - name: Upload Checksum artifact
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: bazzite-sdx-checksum
           path: ${{ steps.build.outputs.iso-dest }}.sha256
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
           overwrite: true
-
-      - name: Upload to Google Drive
-        uses: actions/setup-python@0a5c6152126b7270c2e3f0c34e389e236842343b # v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Google Drive client
-        run: |
-          pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib
-
-      - name: Upload ISO to Google Drive
-        env:
-          GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY }}
-        run: |
-          # Save service account key
-          echo "${GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY}" > /tmp/sa-key.json
-          
-          # Create Python script to upload
-          python3 << 'PYEOF'
-import json
-import os
-from google.oauth2.service_account import Credentials
-from googleapiclient.discovery import build
-
-# Load service account
-sa_key = json.loads(os.environ['GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY'])
-creds = Credentials.from_service_account_info(sa_key, scopes=['https://www.googleapis.com/auth/drive'])
-drive = build('drive', 'v3', credentials=creds)
-
-# File settings
-FOLDER_ID = '1FAslY7-NI2TBG0ksUxUhwOe15yV1KFh0'
-ISO_PATH = 'bazzite-sdx-latest-amd64.iso'
-ISO_NAME = 'bazzite-sdx-latest.iso'  # Always overwrite this file
-
-# Upload the ISO
-file_metadata = {'name': ISO_NAME, 'parents': [FOLDER_ID]}
-media = {'file': ISO_PATH, 'mimeType': 'application/x-iso9660-image'}
-
-response = drive.files().create(
-    body=file_metadata,
-    media_body=media,
-    fields='id, webContentLink',
-    supportsAllDrives=True
-).execute()
-
-print(f"Uploaded to Google Drive: {response['webContentLink']}")
-print(f"File ID: {response['id']}")
-PYEOF
