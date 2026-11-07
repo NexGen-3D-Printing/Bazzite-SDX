@@ -74,6 +74,7 @@ jobs:
         if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
           IMAGE_NAME: ${{ steps.load-env.outputs.IMAGE_NAME }}
         run: |
           set -euo pipefail
@@ -81,7 +82,7 @@ jobs:
           REPO="$(echo "${REPO}" | tr '[:upper:]' '[:lower:]')"
           echo "Requesting push/pull token for repository:${REPO}"
           TOKEN=$(curl -fsS \
-            -H "Authorization: Bearer ${GHCR_TOKEN}" \
+            -u "${GHCR_USER}:${GHCR_TOKEN}" \
             "https://ghcr.io/token?service=ghcr.io&scope=repository:${REPO}:push,pull" \
             | jq -r '.token')
           CLAIM=$(echo "${TOKEN}" | cut -d. -f2 | tr '_-' '/+' | base64 -d 2>/dev/null || true)
