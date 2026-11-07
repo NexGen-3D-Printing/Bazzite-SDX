@@ -7,21 +7,21 @@
 
 Bazzite-SDX is a ready-to-use bootc image built from Bazzite with Linux Surface kernel packages pre-installed. This makes it ideal for Microsoft Surface devices while maintaining all the gaming and desktop features of Bazzite.
 
-## ✨ What Makes It Special
+## What Makes It Special
 
 **Linux Surface Kernel Support** - Full hardware acceleration and device support for Microsoft Surface devices:
 - Surface Pro (3-9), Surface Book (1-3), Surface Laptop (1-6), Surface Studio
 - Surface Go (1-3), Surface Dial, Surface Pen, and Surface accessories
 
 **Bazzite All-Stars** - Everything you love from Bazzite:
-- 🎮 Automatic updates powered by uupd
-- 🎮 Steam and Lutris pre-installed
-- 🎮 vkBasalt, MangoHUD, OBS VkCapture
-- 💾 Distrobox for nested containers
-- 🛠️ Input Remapper and Webapp Manager
-- 🔧 Flatpak support with Flathub enabled
+- Automatic updates powered by uupd
+- Steam and Lutris pre-installed
+- vkBasalt, MangoHUD, OBS VkCapture
+- Distrobox for nested containers
+- Input Remapper and Webapp Manager
+- Flatpak support with Flathub enabled
 
-## 🚀 Quick Installation
+## Quick Installation
 
 ### Prerequisites
 - A machine running a bootc image (Bazzite, Bluefin, Aurora, or Fedora Atomic)
@@ -62,7 +62,7 @@ curl -fsSL https://raw.githubusercontent.com/NexGen-3D-Printing/bazzite-sdx/main
 cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:stable
 ```
 
-## 📦 Supported Hardware
+## Supported Hardware
 
 ### Microsoft Surface Devices
 
@@ -83,7 +83,7 @@ cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:stable
 - Audio (Realtek, Intel HD Audio)
 - USB peripherals and accessories
 
-## 🔄 Updates
+## Updates
 
 Bazzite-SDX receives automatic updates from Bazzite. When new Surface kernel versions are available, they will be included in future builds.
 
@@ -96,7 +96,7 @@ sudo reboot
 
 See [RELEASE-INFO.md](RELEASE-INFO.md) for detailed release information including current kernel version and feature highlights.
 
-## 🏗️ Building from Source
+## Building from Source
 
 This image is automatically built and published to GitHub Container Registry. If you want to build it yourself:
 
@@ -116,22 +116,22 @@ sudo bootc switch localhost/bazzite-sdx:latest
 sudo reboot
 ```
 
-## 👥 Connect With Me
+## Connect With Me
 
 I'm NexGen-3D-Printing, creator of Bazzite-SDX. I'm a 3D printing enthusiast and developer who loves building custom Linux images.
 
-### 🌐 Social Media & Projects
+### Social Media & Projects
 
 | Platform | Link | Description |
 |----------|------|-------------|
-| 🏪 [Big Cartel](https://nexgen3d.bigcartel.com/) | [Visit](https://nexgen3d.bigcartel.com/) | My 3D printing shop |
-| ▶️ [YouTube](https://www.youtube.com/@NexGen-3D) | [Visit](https://www.youtube.com/@NexGen-3D) | 3D printing tutorials & tech |
-| 🐙 [GitHub](https://github.com/NexGen-3D-Printing) | [Visit](https://github.com/NexGen-3D-Printing) | My open source projects |
-| 📦 [Printables](https://www.printables.com/@NexGen3D) | [Visit](https://www.printables.com/@NexGen3D) | 3D printing models & designs |
-| 🤖 [Reddit](https://www.reddit.com/user/NexGen-3D/) | [Visit](https://www.reddit.com/user/NexGen-3D/) | Join the discussion |
-| ☕ [Ko-fi](https://ko-fi.com/nexgen3d) | [Visit](https://ko-fi.com/nexgen3d) | Support my work |
+|  [Big Cartel](https://nexgen3d.bigcartel.com/) | [Visit](https://nexgen3d.bigcartel.com/) | My 3D printing shop |
+|  [YouTube](https://www.youtube.com/@NexGen-3D) | [Visit](https://www.youtube.com/@NexGen-3D) | 3D printing tutorials & tech |
+|  [GitHub](https://github.com/NexGen-3D-Printing) | [Visit](https://github.com/NexGen-3D-Printing) | My open source projects |
+|  [Printables](https://www.printables.com/@NexGen3D) | [Visit](https://www.printables.com/@NexGen3D) | 3D printing models & designs |
+|  [Reddit](https://www.reddit.com/user/NexGen-3D/) | [Visit](https://www.reddit.com/user/NexGen-3D/) | Join the discussion |
+|  [Ko-fi](https://ko-fi.com/nexgen3d) | [Visit](https://ko-fi.com/nexgen3d) | Support my work |
 
-## 🛠️ Troubleshooting
+## Troubleshooting
 
 ### Image won't boot
 - Verify the image signature: `cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:stable`
@@ -142,11 +142,11 @@ I'm NexGen-3D-Printing, creator of Bazzite-SDX. I'm a 3D printing enthusiast and
 - Check the [linux-surface repository](https://github.com/linux-surface/linux-surface)
 - Some Surface devices may require additional firmware
 
-## 📄 License
+## License
 
 Apache-2.0 (same as Bazzite and Universal Blue)
 
-## 🙏 Credits
+## Credits
 
 - Built using [Universal Blue image-template](https://github.com/ublue-os/image-template)
 - Based on [Bazzite](https://github.com/ublue-os/bazzite)
