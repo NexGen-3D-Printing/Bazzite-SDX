@@ -16,13 +16,6 @@ on:
         options:
           - amd64
           - arm64
-  pull_request:
-    branches:
-      - main
-    paths:
-      - './disk_config/iso.toml'
-      - './system_files/iso.yaml'
-      - './.github/workflows/build-iso.yml'
 
 env:
   IMAGE_NAME: ${{ github.event.repository.name }} # output of build.yml, keep in sync
@@ -63,22 +56,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get image digest
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y podman
-          # Pull with sudo so it's in /var/lib/containers/storage (where Titanoboa's sudo podman uses)
-          sudo podman login -u "${{ github.actor }}" -p "${{ secrets.GITHUB_TOKEN }}" ghcr.io
-          sudo podman pull ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
-          # Get container ID (digest without sha256: prefix)
-          CONTAINER_ID=$(sudo podman inspect --format='{{.Id}}' ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }})
-          echo "IMAGE_REF=$CONTAINER_ID" >> ${GITHUB_ENV}
-
       - name: Build ISO with Titanoboa
         id: build
         uses: ublue-os/titanoboa@main
         with:
-          image-ref: ${{ env.IMAGE_REF }}
+          image-ref: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
           iso-dest: bazzite-sdx-${{ env.DEFAULT_TAG }}-amd64.iso
 
       - name: Generate SHA256 checksum
