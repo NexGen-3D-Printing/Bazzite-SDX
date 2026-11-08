@@ -1,23 +1,61 @@
 title: NexGen3D SDX Portal
 screens:
-  - title: "Welcome"
-    description: "Bazzite-SDX setup (NexGen3D)"
+  - title: "Setup"
+    description: "Bazzite-SDX setup and bulk install"
     actions:
       - id: "bazzite-sdx-readme"
         title: "Open Bazzite-SDX on GitHub"
-        description: "Project page, releases, and documentation."
+        description: "Project page for Bazzite-SDX (Bazzite-DX + Linux Surface kernel), including source, issues, and documentation."
         default: false
         script: "xdg-open https://github.com/NexGen-3D-Printing/bazzite-sdx"
       - id: "bazzite-sdx-release"
         title: "Open latest release notes"
-        description: "Base OS/kernel info and Bazzite-SDX app install instructions."
+        description: "View the auto-updated latest release for base OS/Surface kernel info and Bazzite-SDX app install instructions."
         default: false
         script: "xdg-open https://github.com/NexGen-3D-Printing/bazzite-sdx/releases/tag/latest"
-  - title: "Bazzite-SDX Apps"
-    description: "Install curated Flatpak apps (Bazzite-style, not baked into the image)"
-    actions:
-      - id: "install-bazzite-sdx-flatpaks"
-        title: "Install Bazzite-SDX Flatpak apps"
-        description: "Runs `ujust install-bazzite-sdx-flatpaks` to configure remotes and install Brave, OpenCode, SolidCraft, ArtCraft, and Mission Center."
+      - id: "install-all-bazzite-sdx-flatpaks"
+        title: "Install all Bazzite-SDX Flatpak apps"
+        description: "Installs every curated Bazzite-SDX app in one run using the Bazzite-style ujust flow (remotes/lists/recipes; apps are not baked into the OS image). Includes Brave Browser, OpenCode, Mission Center, SolidCraft, and ArtCraft. Requires network access; you may be prompted for your password (sudo) for system Flatpak installs."
         default: false
         script: 'ujust install-bazzite-sdx-flatpaks; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
+
+  - title: "Web Browsers"
+    description: "Browsers and web tools"
+    actions:
+      - id: "install-sdx-brave"
+        title: "Brave Browser"
+        description: "Brave is a privacy-focused web browser with built-in ad and tracker blocking, HTTPS upgrading, and optional Brave features (such as Brave Rewards/Wallet/AI, depending on your configuration). This installs the system Flatpak com.brave.Browser from Flathub (verified). Bazzite-SDX removes the Firefox RPM when present and offers Brave via this Flatpak-based setup. Source: https://brave.com/ | Flathub: https://flathub.org/en/apps/com.brave.Browser"
+        default: false
+        script: 'ujust install-sdx-brave; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
+
+  - title: "AI Tools"
+    description: "AI-assisted development and productivity"
+    actions:
+      - id: "install-sdx-opencode"
+        title: "OpenCode"
+        description: "OpenCode is an open source AI coding agent that helps you write and run code with AI models. It provides an interface for agentic coding workflows (prompts, code edits, and command execution) so you can work with models in a development-oriented environment. This installs the system Flatpak ai.opencode.opencode from Flathub. Note: Bazzite-SDX previously experimented with separate OpenCode CLI/Desktop packaging; this curated setup uses the Flatpak. Source: https://github.com/anomalyco/opencode | Flathub: https://flathub.org/en/apps/ai.opencode.opencode"
+        default: false
+        script: 'ujust install-sdx-opencode; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
+
+  - title: "Creative Utilities"
+    description: "Design, modeling, and creative tools"
+    actions:
+      - id: "install-sdx-solidcraft"
+        title: "SolidCraft"
+        description: "SolidCraft (by Tangency Labs) is a parametric CAD/modeling application for creating and iterating on 3D designs. This installs the system Flatpak io.tangencylabs.solidcraft from the SolidCraft Flatpak repository (configured by Bazzite-SDX; Flathub is also used for required runtimes). Useful for mechanical/3D design workflows alongside 3D printing projects. Source: https://github.com/tangency-labs/solidcraft | Docs: https://docs.solidcraft.io/"
+        default: false
+        script: 'ujust install-sdx-solidcraft; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
+      - id: "install-sdx-artcraft"
+        title: "ArtCraft"
+        description: "ArtCraft is an intentional crafting engine for artists, designers, and filmmakers (storytold/artcraft). It focuses on creative production workflows and integrates with modern generative/model-based tooling as provided by the upstream project. This installs ArtCraft from the upstream Linux x86_64 Flatpak bundle published in the latest GitHub release (downloaded at install time). Requires network access and may take longer due to bundle size/runtimes. Source: https://github.com/storytold/artcraft | Website: https://getartcraft.com/"
+        default: false
+        script: 'ujust install-sdx-artcraft; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
+
+  - title: "System Utilities"
+    description: "Monitoring and system tools"
+    actions:
+      - id: "install-sdx-mission-center"
+        title: "Mission Center"
+        description: "Mission Center is a modern system monitor for Linux that displays overall and per-process resource usage, including CPU, memory, disk, network, and GPU information (where supported). It provides detailed hardware and process insights in a clean, adaptive interface. This installs the system Flatpak io.missioncenter.MissionCenter from Flathub. Source: https://gitlab.com/mission-center-devs/mission-center | Flathub: https://flathub.org/en/apps/io.missioncenter.MissionCenter"
+        default: false
+        script: 'ujust install-sdx-mission-center; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
