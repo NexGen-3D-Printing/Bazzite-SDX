@@ -38,16 +38,42 @@ except HttpError as e:
     print("Ensure the authorized Google account has access to this folder and GOOGLE_DRIVE_FOLDER_ID is correct.")
     raise
 
-file_metadata = {"name": iso_name, "parents": [FOLDER_ID]}
+# Find existing file with same name in the folder to replace it
+existing_file_id = None
+try:
+    safe_name = iso_name.replace("'", "\\'")
+    query = f"name = '{safe_name}' and '{FOLDER_ID}' in parents and trashed = false"
+    results = drive.files().list(
+        q=query,
+        fields="files(id, name)",
+        supportsAllDrives=True,
+        includeItemsFromAllDrives=True,
+    ).execute()
+    files = results.get("files", [])
+    if files:
+        existing_file_id = files[0]["id"]
+        print(f"Replacing existing Drive file: {files[0].get('name')} ({existing_file_id})")
+except Exception as e:
+    print(f"Warning: could not check for existing file, will create a new one: {e}")
+
 media = MediaFileUpload(iso_path, mimetype="application/x-iso9660", resumable=True)
 
 try:
-    response = drive.files().create(
-        body=file_metadata,
-        media_body=media,
-        fields="id, webViewLink, webContentLink",
-        supportsAllDrives=True,
-    ).execute()
+    if existing_file_id:
+        response = drive.files().update(
+            fileId=existing_file_id,
+            media_body=media,
+            fields="id, webViewLink, webContentLink",
+            supportsAllDrives=True,
+        ).execute()
+    else:
+        file_metadata = {"name": iso_name, "parents": [FOLDER_ID]}
+        response = drive.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields="id, webViewLink, webContentLink",
+            supportsAllDrives=True,
+        ).execute()
 except HttpError as e:
     print(f"Google Drive upload failed: {e}")
     try:
