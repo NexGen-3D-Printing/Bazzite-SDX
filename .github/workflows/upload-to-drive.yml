@@ -1,4 +1,4 @@
-name: Publish ISO to GitHub Release
+name: Upload ISO to Google Drive and Publish Release
 
 on:
   workflow_run:
@@ -17,7 +17,7 @@ permissions:
   actions: read
 
 jobs:
-  publish-release:
+  upload-and-release:
     if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
     permissions:
@@ -64,17 +64,31 @@ jobs:
           echo "iso_name=$(basename "$ISO_PATH")" >> "$GITHUB_OUTPUT"
           echo "checksum_path=$CHECKSUM_PATH" >> "$GITHUB_OUTPUT"
 
+      - name: Upload ISO to Google Drive
+        id: gdrive
+        env:
+          GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY }}
+          ISO_PATH: ${{ steps.files.outputs.iso_path }}
+          ISO_NAME: ${{ steps.files.outputs.iso_name }}
+        run: |
+          pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib > /dev/null
+          python3 .github/workflows/upload-to-drive.py
+
       - name: Create or update GitHub Release (latest)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRIVE_LINK: ${{ steps.gdrive.outputs.drive_link }}
         run: |
           TAG="latest"
           TITLE="Bazzite-SDX Latest"
           NOTES="Automated latest ISO release for Bazzite-SDX.
 
-          - ISO and checksum attached as release assets
+          - **ISO download (Google Drive):** ${DRIVE_LINK}
+          - Checksum attached as a release asset
           - Source: https://github.com/NexGen-3D-Printing/bazzite-sdx
-          - Surface Linux kernel: https://github.com/linux-surface/linux-surface"
+          - Surface Linux kernel: https://github.com/linux-surface/linux-surface
+
+          > Note: The ISO is hosted on Google Drive due to GitHub Releases' 2 GB asset limit."
 
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" --title "$TITLE" --notes "$NOTES" --latest
@@ -82,11 +96,10 @@ jobs:
             gh release create "$TAG" --title "$TITLE" --notes "$NOTES" --latest
           fi
 
-      - name: Upload assets to GitHub Release
+      - name: Upload checksum to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload latest "${{ steps.files.outputs.iso_path }}" --clobber
           if [ -n "${{ steps.files.outputs.checksum_path }}" ] && [ -f "${{ steps.files.outputs.checksum_path }}" ]; then
             gh release upload latest "${{ steps.files.outputs.checksum_path }}" --clobber
           fi
