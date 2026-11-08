@@ -31,22 +31,6 @@ RUN dnf config-manager addrepo --from-repofile=https://brave-browser-rpm-release
     dnf5 install -y brave-browser && \
     dnf5 remove -y firefox || true
 
-## Install OpenCode CLI (system-wide)
-RUN set -euo pipefail; \
-    target="linux-x64"; \
-    metadata="$(curl -fsSL https://opencode.ai/update/api/latest/cli/npm)"; \
-    version="$(printf '%s' "$metadata" | sed -n 's/.*\"version\":\"\([^\"]*\)\".*/\1/p')"; \
-    scope="$(printf '%s' "$metadata" | sed -n 's/.*\"package\":\"\([^\"]*\)\".*/\1/p' | sed 's#/cli$##')"; \
-    pkg="${scope}/cli-${target}"; \
-    file="cli-${target}-${version}.tgz"; \
-    url="https://registry.npmjs.org/${pkg}/-/${file}"; \
-    tmp="$(mktemp -d)"; \
-    curl -fsSL -o "$tmp/$file" "$url"; \
-    tar -xzf "$tmp/$file" -C "$tmp"; \
-    install -Dm0755 "$tmp/package/bin/opencode" /usr/local/bin/opencode; \
-    rm -rf "$tmp"; \
-    /usr/local/bin/opencode --version || true
-
 ## Install OpenCode Desktop (RPM, latest release)
 RUN set -euo pipefail; \
     rpm_url="$(curl -fsSL https://api.github.com/repos/anomalyco/opencode/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a[\"browser_download_url\"] for a in d.get(\"assets\",[]) if a[\"name\"]==\"opencode-desktop-linux-x86_64.rpm\"))')"; \

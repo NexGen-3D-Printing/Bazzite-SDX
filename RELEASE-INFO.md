@@ -24,7 +24,6 @@ The build removes the stock kernel to ensure exactly one `/usr/lib/modules` kern
 
 ### Desktop/apps added by image build
 - **Brave Browser** (Firefox RPM removed during image build when present)
-- **OpenCode CLI** (`/usr/local/bin/opencode`, latest at build time)
 - **OpenCode Desktop** (latest RPM at build time)
 - **Unsloth Desktop** (latest AppImage, extracted to `/opt/unsloth-desktop`)
 - **SolidCraft** (latest RPM at build time)
@@ -66,7 +65,7 @@ Support depends on upstream [linux-surface](https://github.com/linux-surface/lin
 
 ### 2026-11 (current line)
 - Base switched to **Bazzite-DX** (`ghcr.io/ublue-os/bazzite-dx:stable`)
-- Added **Brave** (Firefox removed), **OpenCode CLI/Desktop**, **Unsloth Desktop**, **SolidCraft**, **ArtCraft**, **Mission Center**
+- Added **Brave** (Firefox removed), **OpenCode Desktop**, **Unsloth Desktop**, **SolidCraft**, **ArtCraft**, **Mission Center**
 - `build.yml` now updates the `latest` GitHub release with detected app/kernel versions
 - **ISO/Google Drive distribution removed**; project uses bootc rebase workflow
 

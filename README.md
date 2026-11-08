@@ -17,7 +17,7 @@ Bazzite-SDX is a ready-to-use bootc image built from **Bazzite-DX** (`ghcr.io/ub
 
 **Included apps (image build):**
 - **Brave Browser** (Firefox RPM removed during image build)
-- **OpenCode CLI** and **OpenCode Desktop**
+- **OpenCode Desktop**
 - **Unsloth Desktop**
 - **SolidCraft** and **ArtCraft**
 - **Mission Center**

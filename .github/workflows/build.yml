@@ -275,7 +275,6 @@ jobs:
           IMG="${IMAGE_NAME}:${DEFAULT_TAG}"
 
           BRAVE_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'brave-browser --version 2>/dev/null || rpm -q brave-browser 2>/dev/null || echo unknown' | head -n1)
-          OPENCODE_CLI_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '/usr/local/bin/opencode --version 2>/dev/null || opencode --version 2>/dev/null || echo unknown' | head -n1)
           OPENCODE_DESKTOP_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -qa | grep -i opencode.*desktop | head -n1 || rpm -q opencode-desktop 2>/dev/null || echo unknown' | head -n1)
           UNSLOTH_DESKTOP_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'cat /opt/unsloth-desktop/version 2>/dev/null || grep -m1 "\"version\"" /opt/unsloth-desktop/resources/app/package.json 2>/dev/null | sed "s/.*: *\"\\([^\"]*\\)\".*/\\1/" || echo "installed (see /opt/unsloth-desktop)"' | head -n1)
           SOLIDCRAFT_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -q solidcraft 2>/dev/null || rpm -qa | grep -i "^solidcraft" | head -n1 || echo unknown' | head -n1)
@@ -297,7 +296,6 @@ jobs:
             echo "- **Bazzite/base OS:** ${BASE_OS_PRETTY} (VERSION_ID: ${BASE_OS_VERSION})"
             echo "- **Surface kernel:** ${SURFACE_KERNEL}"
             echo "- **Brave Browser:** ${BRAVE_VERSION}"
-            echo "- **OpenCode CLI:** ${OPENCODE_CLI_VERSION}"
             echo "- **OpenCode Desktop:** ${OPENCODE_DESKTOP_VERSION}"
             echo "- **Unsloth Desktop:** ${UNSLOTH_DESKTOP_VERSION}"
             echo "- **SolidCraft:** ${SOLIDCRAFT_VERSION}"
@@ -308,7 +306,7 @@ jobs:
             echo "- Linux Surface kernel (kernel-surface)"
             echo "- iptsd, libwacom-surface, surface-control"
             echo "- Brave Browser (Firefox removed)"
-            echo "- OpenCode CLI and OpenCode Desktop"
+            echo "- OpenCode Desktop"
             echo "- Unsloth Desktop"
             echo "- SolidCraft and ArtCraft"
             echo "- Mission Center"
