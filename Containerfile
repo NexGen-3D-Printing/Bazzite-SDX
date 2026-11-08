@@ -2,8 +2,8 @@
 FROM scratch AS ctx
 COPY system_files /system_files
 
-# Base Image - Using Bazzite-DX Stable (Fedora 44)
-FROM ghcr.io/ublue-os/bazzite:stable
+# Base Image - Using Bazzite-DX Stable
+FROM ghcr.io/ublue-os/bazzite-dx:stable
 
 ### MODIFICATIONS
 ## Install Linux Surface kernel packages directly from the Surface Linux repository
@@ -47,7 +47,7 @@ RUN mkdir -p /etc/bazzite-sdx && printf '%s\\n' \
     '' \
     'version = "1.0.0"' \
     'fedora_version = 45' \
-    'base_image = "ghcr.io/ublue-os/bazzite:stable"' \
+    'base_image = "ghcr.io/ublue-os/bazzite-dx:stable"' \
     'linux_surface_kernel = "7.2.15-1.surface.fc45"' \
     '' \
     '[links]' \
