@@ -68,6 +68,16 @@ RUN set -euo pipefail; \
     fi; \
     rm -rf "$tmp"
 
+## Install SolidCraft (RPM, latest release)
+RUN set -euo pipefail; \
+    rpm_url="$(curl -fsSL https://api.github.com/repos/tangency-labs/solidcraft/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a[\"browser_download_url\"] for a in d.get(\"assets\",[]) if a[\"name\"].endswith(\"linux-x86_64.rpm\") and a[\"name\"].startswith(\"solidcraft-\")))')"; \
+    dnf5 install -y "${rpm_url}"
+
+## Install ArtCraft (RPM, latest release)
+RUN set -euo pipefail; \
+    rpm_url="$(curl -fsSL https://api.github.com/repos/storytold/artcraft/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a[\"browser_download_url\"] for a in d.get(\"assets\",[]) if a[\"name\"].endswith(\"linux-x86_64.rpm\")))')"; \
+    dnf5 install -y "${rpm_url}"
+
 ## Remove stock kernel to ensure exactly one /usr/lib/modules kernel directory
 ## bootc requires exactly one kernel; version sorting would prefer ogc1.1 over surface.fc45
 ## This cascade removes ~50 packages including stock-kernel kmods (nvidia, xone, ryzen_smu, etc.)

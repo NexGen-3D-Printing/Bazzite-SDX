@@ -278,6 +278,8 @@ jobs:
           OPENCODE_CLI_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '/usr/local/bin/opencode --version 2>/dev/null || opencode --version 2>/dev/null || echo unknown' | head -n1)
           OPENCODE_DESKTOP_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -qa | grep -i opencode.*desktop | head -n1 || rpm -q opencode-desktop 2>/dev/null || echo unknown' | head -n1)
           UNSLOTH_DESKTOP_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'cat /opt/unsloth-desktop/version 2>/dev/null || grep -m1 "\"version\"" /opt/unsloth-desktop/resources/app/package.json 2>/dev/null | sed "s/.*: *\"\\([^\"]*\\)\".*/\\1/" || echo "installed (see /opt/unsloth-desktop)"' | head -n1)
+          SOLIDCRAFT_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -q solidcraft 2>/dev/null || rpm -qa | grep -i "^solidcraft" | head -n1 || echo unknown' | head -n1)
+          ARTCRAFT_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -q artcraft 2>/dev/null || rpm -qa | grep -i "^artcraft" | head -n1 || echo unknown' | head -n1)
           SURFACE_KERNEL=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -q kernel-surface --qf "%{VERSION}-%{RELEASE}" 2>/dev/null || echo unknown' | head -n1)
 
           TAG="latest"
@@ -293,6 +295,8 @@ jobs:
             echo "- **OpenCode CLI:** ${OPENCODE_CLI_VERSION}"
             echo "- **OpenCode Desktop:** ${OPENCODE_DESKTOP_VERSION}"
             echo "- **Unsloth Desktop:** ${UNSLOTH_DESKTOP_VERSION}"
+            echo "- **SolidCraft:** ${SOLIDCRAFT_VERSION}"
+            echo "- **ArtCraft:** ${ARTCRAFT_VERSION}"
             echo ""
             echo "### Features"
             echo "- Linux Surface kernel (kernel-surface)"
@@ -300,6 +304,7 @@ jobs:
             echo "- Brave Browser (Firefox removed)"
             echo "- OpenCode CLI and OpenCode Desktop"
             echo "- Unsloth Desktop"
+            echo "- SolidCraft and ArtCraft"
             echo "- Based on \`ghcr.io/ublue-os/bazzite-dx:stable\`"
             echo ""
             echo "### Install (rebase)"
@@ -331,6 +336,8 @@ jobs:
             echo "- **Brave:** https://brave.com/linux/"
             echo "- **OpenCode:** https://github.com/anomalyco/opencode"
             echo "- **Unsloth:** https://github.com/unslothai/unsloth"
+            echo "- **SolidCraft:** https://github.com/tangency-labs/solidcraft"
+            echo "- **ArtCraft:** https://github.com/storytold/artcraft"
           } > /tmp/release-notes.md
 
           if gh release view "$TAG" >/dev/null 2>&1; then
