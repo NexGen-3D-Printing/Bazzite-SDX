@@ -23,15 +23,7 @@ creds.refresh(Request())
 
 drive = build("drive", "v3", credentials=creds)
 
-# Show which account is authenticated
-try:
-    about = drive.about().get(fields="user(emailAddress,displayName)").execute()
-    user = about.get("user", {})
-    print(f"Authenticated as: {user.get('displayName')} <{user.get('emailAddress')}>")
-except Exception as e:
-    print(f"Could not determine authenticated user: {e}")
-
-FOLDER_ID = os.environ.get("GOOGLE_DRIVE_FOLDER_ID", "1FAslY7-NI2TBG0ksUxUhwOe15yV1KFh0")
+FOLDER_ID = os.environ.get("GOOGLE_DRIVE_FOLDER_ID") or "1FAslY7-NI2TBG0ksUxUhwOe15yV1KFh0"
 iso_path = os.environ["ISO_PATH"]
 iso_name = os.environ["ISO_NAME"]
 
