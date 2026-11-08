@@ -280,6 +280,7 @@ jobs:
           UNSLOTH_DESKTOP_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'cat /opt/unsloth-desktop/version 2>/dev/null || grep -m1 "\"version\"" /opt/unsloth-desktop/resources/app/package.json 2>/dev/null | sed "s/.*: *\"\\([^\"]*\\)\".*/\\1/" || echo "installed (see /opt/unsloth-desktop)"' | head -n1)
           SOLIDCRAFT_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -q solidcraft 2>/dev/null || rpm -qa | grep -i "^solidcraft" | head -n1 || echo unknown' | head -n1)
           ARTCRAFT_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -q artcraft 2>/dev/null || rpm -qa | grep -i "^artcraft" | head -n1 || echo unknown' | head -n1)
+          MISSION_CENTER_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -q mission-center 2>/dev/null || rpm -q missioncenter 2>/dev/null || rpm -qa | grep -i "^mission.?center" | head -n1 || echo unknown' | head -n1)
           SURFACE_KERNEL=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -q kernel-surface --qf "%{VERSION}-%{RELEASE}" 2>/dev/null || echo unknown' | head -n1)
 
           TAG="latest"
@@ -297,6 +298,7 @@ jobs:
             echo "- **Unsloth Desktop:** ${UNSLOTH_DESKTOP_VERSION}"
             echo "- **SolidCraft:** ${SOLIDCRAFT_VERSION}"
             echo "- **ArtCraft:** ${ARTCRAFT_VERSION}"
+            echo "- **Mission Center:** ${MISSION_CENTER_VERSION}"
             echo ""
             echo "### Features"
             echo "- Linux Surface kernel (kernel-surface)"
@@ -305,6 +307,7 @@ jobs:
             echo "- OpenCode CLI and OpenCode Desktop"
             echo "- Unsloth Desktop"
             echo "- SolidCraft and ArtCraft"
+            echo "- Mission Center"
             echo "- Based on \`ghcr.io/ublue-os/bazzite-dx:stable\`"
             echo ""
             echo "### Install (rebase)"
@@ -338,6 +341,7 @@ jobs:
             echo "- **Unsloth:** https://github.com/unslothai/unsloth"
             echo "- **SolidCraft:** https://github.com/tangency-labs/solidcraft"
             echo "- **ArtCraft:** https://github.com/storytold/artcraft"
+            echo "- **Mission Center:** https://gitlab.com/mission-center-devs/mission-center"
           } > /tmp/release-notes.md
 
           if gh release view "$TAG" >/dev/null 2>&1; then
