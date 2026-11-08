@@ -15,16 +15,20 @@ Bazzite-SDX is a ready-to-use bootc image built from **Bazzite-DX** (`ghcr.io/ub
 
 **Bazzite-DX base** - The Bazzite-DX experience (gaming + developer tooling), built from `ghcr.io/ublue-os/bazzite-dx:stable`.
 
-**Included apps (system Flatpaks, image build):**
-- **Brave Browser** (`com.brave.Browser`, Flathub; Firefox RPM removed when present)
+**Bazzite-SDX apps (Bazzite-style Flatpak setup; not baked into the image):**
+After rebasing, install the curated app set with:
+```bash
+ujust install-bazzite-sdx-flatpaks
+```
+- **Brave Browser** (`com.brave.Browser`, Flathub; Firefox RPM removed from the image when present)
 - **OpenCode** (`ai.opencode.opencode`, Flathub)
 - **SolidCraft** (`io.tangencylabs.solidcraft`, SolidCraft Flatpak repo)
 - **ArtCraft** (upstream Flatpak bundle from `storytold/artcraft` releases)
 - **Mission Center** (`io.missioncenter.MissionCenter`, Flathub)
 
-Apps without Flatpak support are dropped from the image build and may be added later via `ujust` recipes.
+The image ships Flatpak remotes/lists and the `ujust` recipe (following the upstream Bazzite pattern), but does **not** preinstall these Flatpaks into the OS image. Apps without Flatpak support are dropped and may be added later via `ujust` recipes.
 
-> App/kernel versions change per build. See the [**latest** release](https://github.com/NexGen-3D-Printing/bazzite-sdx/releases/tag/latest) for the versions detected from the most recent successful image build. Distribution is **rebase-only** (no custom USB installer ISO).
+> Base OS/kernel versions change per build. See the [**latest** release](https://github.com/NexGen-3D-Printing/bazzite-sdx/releases/tag/latest) for details from the most recent successful image build. Distribution is **rebase-only** (no custom USB installer ISO).
 
 ## Quick Installation (Rebase)
 
@@ -39,6 +43,9 @@ sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:latest
 
 # Reboot to apply
 sudo reboot
+
+# After reboot: install the curated Bazzite-SDX Flatpak apps
+ujust install-bazzite-sdx-flatpaks
 ```
 
 After rebooting:
@@ -156,4 +163,3 @@ Apache-2.0 (same as Bazzite and Universal Blue)
 **Built with ❤️ by NexGen-3D-Printing**
 
 *Making Linux work better for everyone, one device at a time.*
-# Update

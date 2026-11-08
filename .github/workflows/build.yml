@@ -274,11 +274,6 @@ jobs:
           set -euo pipefail
           IMG="${IMAGE_NAME}:${DEFAULT_TAG}"
 
-          BRAVE_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'flatpak info --system com.brave.Browser 2>/dev/null | awk -F": *" "/^Version/{print \$2; exit}" || echo unknown' | head -n1)
-          OPENCODE_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'flatpak info --system ai.opencode.opencode 2>/dev/null | awk -F": *" "/^Version/{print \$2; exit}" || echo unknown' | head -n1)
-          SOLIDCRAFT_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'flatpak info --system io.tangencylabs.solidcraft 2>/dev/null | awk -F": *" "/^Version/{print \$2; exit}" || flatpak list --system --app --columns=application,version 2>/dev/null | awk "\$1==\"io.tangencylabs.solidcraft\"{print \$2; exit}" || echo unknown' | head -n1)
-          ARTCRAFT_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'flatpak info --system ai.storyteller.artcraft 2>/dev/null | awk -F": *" "/^Version/{print \$2; exit}" || flatpak list --system --app --columns=application,version 2>/dev/null | awk "\$1 ~ /artcraft/{print \$2; exit}" || echo unknown' | head -n1)
-          MISSION_CENTER_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'flatpak info --system io.missioncenter.MissionCenter 2>/dev/null | awk -F": *" "/^Version/{print \$2; exit}" || echo unknown' | head -n1)
           BASE_OS_PRETTY=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${PRETTY_NAME:-unknown}"' | head -n1)
           BASE_OS_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${VERSION_ID:-${VERSION:-unknown}}"' | head -n1)
           BASE_OS_NAME=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${NAME:-unknown}"' | head -n1)
@@ -291,20 +286,26 @@ jobs:
             echo ""
             echo "Bazzite-DX with Linux Surface kernel support."
             echo ""
-            echo "### Versions"
+            echo "### Versions / Image info"
             echo "- **Bazzite/base OS:** ${BASE_OS_PRETTY} (VERSION_ID: ${BASE_OS_VERSION})"
             echo "- **Surface kernel:** ${SURFACE_KERNEL}"
-            echo "- **Brave Browser (Flatpak):** ${BRAVE_VERSION}"
-            echo "- **OpenCode (Flatpak):** ${OPENCODE_VERSION}"
-            echo "- **SolidCraft (Flatpak):** ${SOLIDCRAFT_VERSION}"
-            echo "- **ArtCraft (Flatpak):** ${ARTCRAFT_VERSION}"
-            echo "- **Mission Center (Flatpak):** ${MISSION_CENTER_VERSION}"
+            echo ""
+            echo "### Bazzite-SDX apps (Bazzite-style, not baked into the image)"
+            echo "Install these Flatpak apps after rebasing with:"
+            echo '```bash'
+            echo "ujust install-bazzite-sdx-flatpaks"
+            echo '```'
+            echo "- **Brave Browser** — \`com.brave.Browser\` (Flathub)"
+            echo "- **OpenCode** — \`ai.opencode.opencode\` (Flathub)"
+            echo "- **SolidCraft** — \`io.tangencylabs.solidcraft\` (SolidCraft Flatpak repo)"
+            echo "- **ArtCraft** — upstream Flatpak bundle from latest \`storytold/artcraft\` release"
+            echo "- **Mission Center** — \`io.missioncenter.MissionCenter\` (Flathub)"
             echo ""
             echo "### Features"
             echo "- Linux Surface kernel (kernel-surface)"
             echo "- iptsd, libwacom-surface, surface-control"
-            echo "- Brave Browser (Firefox removed; Brave installed as system Flatpak)"
-            echo "- OpenCode, SolidCraft, ArtCraft, and Mission Center installed as system Flatpaks"
+            echo "- Firefox RPM removed when present"
+            echo "- Bazzite-style Flatpak app setup: remotes/lists shipped in the image, apps installed via \`ujust install-bazzite-sdx-flatpaks\` (not baked into the image)"
             echo "- Apps without Flatpak support dropped from the image (planned for ujust recipes)"
             echo "- Based on \`ghcr.io/ublue-os/bazzite-dx:stable\` (detected base OS: ${BASE_OS_NAME} ${BASE_OS_VERSION})"
             echo ""

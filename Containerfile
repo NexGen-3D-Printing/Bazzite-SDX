@@ -26,23 +26,11 @@ RUN dnf5 install -y --allowerasing \
 ## Clean up GPG key
 RUN rm -f /usr/share/keyrings/linux-surface.gpg
 
-## Remove Firefox RPM if present (Brave is installed as a Flatpak below)
+## Remove Firefox RPM if present (Brave installed via Bazzite-style Flatpak setup)
 RUN dnf5 remove -y firefox || true
 
-## Install apps as system Flatpaks (drop apps without Flatpak support; ujust recipes later)
-RUN set -euo pipefail; \
-    flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo; \
-    flatpak remote-add --if-not-exists --system solidcraft https://docs.solidcraft.io/flatpak/solidcraft.flatpakrepo; \
-    # Flathub apps
-    flatpak install --system -y --noninteractive flathub com.brave.Browser ai.opencode.opencode io.missioncenter.MissionCenter; \
-    # SolidCraft (own remote; Flathub provides runtimes)
-    flatpak install --system -y --noninteractive solidcraft io.tangencylabs.solidcraft; \
-    # ArtCraft (upstream Flatpak bundle from latest GitHub release)
-    tmp="$(mktemp -d)"; \
-    art_url="$(curl -fsSL https://api.github.com/repos/storytold/artcraft/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a[\"browser_download_url\"] for a in d.get(\"assets\",[]) if a[\"name\"].endswith(\"linux-x86_64.flatpak\")))')"; \
-    curl -fsSL -o "$tmp/artcraft.flatpak" "$art_url"; \
-    flatpak install --system -y --noninteractive "$tmp/artcraft.flatpak"; \
-    rm -rf "$tmp"
+## Copy Bazzite-SDX system files (Flatpak remotes/lists, ujust recipes, etc.)
+COPY --from=ctx /system_files /
 
 ## Remove stock kernel to ensure exactly one /usr/lib/modules kernel directory
 ## bootc requires exactly one kernel; version sorting would prefer ogc1.1 over surface.fc45

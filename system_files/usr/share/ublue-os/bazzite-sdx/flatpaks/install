@@ -1,0 +1,6 @@
+# Bazzite-SDX default Flatpak apps (installed via ujust install-bazzite-sdx-flatpaks)
+# Remote refs from Flathub / configured remotes
+com.brave.Browser
+ai.opencode.opencode
+io.missioncenter.MissionCenter
+io.tangencylabs.solidcraft
