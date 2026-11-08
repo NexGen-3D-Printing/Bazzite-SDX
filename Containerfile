@@ -26,6 +26,11 @@ RUN dnf5 install -y --allowerasing \
 ## Clean up GPG key
 RUN rm -f /usr/share/keyrings/linux-surface.gpg
 
+## Install Brave browser and remove Firefox
+RUN dnf config-manager addrepo --from-repofile=https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo && \
+    dnf5 install -y brave-browser && \
+    dnf5 remove -y firefox || true
+
 ## Remove stock kernel to ensure exactly one /usr/lib/modules kernel directory
 ## bootc requires exactly one kernel; version sorting would prefer ogc1.1 over surface.fc45
 ## This cascade removes ~50 packages including stock-kernel kmods (nvidia, xone, ryzen_smu, etc.)
