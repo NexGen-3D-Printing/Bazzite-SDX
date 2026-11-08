@@ -44,17 +44,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      - name: Normalize image reference
+        run: |
+          IMAGE_REF="${IMAGE_REGISTRY,,}/${IMAGE_NAME,,}:${IMAGE_TAG}"
+          echo "IMAGE_REF=${IMAGE_REF}" >> "$GITHUB_ENV"
+          echo "Using ${IMAGE_REF}"
+
       - name: Log in to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Pull image for metadata
         run: |
-          podman pull "${IMAGE_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+          podman pull "${IMAGE_REF}"
 
       - name: Capture release metadata
         id: metadata
         run: |
-          IMG="${IMAGE_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+          IMG="${IMAGE_REF}"
           SURFACE_KERNEL=$(podman run --rm "$IMG" rpm -q kernel-surface --qf '%{VERSION}-%{RELEASE}' 2>/dev/null || echo "unknown")
           BASE_PRETTY=$(podman run --rm "$IMG" bash -lc '. /usr/lib/os-release && echo "${PRETTY_NAME:-}"' 2>/dev/null || echo "unknown")
           BASE_VERSION=$(podman run --rm "$IMG" bash -lc '. /usr/lib/os-release && echo "${VERSION_ID:-${VERSION:-unknown}}"' 2>/dev/null || echo "unknown")
@@ -86,7 +92,7 @@ jobs:
         id: build
         uses: ublue-os/titanoboa@main
         with:
-          image-ref: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          image-ref: ${{ env.IMAGE_REF }}
           iso-dest: bazzite-sdx-latest-amd64.iso
 
       - name: Generate SHA256 checksum
