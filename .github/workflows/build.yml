@@ -281,6 +281,9 @@ jobs:
           SOLIDCRAFT_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -q solidcraft 2>/dev/null || rpm -qa | grep -i "^solidcraft" | head -n1 || echo unknown' | head -n1)
           ARTCRAFT_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -q artcraft 2>/dev/null || rpm -qa | grep -i "^artcraft" | head -n1 || echo unknown' | head -n1)
           MISSION_CENTER_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -q mission-center 2>/dev/null || rpm -q missioncenter 2>/dev/null || rpm -qa | grep -i "^mission.?center" | head -n1 || echo unknown' | head -n1)
+          BASE_OS_PRETTY=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${PRETTY_NAME:-unknown}"' | head -n1)
+          BASE_OS_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${VERSION_ID:-${VERSION:-unknown}}"' | head -n1)
+          BASE_OS_NAME=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${NAME:-unknown}"' | head -n1)
           SURFACE_KERNEL=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -q kernel-surface --qf "%{VERSION}-%{RELEASE}" 2>/dev/null || echo unknown' | head -n1)
 
           TAG="latest"
@@ -291,6 +294,7 @@ jobs:
             echo "Bazzite-DX with Linux Surface kernel support."
             echo ""
             echo "### Versions"
+            echo "- **Bazzite/base OS:** ${BASE_OS_PRETTY} (VERSION_ID: ${BASE_OS_VERSION})"
             echo "- **Surface kernel:** ${SURFACE_KERNEL}"
             echo "- **Brave Browser:** ${BRAVE_VERSION}"
             echo "- **OpenCode CLI:** ${OPENCODE_CLI_VERSION}"
@@ -308,7 +312,7 @@ jobs:
             echo "- Unsloth Desktop"
             echo "- SolidCraft and ArtCraft"
             echo "- Mission Center"
-            echo "- Based on \`ghcr.io/ublue-os/bazzite-dx:stable\`"
+            echo "- Based on \`ghcr.io/ublue-os/bazzite-dx:stable\` (detected base OS: ${BASE_OS_NAME} ${BASE_OS_VERSION})"
             echo ""
             echo "### Install (rebase)"
             echo "Install an official Bazzite image first (or use an existing Fedora Atomic/Bazzite/Kinoite installation compatible with bootc), then rebase to Bazzite-SDX:"
