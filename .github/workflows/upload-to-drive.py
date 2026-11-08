@@ -5,6 +5,7 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
+from googleapiclient.errors import HttpError
 
 client_id = os.environ["GOOGLE_OAUTH_CLIENT_ID"]
 client_secret = os.environ["GOOGLE_OAUTH_CLIENT_SECRET"]
@@ -29,12 +30,20 @@ iso_name = os.environ["ISO_NAME"]
 file_metadata = {"name": iso_name, "parents": [FOLDER_ID]}
 media = MediaFileUpload(iso_path, mimetype="application/x-iso9660", resumable=True)
 
-response = drive.files().create(
-    body=file_metadata,
-    media_body=media,
-    fields="id, webViewLink, webContentLink",
-    supportsAllDrives=True,
-).execute()
+try:
+    response = drive.files().create(
+        body=file_metadata,
+        media_body=media,
+        fields="id, webViewLink, webContentLink",
+        supportsAllDrives=True,
+    ).execute()
+except HttpError as e:
+    print(f"Google Drive upload failed: {e}")
+    try:
+        print(f"Details: {e.error_details}")
+    except Exception:
+        pass
+    raise
 
 file_id = response["id"]
 download_link = response.get("webContentLink") or f"https://drive.google.com/uc?export=download&id={file_id}"
