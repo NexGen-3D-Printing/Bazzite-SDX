@@ -72,9 +72,9 @@ jobs:
           TITLE="Bazzite-SDX Latest"
           NOTES="Automated latest ISO release for Bazzite-SDX.
 
-- ISO and checksum attached as release assets
-- Source: https://github.com/NexGen-3D-Printing/bazzite-sdx
-- Surface Linux kernel: https://github.com/linux-surface/linux-surface"
+          - ISO and checksum attached as release assets
+          - Source: https://github.com/NexGen-3D-Printing/bazzite-sdx
+          - Surface Linux kernel: https://github.com/linux-surface/linux-surface"
 
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" --title "$TITLE" --notes "$NOTES" --latest
