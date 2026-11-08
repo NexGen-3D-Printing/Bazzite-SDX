@@ -43,7 +43,7 @@ RUN set -euo pipefail; \
     tmp="$(mktemp -d)"; \
     curl -fsSL -o "$tmp/$file" "$url"; \
     tar -xzf "$tmp/$file" -C "$tmp"; \
-    install -m 0755 "$tmp/package/bin/opencode" /usr/local/bin/opencode; \
+    install -Dm0755 "$tmp/package/bin/opencode" /usr/local/bin/opencode; \
     rm -rf "$tmp"; \
     /usr/local/bin/opencode --version || true
 
