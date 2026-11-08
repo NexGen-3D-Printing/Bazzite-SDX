@@ -84,14 +84,48 @@ jobs:
         run: |
           TAG="latest"
           TITLE="Bazzite-SDX Latest"
-          NOTES="Automated latest ISO release for Bazzite-SDX.
+          NOTES="## Bazzite-SDX (Latest ISO)
 
-          - **ISO download (Google Drive):** ${DRIVE_LINK}
-          - Checksum attached as a release asset
-          - Source: https://github.com/NexGen-3D-Printing/bazzite-sdx
-          - Surface Linux kernel: https://github.com/linux-surface/linux-surface
+          Automated latest ISO release for Bazzite-SDX.
 
-          > Note: The ISO is hosted on Google Drive due to GitHub Releases' 2 GB asset limit."
+          ### Features
+          - Linux Surface kernel 7.2.15-1.surface.fc45
+          - iptsd, libwacom-surface, surface-control
+          - Fedora 44 base with Surface drivers
+
+          ### Download
+          - **ISO (Google Drive):** ${DRIVE_LINK}
+          - **Checksum:** attached as a release asset (\`.sha256\`)
+
+          > Note: The ISO is hosted on Google Drive due to GitHub Releases' 2 GB asset limit.
+
+          ### Create a bootable USB installer
+          - **Windows:** [Rufus](https://rufus.ie/) — select the ISO and write it to your USB drive.
+          - **macOS / Linux:** [balenaEtcher](https://etcher.balena.io/) — select the ISO, select your USB drive, and flash.
+
+          ### Rebase from Kinoite or standard Bazzite
+          \`\`\`bash
+          # Verify current state
+          sudo bootc status
+
+          # Rebase to Bazzite-SDX
+          sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:latest
+
+          # Verify the switch
+          sudo bootc status
+
+          # Pull and apply updates
+          sudo bootc fetch --apply
+          \`\`\`
+
+          ### Security verification
+          \`\`\`bash
+          cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:latest
+          \`\`\`
+
+          ### Related resources
+          - **Bazzite-SDX repository:** https://github.com/NexGen-3D-Printing/bazzite-sdx
+          - **Surface Linux kernel:** https://github.com/linux-surface/linux-surface"
 
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" --title "$TITLE" --notes "$NOTES" --latest
