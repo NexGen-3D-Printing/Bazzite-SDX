@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-26.04
 
     permissions:
-      contents: read
+      contents: write
       packages: write
       id-token: write
 
@@ -263,3 +263,74 @@ jobs:
           trap 'rm -f "${KEY_FILE}"' EXIT
           printf '%s\n' "${{ secrets.COSIGN_PRIVATE_KEY }}" > "${KEY_FILE}"
           cosign sign --yes --key "${KEY_FILE}" "${IMAGE_REGISTRY}/${IMAGE_NAME}@${DIGEST}"
+
+      - name: Update GitHub Release (app versions)
+        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          DEFAULT_TAG: ${{ env.DEFAULT_TAG }}
+        run: |
+          set -euo pipefail
+          IMG="${IMAGE_NAME}:${DEFAULT_TAG}"
+
+          BRAVE_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'brave-browser --version 2>/dev/null || rpm -q brave-browser 2>/dev/null || echo unknown' | head -n1)
+          OPENCODE_CLI_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '/usr/local/bin/opencode --version 2>/dev/null || opencode --version 2>/dev/null || echo unknown' | head -n1)
+          OPENCODE_DESKTOP_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -qa | grep -i opencode.*desktop | head -n1 || rpm -q opencode-desktop 2>/dev/null || echo unknown' | head -n1)
+          SURFACE_KERNEL=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -q kernel-surface --qf "%{VERSION}-%{RELEASE}" 2>/dev/null || echo unknown' | head -n1)
+
+          TAG="latest"
+          TITLE="Bazzite-SDX"
+          {
+            echo "## Bazzite-SDX"
+            echo ""
+            echo "Bazzite-DX with Linux Surface kernel support."
+            echo ""
+            echo "### Versions"
+            echo "- **Surface kernel:** ${SURFACE_KERNEL}"
+            echo "- **Brave Browser:** ${BRAVE_VERSION}"
+            echo "- **OpenCode CLI:** ${OPENCODE_CLI_VERSION}"
+            echo "- **OpenCode Desktop:** ${OPENCODE_DESKTOP_VERSION}"
+            echo ""
+            echo "### Features"
+            echo "- Linux Surface kernel (kernel-surface)"
+            echo "- iptsd, libwacom-surface, surface-control"
+            echo "- Brave Browser (Firefox removed)"
+            echo "- OpenCode CLI and OpenCode Desktop"
+            echo "- Based on \`ghcr.io/ublue-os/bazzite-dx:stable\`"
+            echo ""
+            echo "### Install (rebase)"
+            echo "Install an official Bazzite image first (or use an existing Fedora Atomic/Bazzite/Kinoite installation compatible with bootc), then rebase to Bazzite-SDX:"
+            echo ""
+            echo '```bash'
+            echo "# Verify current state"
+            echo "sudo bootc status"
+            echo ""
+            echo "# Rebase to Bazzite-SDX (based on Bazzite-DX)"
+            echo "sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:latest"
+            echo ""
+            echo "# Verify the switch"
+            echo "sudo bootc status"
+            echo ""
+            echo "# Pull and apply updates"
+            echo "sudo bootc fetch --apply"
+            echo '```'
+            echo ""
+            echo "### Security verification"
+            echo '```bash'
+            echo "cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:latest"
+            echo '```'
+            echo ""
+            echo "### Related resources"
+            echo "- **Bazzite-SDX repository:** https://github.com/NexGen-3D-Printing/bazzite-sdx"
+            echo "- **Bazzite-DX:** https://github.com/ublue-os/bazzite-dx"
+            echo "- **Surface Linux kernel:** https://github.com/linux-surface/linux-surface"
+            echo "- **Brave:** https://brave.com/linux/"
+            echo "- **OpenCode:** https://github.com/anomalyco/opencode"
+          } > /tmp/release-notes.md
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md --latest
+          else
+            gh release create "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md --latest
+          fi
