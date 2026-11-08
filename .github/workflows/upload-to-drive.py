@@ -27,6 +27,17 @@ FOLDER_ID = os.environ.get("GOOGLE_DRIVE_FOLDER_ID", "1FAslY7-NI2TBG0ksUxUhwOe15
 iso_path = os.environ["ISO_PATH"]
 iso_name = os.environ["ISO_NAME"]
 
+# Verify folder exists and is accessible
+try:
+    folder = drive.files().get(
+        fileId=FOLDER_ID, fields="id,name,driveId", supportsAllDrives=True
+    ).execute()
+    print(f"Using Drive folder: {folder.get('name')} ({folder.get('id')})")
+except HttpError as e:
+    print(f"Cannot access target folder {FOLDER_ID}: {e}")
+    print("Ensure the authorized Google account has access to this folder and GOOGLE_DRIVE_FOLDER_ID is correct.")
+    raise
+
 file_metadata = {"name": iso_name, "parents": [FOLDER_ID]}
 media = MediaFileUpload(iso_path, mimetype="application/x-iso9660", resumable=True)
 
