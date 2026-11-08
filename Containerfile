@@ -41,6 +41,12 @@ RUN dnf5 remove -y --setopt=protected_packages= \
     test "$(ls -1 /usr/lib/modules/ | wc -l)" -eq 1 && \
     rpm -q kernel-surface
 
+## Ensure PLATFORM_ID is present for bootc-image-builder/osbuild
+RUN if ! grep -q '^PLATFORM_ID=' /usr/lib/os-release 2>/dev/null; then \
+      . /usr/lib/os-release; \
+      echo "PLATFORM_ID=\"platform:f${VERSION_ID:-45}\"" >> /usr/lib/os-release; \
+    fi
+
 ## Create release info file
 RUN mkdir -p /etc/bazzite-sdx && printf '%s\\n' \
     '# Bazzite-SDX Release Information' \
