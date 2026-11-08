@@ -29,6 +29,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
 
       - name: Find latest successful run (manual trigger)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_id == '' }}
@@ -55,6 +56,15 @@ jobs:
           run-id: ${{ github.event.workflow_run.id || inputs.run_id || steps.find-run.outputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Download metadata artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: bazzite-sdx-metadata
+          path: /tmp/metadata
+          run-id: ${{ github.event.workflow_run.id || inputs.run_id || steps.find-run.outputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
       - name: Locate files
         id: files
         run: |
@@ -77,60 +87,105 @@ jobs:
           pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib > /dev/null
           python3 .github/workflows/upload-to-drive.py
 
-      - name: Create or update GitHub Release (latest)
+      - name: Prepare release notes
+        id: notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DRIVE_LINK: ${{ steps.gdrive.outputs.drive_link }}
         run: |
+          set -euo pipefail
+
+          # Metadata (from build-iso artifact)
+          SURFACE_KERNEL="unknown"
+          BASE_PRETTY="unknown"
+          BASE_VERSION="unknown"
+          IMAGE_VERSION="latest"
+          if [ -f /tmp/metadata/release-metadata.json ]; then
+            SURFACE_KERNEL=$(jq -r '.surface_kernel // "unknown"' /tmp/metadata/release-metadata.json)
+            BASE_PRETTY=$(jq -r '.base_pretty_name // "unknown"' /tmp/metadata/release-metadata.json)
+            BASE_VERSION=$(jq -r '.base_version // "unknown"' /tmp/metadata/release-metadata.json)
+            IMAGE_VERSION=$(jq -r '.image_version // "latest"' /tmp/metadata/release-metadata.json)
+          fi
+
+          # Previous release info (before updating latest)
+          PREV_PUBLISHED=""
+          if gh release view latest --json publishedAt >/tmp/prev-release.json 2>/dev/null; then
+            PREV_PUBLISHED=$(jq -r '.publishedAt // ""' /tmp/prev-release.json)
+          fi
+
+          # Changes since last release
+          CHANGES=""
+          if [ -n "$PREV_PUBLISHED" ]; then
+            CHANGES=$(git log --since="$PREV_PUBLISHED" --no-merges --pretty=format:'- %s (%h)' --max-count=30 2>/dev/null || true)
+          fi
+          if [ -z "$CHANGES" ]; then
+            CHANGES=$(git log -n 10 --no-merges --pretty=format:'- %s (%h)' 2>/dev/null || true)
+          fi
+          if [ -z "$CHANGES" ]; then
+            CHANGES="- No commit history available"
+          fi
+
+          # Write notes to file to avoid shell escaping issues
+          {
+            echo "## Bazzite-SDX (Latest ISO)"
+            echo ""
+            echo "Automated latest ISO release for Bazzite-SDX."
+            echo ""
+            echo "### Versions"
+            echo "- **Surface kernel:** ${SURFACE_KERNEL}"
+            echo "- **Base system (Bazzite):** ${BASE_PRETTY} (${BASE_VERSION})"
+            echo "- **Image tag/version:** ${IMAGE_VERSION}"
+            echo ""
+            echo "### Download"
+            echo "- **ISO (Google Drive):** ${DRIVE_LINK}"
+            echo "- **Checksum:** attached as a release asset (\`.sha256\`)"
+            echo ""
+            echo "> Note: The ISO is hosted on Google Drive due to GitHub Releases' 2 GB asset limit."
+            echo ""
+            echo "### Major changes since last release"
+            echo "${CHANGES}"
+            echo ""
+            echo "### Create a bootable USB installer"
+            echo "- **Windows:** [Rufus](https://rufus.ie/) — select the ISO and write it to your USB drive."
+            echo "- **macOS / Linux:** [balenaEtcher](https://etcher.balena.io/) — select the ISO, select your USB drive, and flash."
+            echo ""
+            echo "### Rebase from Kinoite or standard Bazzite"
+            echo '```bash'
+            echo "# Verify current state"
+            echo "sudo bootc status"
+            echo ""
+            echo "# Rebase to Bazzite-SDX"
+            echo "sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:latest"
+            echo ""
+            echo "# Verify the switch"
+            echo "sudo bootc status"
+            echo ""
+            echo "# Pull and apply updates"
+            echo "sudo bootc fetch --apply"
+            echo '```'
+            echo ""
+            echo "### Security verification"
+            echo '```bash'
+            echo "cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:latest"
+            echo '```'
+            echo ""
+            echo "### Related resources"
+            echo "- **Bazzite-SDX repository:** https://github.com/NexGen-3D-Printing/bazzite-sdx"
+            echo "- **Surface Linux kernel:** https://github.com/linux-surface/linux-surface"
+          } > /tmp/release-notes.md
+
+          echo "notes_file=/tmp/release-notes.md" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update GitHub Release (latest)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
           TAG="latest"
           TITLE="Bazzite-SDX Latest"
-          NOTES="## Bazzite-SDX (Latest ISO)
-
-          Automated latest ISO release for Bazzite-SDX.
-
-          ### Features
-          - Linux Surface kernel 7.2.15-1.surface.fc45
-          - iptsd, libwacom-surface, surface-control
-          - Fedora 44 base with Surface drivers
-
-          ### Download
-          - **ISO (Google Drive):** ${DRIVE_LINK}
-          - **Checksum:** attached as a release asset (\`.sha256\`)
-
-          > Note: The ISO is hosted on Google Drive due to GitHub Releases' 2 GB asset limit.
-
-          ### Create a bootable USB installer
-          - **Windows:** [Rufus](https://rufus.ie/) — select the ISO and write it to your USB drive.
-          - **macOS / Linux:** [balenaEtcher](https://etcher.balena.io/) — select the ISO, select your USB drive, and flash.
-
-          ### Rebase from Kinoite or standard Bazzite
-          \`\`\`bash
-          # Verify current state
-          sudo bootc status
-
-          # Rebase to Bazzite-SDX
-          sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:latest
-
-          # Verify the switch
-          sudo bootc status
-
-          # Pull and apply updates
-          sudo bootc fetch --apply
-          \`\`\`
-
-          ### Security verification
-          \`\`\`bash
-          cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:latest
-          \`\`\`
-
-          ### Related resources
-          - **Bazzite-SDX repository:** https://github.com/NexGen-3D-Printing/bazzite-sdx
-          - **Surface Linux kernel:** https://github.com/linux-surface/linux-surface"
-
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release edit "$TAG" --title "$TITLE" --notes "$NOTES" --latest
+            gh release edit "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md --latest
           else
-            gh release create "$TAG" --title "$TITLE" --notes "$NOTES" --latest
+            gh release create "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md --latest
           fi
 
       - name: Upload checksum to GitHub Release

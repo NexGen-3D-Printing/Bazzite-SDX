@@ -8,16 +8,12 @@ on:
         required: false
         default: false
         type: boolean
-      platform:
-        required: true
-        type: choice
-        options:
-          - amd64
-          - arm64
   workflow_run:
     workflows: ["Build container image"]
     types:
       - completed
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly on Monday 06:00 UTC
 
 permissions:
   contents: read
@@ -30,8 +26,8 @@ concurrency:
 
 jobs:
   build-iso:
-    name: Build ISO
-    runs-on: ${{ inputs.platform == 'amd64' && 'ubuntu-latest' || 'ubuntu-latest' }}
+    name: Build ISO (amd64)
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
@@ -74,6 +70,34 @@ jobs:
             -t localhost/payload:latest \
             -f installer/Containerfile \
             .
+      - name: Capture release metadata
+        id: metadata
+        run: |
+          SURFACE_KERNEL=$(sudo podman run --rm localhost/payload:latest rpm -q kernel-surface --qf '%{VERSION}-%{RELEASE}' 2>/dev/null || echo "unknown")
+          BASE_PRETTY=$(sudo podman run --rm localhost/payload:latest bash -lc '. /usr/lib/os-release && echo "${PRETTY_NAME:-}"' 2>/dev/null || echo "unknown")
+          BASE_VERSION=$(sudo podman run --rm localhost/payload:latest bash -lc '. /usr/lib/os-release && echo "${VERSION_ID:-${VERSION:-unknown}}"' 2>/dev/null || echo "unknown")
+          IMAGE_VERSION=$(sudo podman inspect localhost/payload:latest --format '{{ index .Config.Labels "org.opencontainers.image.version" }}' 2>/dev/null || echo "")
+          IMAGE_TITLE=$(sudo podman inspect localhost/payload:latest --format '{{ index .Config.Labels "org.opencontainers.image.title" }}' 2>/dev/null || echo "")
+          cat > /tmp/release-metadata.json <<JSON
+          {
+            "surface_kernel": "${SURFACE_KERNEL}",
+            "base_pretty_name": "${BASE_PRETTY}",
+            "base_version": "${BASE_VERSION}",
+            "image_version": "${IMAGE_VERSION}",
+            "image_title": "${IMAGE_TITLE}",
+            "build_date_utc": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          JSON
+          cat /tmp/release-metadata.json
+      - name: Upload metadata artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: bazzite-sdx-metadata
+          path: /tmp/release-metadata.json
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+          overwrite: true
       - name: Build ISO
         id: build
         uses: Zeglius/titanoboa@revamp-pr
