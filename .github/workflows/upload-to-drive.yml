@@ -2,13 +2,13 @@ name: Upload ISO to Google Drive and Publish Release
 
 on:
   workflow_run:
-    workflows: ["Build Live ISO"]
+    workflows: ["Build Installer ISO"]
     types:
       - completed
   workflow_dispatch:
     inputs:
       run_id:
-        description: "Build Live ISO run ID to download artifacts from (leave empty for latest successful run)"
+        description: "Build Installer ISO run ID to download artifacts from (leave empty for latest successful run)"
         required: false
         type: string
 
