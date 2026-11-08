@@ -264,7 +264,7 @@ jobs:
           printf '%s\n' "${{ secrets.COSIGN_PRIVATE_KEY }}" > "${KEY_FILE}"
           cosign sign --yes --key "${KEY_FILE}" "${IMAGE_REGISTRY}/${IMAGE_NAME}@${DIGEST}"
 
-      - name: Update GitHub Release (app versions)
+      - name: Update GitHub Release (image info + portal/apps)
         if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -284,29 +284,43 @@ jobs:
           {
             echo "## Bazzite-SDX"
             echo ""
-            echo "Bazzite-DX with Linux Surface kernel support."
+            echo "Bazzite-DX with Linux Surface kernel support. This \`latest\` release is auto-updated after each successful build on \`main\`."
             echo ""
             echo "### Versions / Image info"
             echo "- **Bazzite/base OS:** ${BASE_OS_PRETTY} (VERSION_ID: ${BASE_OS_VERSION})"
             echo "- **Surface kernel:** ${SURFACE_KERNEL}"
             echo ""
-            echo "### Bazzite-SDX apps (Bazzite-style, not baked into the image)"
-            echo "Install these Flatpak apps after rebasing with:"
+            echo "### NexGen3D SDX Portal (new)"
+            echo "The image includes **NexGen3D SDX Portal**, a separate yafti-based portal alongside the original Bazzite Portal. It provides category tabs, per-app install actions, and full app descriptions, and runs Bazzite-SDX \`ujust\` recipes (apps are **not baked into the OS image**)."
+            echo ""
+            echo "**Launch:** open \`NexGen3D SDX Portal\` from the app menu (or run \`yafti_gtk.py /usr/share/yafti/nexgen3d-sdx.yml\`)."
+            echo ""
+            echo "**Portal features:**"
+            echo "- Separate from the upstream Bazzite Portal (no autostart added by SDX)"
+            echo "- Category tabs: Setup, AI Tools, Web Browsers, Creative Utilities, System Utilities, Media, System Management"
+            echo "- Per-app install options with full descriptions and source/install-method notes"
+            echo "- \"Install all core apps\" option + per-app \`ujust\` recipes"
+            echo "- System actions: check for image/system updates (prompts before running \`ujust update\`), run \`ujust benchmark\` (if available), show system info via \`fastfetch\`"
+            echo ""
+            echo "**Apps included / available via portal (install priority: Flatpak > AppImage > rpm-ostree layer > Docker, as applicable):**"
+            echo "- **AI Tools:** OpenCode app (\`ai.opencode.opencode\`, Flatpak/Flathub), OpenCode CLI (official user installer), LM Studio (\`ai.lmstudio.lm-studio\`, Flatpak/Flathub), Unsloth Desktop (latest AppImage, user install), Harbor (\`av/harbor\`, Docker/Compose setup), Odysseus (\`odysseus-dev/odysseus\`, Docker/Compose setup)"
+            echo "- **Web Browsers:** Brave Browser (\`com.brave.Browser\`, Flatpak/Flathub)"
+            echo "- **Creative Utilities:** SolidCraft (\`io.tangencylabs.solidcraft\`, SolidCraft Flatpak repo), ArtCraft (upstream Flatpak bundle from latest \`storytold/artcraft\` release)"
+            echo "- **System Utilities:** Mission Center (\`io.missioncenter.MissionCenter\`, Flatpak/Flathub), Gear Lever (\`it.mijorus.gearlever\`, Flatpak/Flathub)"
+            echo "- **Media:** Plex Player/Plex Desktop (\`tv.plex.PlexDesktop\`, Flatpak/Flathub), Plex HTPC (\`tv.plex.PlexHTPC\`, Flatpak/Flathub), VLC (\`org.videolan.VLC\`, Flatpak/Flathub), Delfin (\`cafe.avery.Delfin\`, Flatpak/Flathub), Web App Hub (\`org.pvermeer.WebAppHub\`, Flatpak/Flathub)"
+            echo ""
+            echo "### Quick install (core Bazzite-SDX apps)"
+            echo "After rebasing, install the core curated Flatpak set with:"
             echo '```bash'
             echo "ujust install-bazzite-sdx-flatpaks"
             echo '```'
-            echo "- **Brave Browser** — \`com.brave.Browser\` (Flathub)"
-            echo "- **OpenCode** — \`ai.opencode.opencode\` (Flathub)"
-            echo "- **SolidCraft** — \`io.tangencylabs.solidcraft\` (SolidCraft Flatpak repo)"
-            echo "- **ArtCraft** — upstream Flatpak bundle from latest \`storytold/artcraft\` release"
-            echo "- **Mission Center** — \`io.missioncenter.MissionCenter\` (Flathub)"
+            echo "Or use **NexGen3D SDX Portal** for per-app installs and additional tools."
             echo ""
             echo "### Features"
             echo "- Linux Surface kernel (kernel-surface)"
             echo "- iptsd, libwacom-surface, surface-control"
             echo "- Firefox RPM removed when present"
-            echo "- Bazzite-style Flatpak app setup: remotes/lists shipped in the image, apps installed via \`ujust install-bazzite-sdx-flatpaks\` (not baked into the image)"
-            echo "- Apps without Flatpak support dropped from the image (planned for ujust recipes)"
+            echo "- **NexGen3D SDX Portal** + Bazzite-style \`ujust\` recipes (Flatpak/AppImage/Docker helpers; not baked into the image)"
             echo "- Based on \`ghcr.io/ublue-os/bazzite-dx:stable\` (detected base OS: ${BASE_OS_NAME} ${BASE_OS_VERSION})"
             echo ""
             echo "### Install (rebase)"
@@ -319,15 +333,13 @@ jobs:
             echo "# Rebase to Bazzite-SDX (based on Bazzite-DX)"
             echo "sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:latest"
             echo ""
-            echo "# Verify the switch"
-            echo "sudo bootc status"
-            echo ""
-            echo "# Pull and apply updates"
-            echo "sudo bootc fetch --apply"
+            echo "# Reboot, then install apps via NexGen3D SDX Portal or:"
+            echo "ujust install-bazzite-sdx-flatpaks"
             echo '```'
             echo ""
             echo "### Security verification"
             echo '```bash'
+            echo "curl -fsSL https://raw.githubusercontent.com/NexGen-3D-Printing/bazzite-sdx/main/cosign.pub -o cosign.pub"
             echo "cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:latest"
             echo '```'
             echo ""
@@ -335,11 +347,7 @@ jobs:
             echo "- **Bazzite-SDX repository:** https://github.com/NexGen-3D-Printing/bazzite-sdx"
             echo "- **Bazzite-DX:** https://github.com/ublue-os/bazzite-dx"
             echo "- **Surface Linux kernel:** https://github.com/linux-surface/linux-surface"
-            echo "- **Brave (Flathub):** https://flathub.org/en/apps/com.brave.Browser"
-            echo "- **OpenCode (Flathub):** https://flathub.org/en/apps/ai.opencode.opencode"
-            echo "- **SolidCraft:** https://github.com/tangency-labs/solidcraft"
-            echo "- **ArtCraft:** https://github.com/storytold/artcraft"
-            echo "- **Mission Center (Flathub):** https://flathub.org/en/apps/io.missioncenter.MissionCenter"
+            echo "- **Bazzite docs (ujust/Portal):** https://docs.bazzite.gg/"
           } > /tmp/release-notes.md
 
           if gh release view "$TAG" >/dev/null 2>&1; then
