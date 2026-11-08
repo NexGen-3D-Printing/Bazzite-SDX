@@ -1,0 +1,23 @@
+title: NexGen3D SDX Portal
+screens:
+  - title: "Welcome"
+    description: "Bazzite-SDX setup (NexGen3D)"
+    actions:
+      - id: "bazzite-sdx-readme"
+        title: "Open Bazzite-SDX on GitHub"
+        description: "Project page, releases, and documentation."
+        default: false
+        script: "xdg-open https://github.com/NexGen-3D-Printing/bazzite-sdx"
+      - id: "bazzite-sdx-release"
+        title: "Open latest release notes"
+        description: "Base OS/kernel info and Bazzite-SDX app install instructions."
+        default: false
+        script: "xdg-open https://github.com/NexGen-3D-Printing/bazzite-sdx/releases/tag/latest"
+  - title: "Bazzite-SDX Apps"
+    description: "Install curated Flatpak apps (Bazzite-style, not baked into the image)"
+    actions:
+      - id: "install-bazzite-sdx-flatpaks"
+        title: "Install Bazzite-SDX Flatpak apps"
+        description: "Runs `ujust install-bazzite-sdx-flatpaks` to configure remotes and install Brave, OpenCode, SolidCraft, ArtCraft, and Mission Center."
+        default: false
+        script: 'ujust install-bazzite-sdx-flatpaks; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'

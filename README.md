@@ -20,6 +20,7 @@ After rebasing, install the curated app set with:
 ```bash
 ujust install-bazzite-sdx-flatpaks
 ```
+Or open **NexGen3D SDX Portal** (a separate portal alongside the original Bazzite Portal) and run the Bazzite-SDX app install action.
 - **Brave Browser** (`com.brave.Browser`, Flathub; Firefox RPM removed from the image when present)
 - **OpenCode** (`ai.opencode.opencode`, Flathub)
 - **SolidCraft** (`io.tangencylabs.solidcraft`, SolidCraft Flatpak repo)
@@ -46,6 +47,7 @@ sudo reboot
 
 # After reboot: install the curated Bazzite-SDX Flatpak apps
 ujust install-bazzite-sdx-flatpaks
+# (or use the "NexGen3D SDX Portal" app)
 ```
 
 After rebooting:
