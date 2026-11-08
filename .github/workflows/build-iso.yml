@@ -15,9 +15,15 @@ on:
   schedule:
     - cron: '0 6 * * 1'  # Weekly on Monday 06:00 UTC
 
+env:
+  IMAGE_NAME: ${{ github.event.repository.name }}
+  IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"
+  IMAGE_TAG: "latest"
+
 permissions:
   contents: read
-  packages: write
+  packages: read
+  actions: read
   id-token: write
 
 concurrency:
@@ -30,54 +36,30 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
+      packages: read
+      actions: read
       id-token: write
 
     steps:
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6 # v2.0.0
-        with:
-          tool-cache: true
-
-      - name: Mount Container Storage BTRFS Loopback
-        run: |
-          sudo truncate -s 110G /mnt/podman-storage.img
-          sudo mkfs.btrfs -f -m single -d single /mnt/podman-storage.img
-          sudo podman system reset --force
-          sudo systemctl stop podman.service
-          LOOP=$(sudo losetup --find --show --direct-io=on /mnt/podman-storage.img)
-          sudo mkdir -p /mnt/podman-storage
-          sudo mount -o compress-force=zstd:2,discard=async,noatime "$LOOP" /mnt/podman-storage
-          sudo mkdir -p /mnt/podman-storage/storage /mnt/podman-storage/tmp
-          sudo mount --bind /mnt/podman-storage/storage /var/lib/containers/storage
-          sudo systemctl start podman.service
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          submodules: recursive
 
-      - name: Setup podman
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Pull image for metadata
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y podman
-          podman login -u "${{ github.actor }}" -p "${{ secrets.GITHUB_TOKEN }}" ghcr.io
-      - name: Build Payload Container
-        run: |
-          sudo env TMPDIR=/mnt/podman-storage/tmp podman build \
-            --cap-add sys_admin \
-            --security-opt label=disable \
-            --build-arg BASE_IMAGE="ghcr.io/nexgen-3d-printing/bazzite-sdx:latest" \
-            -t localhost/payload:latest \
-            -f installer/Containerfile \
-            .
+          podman pull "${IMAGE_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+
       - name: Capture release metadata
         id: metadata
         run: |
-          SURFACE_KERNEL=$(sudo podman run --rm localhost/payload:latest rpm -q kernel-surface --qf '%{VERSION}-%{RELEASE}' 2>/dev/null || echo "unknown")
-          BASE_PRETTY=$(sudo podman run --rm localhost/payload:latest bash -lc '. /usr/lib/os-release && echo "${PRETTY_NAME:-}"' 2>/dev/null || echo "unknown")
-          BASE_VERSION=$(sudo podman run --rm localhost/payload:latest bash -lc '. /usr/lib/os-release && echo "${VERSION_ID:-${VERSION:-unknown}}"' 2>/dev/null || echo "unknown")
-          IMAGE_VERSION=$(sudo podman inspect localhost/payload:latest --format '{{ index .Config.Labels "org.opencontainers.image.version" }}' 2>/dev/null || echo "")
-          IMAGE_TITLE=$(sudo podman inspect localhost/payload:latest --format '{{ index .Config.Labels "org.opencontainers.image.title" }}' 2>/dev/null || echo "")
+          IMG="${IMAGE_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+          SURFACE_KERNEL=$(podman run --rm "$IMG" rpm -q kernel-surface --qf '%{VERSION}-%{RELEASE}' 2>/dev/null || echo "unknown")
+          BASE_PRETTY=$(podman run --rm "$IMG" bash -lc '. /usr/lib/os-release && echo "${PRETTY_NAME:-}"' 2>/dev/null || echo "unknown")
+          BASE_VERSION=$(podman run --rm "$IMG" bash -lc '. /usr/lib/os-release && echo "${VERSION_ID:-${VERSION:-unknown}}"' 2>/dev/null || echo "unknown")
+          IMAGE_VERSION=$(podman inspect "$IMG" --format '{{ index .Config.Labels "org.opencontainers.image.version" }}' 2>/dev/null || echo "")
+          IMAGE_TITLE=$(podman inspect "$IMG" --format '{{ index .Config.Labels "org.opencontainers.image.title" }}' 2>/dev/null || echo "")
           cat > /tmp/release-metadata.json <<JSON
           {
             "surface_kernel": "${SURFACE_KERNEL}",
@@ -89,6 +71,7 @@ jobs:
           }
           JSON
           cat /tmp/release-metadata.json
+
       - name: Upload metadata artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
@@ -98,11 +81,12 @@ jobs:
           retention-days: 7
           compression-level: 0
           overwrite: true
-      - name: Build ISO
+
+      - name: Build ISO with Titanoboa
         id: build
-        uses: Zeglius/titanoboa@revamp-pr
+        uses: ublue-os/titanoboa@main
         with:
-          image-ref: localhost/payload:latest
+          image-ref: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           iso-dest: bazzite-sdx-latest-amd64.iso
 
       - name: Generate SHA256 checksum
@@ -112,6 +96,7 @@ jobs:
             cd $(dirname "${{ steps.build.outputs.iso-dest }}")
             sha256sum $(basename "${{ steps.build.outputs.iso-dest }}") > $(basename "${{ steps.build.outputs.iso-dest }}").sha256
           fi
+
       - name: Upload ISO artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
