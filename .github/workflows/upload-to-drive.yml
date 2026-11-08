@@ -1,4 +1,4 @@
-name: Upload ISO to Google Drive and Release
+name: Publish ISO to GitHub Release
 
 on:
   workflow_run:
@@ -17,7 +17,7 @@ permissions:
   actions: read
 
 jobs:
-  upload-and-release:
+  publish-release:
     if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
     permissions:
@@ -64,15 +64,6 @@ jobs:
           echo "iso_name=$(basename "$ISO_PATH")" >> "$GITHUB_OUTPUT"
           echo "checksum_path=$CHECKSUM_PATH" >> "$GITHUB_OUTPUT"
 
-      - name: Upload ISO to Google Drive
-        env:
-          GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY }}
-          ISO_PATH: ${{ steps.files.outputs.iso_path }}
-          ISO_NAME: ${{ steps.files.outputs.iso_name }}
-        run: |
-          pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib > /dev/null
-          python3 .github/workflows/upload-to-drive.py
-
       - name: Create or update GitHub Release (latest)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -82,7 +73,6 @@ jobs:
           NOTES="Automated latest ISO release for Bazzite-SDX.
 
 - ISO and checksum attached as release assets
-- Also uploaded to Google Drive
 - Source: https://github.com/NexGen-3D-Printing/bazzite-sdx
 - Surface Linux kernel: https://github.com/linux-surface/linux-surface"
 
