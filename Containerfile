@@ -31,6 +31,22 @@ RUN dnf config-manager addrepo --from-repofile=https://brave-browser-rpm-release
     dnf5 install -y brave-browser && \
     dnf5 remove -y firefox || true
 
+## Install OpenCode CLI (system-wide)
+RUN set -euo pipefail; \
+    target="linux-x64"; \
+    metadata="$(curl -fsSL https://opencode.ai/update/api/latest/cli/npm)"; \
+    version="$(printf '%s' "$metadata" | sed -n 's/.*\"version\":\"\([^\"]*\)\".*/\1/p')"; \
+    scope="$(printf '%s' "$metadata" | sed -n 's/.*\"package\":\"\([^\"]*\)\".*/\1/p' | sed 's#/cli$##')"; \
+    pkg="${scope}/cli-${target}"; \
+    file="cli-${target}-${version}.tgz"; \
+    url="https://registry.npmjs.org/${pkg}/-/${file}"; \
+    tmp="$(mktemp -d)"; \
+    curl -fsSL -o "$tmp/$file" "$url"; \
+    tar -xzf "$tmp/$file" -C "$tmp"; \
+    install -m 0755 "$tmp/package/bin/opencode" /usr/local/bin/opencode; \
+    rm -rf "$tmp"; \
+    /usr/local/bin/opencode --version || true
+
 ## Remove stock kernel to ensure exactly one /usr/lib/modules kernel directory
 ## bootc requires exactly one kernel; version sorting would prefer ogc1.1 over surface.fc45
 ## This cascade removes ~50 packages including stock-kernel kmods (nvidia, xone, ryzen_smu, etc.)
