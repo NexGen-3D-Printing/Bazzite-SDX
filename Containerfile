@@ -26,44 +26,23 @@ RUN dnf5 install -y --allowerasing \
 ## Clean up GPG key
 RUN rm -f /usr/share/keyrings/linux-surface.gpg
 
-## Install Brave browser and remove Firefox
-RUN dnf config-manager addrepo --from-repofile=https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo && \
-    dnf5 install -y brave-browser && \
-    dnf5 remove -y firefox || true
+## Remove Firefox RPM if present (Brave is installed as a Flatpak below)
+RUN dnf5 remove -y firefox || true
 
-## Install OpenCode Desktop (RPM, latest release)
+## Install apps as system Flatpaks (drop apps without Flatpak support; ujust recipes later)
 RUN set -euo pipefail; \
-    rpm_url="$(curl -fsSL https://api.github.com/repos/anomalyco/opencode/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a[\"browser_download_url\"] for a in d.get(\"assets\",[]) if a[\"name\"]==\"opencode-desktop-linux-x86_64.rpm\"))')"; \
-    dnf5 install -y "${rpm_url}"
-
-## Install Unsloth Desktop (AppImage, extracted; latest release)
-RUN set -euo pipefail; \
-    app_url="$(curl -fsSL https://api.github.com/repos/unslothai/unsloth/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a[\"browser_download_url\"] for a in d.get(\"assets\",[]) if a[\"name\"]==\"Unsloth-Desktop-Linux.AppImage\"))')"; \
+    flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo; \
+    flatpak remote-add --if-not-exists --system solidcraft https://docs.solidcraft.io/flatpak/solidcraft.flatpakrepo; \
+    # Flathub apps
+    flatpak install --system -y --noninteractive flathub com.brave.Browser ai.opencode.opencode io.missioncenter.MissionCenter; \
+    # SolidCraft (own remote; Flathub provides runtimes)
+    flatpak install --system -y --noninteractive solidcraft io.tangencylabs.solidcraft; \
+    # ArtCraft (upstream Flatpak bundle from latest GitHub release)
     tmp="$(mktemp -d)"; \
-    curl -fsSL -o "$tmp/Unsloth-Desktop-Linux.AppImage" "$app_url"; \
-    chmod +x "$tmp/Unsloth-Desktop-Linux.AppImage"; \
-    cd "$tmp"; \
-    ./Unsloth-Desktop-Linux.AppImage --appimage-extract >/dev/null 2>&1 || (cd "$tmp" && "$tmp/Unsloth-Desktop-Linux.AppImage" --appimage-extract); \
-    rm -rf /opt/unsloth-desktop; \
-    mv "$tmp/squashfs-root" /opt/unsloth-desktop; \
-    ln -sf /opt/unsloth-desktop/AppRun /usr/local/bin/unsloth-desktop || true; \
-    if [ -f /opt/unsloth-desktop/*.desktop ]; then \
-      cp /opt/unsloth-desktop/*.desktop /usr/share/applications/ 2>/dev/null || true; \
-    fi; \
+    art_url="$(curl -fsSL https://api.github.com/repos/storytold/artcraft/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a[\"browser_download_url\"] for a in d.get(\"assets\",[]) if a[\"name\"].endswith(\"linux-x86_64.flatpak\")))')"; \
+    curl -fsSL -o "$tmp/artcraft.flatpak" "$art_url"; \
+    flatpak install --system -y --noninteractive "$tmp/artcraft.flatpak"; \
     rm -rf "$tmp"
-
-## Install SolidCraft (RPM, latest release)
-RUN set -euo pipefail; \
-    rpm_url="$(curl -fsSL https://api.github.com/repos/tangency-labs/solidcraft/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a[\"browser_download_url\"] for a in d.get(\"assets\",[]) if a[\"name\"].endswith(\"linux-x86_64.rpm\") and a[\"name\"].startswith(\"solidcraft-\")))')"; \
-    dnf5 install -y "${rpm_url}"
-
-## Install ArtCraft (RPM, latest release)
-RUN set -euo pipefail; \
-    rpm_url="$(curl -fsSL https://api.github.com/repos/storytold/artcraft/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a[\"browser_download_url\"] for a in d.get(\"assets\",[]) if a[\"name\"].endswith(\"linux-x86_64.rpm\")))')"; \
-    dnf5 install -y "${rpm_url}"
-
-## Install Mission Center (system monitor)
-RUN dnf5 install -y mission-center
 
 ## Remove stock kernel to ensure exactly one /usr/lib/modules kernel directory
 ## bootc requires exactly one kernel; version sorting would prefer ogc1.1 over surface.fc45

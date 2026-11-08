@@ -22,13 +22,14 @@ Installed from the [linux-surface](https://github.com/linux-surface/linux-surfac
 
 The build removes the stock kernel to ensure exactly one `/usr/lib/modules` kernel directory (bootc requirement).
 
-### Desktop/apps added by image build
-- **Brave Browser** (Firefox RPM removed during image build when present)
-- **OpenCode Desktop** (latest RPM at build time)
-- **Unsloth Desktop** (latest AppImage, extracted to `/opt/unsloth-desktop`)
-- **SolidCraft** (latest RPM at build time)
-- **ArtCraft** (latest RPM at build time)
-- **Mission Center**
+### Apps added by image build (system Flatpaks)
+- **Brave Browser** — `com.brave.Browser` (Flathub); Firefox RPM removed during image build when present
+- **OpenCode** — `ai.opencode.opencode` (Flathub)
+- **SolidCraft** — `io.tangencylabs.solidcraft` (SolidCraft Flatpak repo)
+- **ArtCraft** — upstream Flatpak bundle from `storytold/artcraft` releases
+- **Mission Center** — `io.missioncenter.MissionCenter` (Flathub)
+
+Apps without Flatpak support are dropped from the image build (planned for `ujust` recipes later).
 
 ### Bazzite-DX base
 Includes the Bazzite-DX experience provided by the upstream base image (gaming + developer tooling). Refer to [Bazzite-DX](https://github.com/ublue-os/bazzite-dx) / [Bazzite](https://bazzite.gg/) for upstream feature details.
@@ -65,8 +66,8 @@ Support depends on upstream [linux-surface](https://github.com/linux-surface/lin
 
 ### 2026-11 (current line)
 - Base switched to **Bazzite-DX** (`ghcr.io/ublue-os/bazzite-dx:stable`)
-- Added **Brave** (Firefox removed), **OpenCode Desktop**, **Unsloth Desktop**, **SolidCraft**, **ArtCraft**, **Mission Center**
-- `build.yml` now updates the `latest` GitHub release with detected app/kernel versions
+- Added apps as **system Flatpaks** where supported: **Brave** (Firefox RPM removed), **OpenCode** (Flathub), **SolidCraft**, **ArtCraft**, **Mission Center**. Apps without Flatpak support (e.g., Unsloth Desktop) dropped from the image (planned for `ujust` recipes).
+- `build.yml` detects base OS and Flatpak app versions and updates the `latest` GitHub release
 - **ISO/Google Drive distribution removed**; project uses bootc rebase workflow
 
 ### Version 1.0.0 (2026-11-06)

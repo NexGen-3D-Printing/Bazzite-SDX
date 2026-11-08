@@ -15,12 +15,14 @@ Bazzite-SDX is a ready-to-use bootc image built from **Bazzite-DX** (`ghcr.io/ub
 
 **Bazzite-DX base** - The Bazzite-DX experience (gaming + developer tooling), built from `ghcr.io/ublue-os/bazzite-dx:stable`.
 
-**Included apps (image build):**
-- **Brave Browser** (Firefox RPM removed during image build)
-- **OpenCode Desktop**
-- **Unsloth Desktop**
-- **SolidCraft** and **ArtCraft**
-- **Mission Center**
+**Included apps (system Flatpaks, image build):**
+- **Brave Browser** (`com.brave.Browser`, Flathub; Firefox RPM removed when present)
+- **OpenCode** (`ai.opencode.opencode`, Flathub)
+- **SolidCraft** (`io.tangencylabs.solidcraft`, SolidCraft Flatpak repo)
+- **ArtCraft** (upstream Flatpak bundle from `storytold/artcraft` releases)
+- **Mission Center** (`io.missioncenter.MissionCenter`, Flathub)
+
+Apps without Flatpak support are dropped from the image build and may be added later via `ujust` recipes.
 
 > App/kernel versions change per build. See the [**latest** release](https://github.com/NexGen-3D-Printing/bazzite-sdx/releases/tag/latest) for the versions detected from the most recent successful image build. Distribution is **rebase-only** (no custom USB installer ISO).
 

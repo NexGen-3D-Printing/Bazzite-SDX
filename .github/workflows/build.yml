@@ -274,12 +274,11 @@ jobs:
           set -euo pipefail
           IMG="${IMAGE_NAME}:${DEFAULT_TAG}"
 
-          BRAVE_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'brave-browser --version 2>/dev/null || rpm -q brave-browser 2>/dev/null || echo unknown' | head -n1)
-          OPENCODE_DESKTOP_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -qa | grep -i opencode.*desktop | head -n1 || rpm -q opencode-desktop 2>/dev/null || echo unknown' | head -n1)
-          UNSLOTH_DESKTOP_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'cat /opt/unsloth-desktop/version 2>/dev/null || grep -m1 "\"version\"" /opt/unsloth-desktop/resources/app/package.json 2>/dev/null | sed "s/.*: *\"\\([^\"]*\\)\".*/\\1/" || echo "installed (see /opt/unsloth-desktop)"' | head -n1)
-          SOLIDCRAFT_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -q solidcraft 2>/dev/null || rpm -qa | grep -i "^solidcraft" | head -n1 || echo unknown' | head -n1)
-          ARTCRAFT_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -q artcraft 2>/dev/null || rpm -qa | grep -i "^artcraft" | head -n1 || echo unknown' | head -n1)
-          MISSION_CENTER_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -q mission-center 2>/dev/null || rpm -q missioncenter 2>/dev/null || rpm -qa | grep -i "^mission.?center" | head -n1 || echo unknown' | head -n1)
+          BRAVE_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'flatpak info --system com.brave.Browser 2>/dev/null | awk -F": *" "/^Version/{print \$2; exit}" || echo unknown' | head -n1)
+          OPENCODE_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'flatpak info --system ai.opencode.opencode 2>/dev/null | awk -F": *" "/^Version/{print \$2; exit}" || echo unknown' | head -n1)
+          SOLIDCRAFT_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'flatpak info --system io.tangencylabs.solidcraft 2>/dev/null | awk -F": *" "/^Version/{print \$2; exit}" || flatpak list --system --app --columns=application,version 2>/dev/null | awk "\$1==\"io.tangencylabs.solidcraft\"{print \$2; exit}" || echo unknown' | head -n1)
+          ARTCRAFT_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'flatpak info --system ai.storyteller.artcraft 2>/dev/null | awk -F": *" "/^Version/{print \$2; exit}" || flatpak list --system --app --columns=application,version 2>/dev/null | awk "\$1 ~ /artcraft/{print \$2; exit}" || echo unknown' | head -n1)
+          MISSION_CENTER_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'flatpak info --system io.missioncenter.MissionCenter 2>/dev/null | awk -F": *" "/^Version/{print \$2; exit}" || echo unknown' | head -n1)
           BASE_OS_PRETTY=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${PRETTY_NAME:-unknown}"' | head -n1)
           BASE_OS_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${VERSION_ID:-${VERSION:-unknown}}"' | head -n1)
           BASE_OS_NAME=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${NAME:-unknown}"' | head -n1)
@@ -295,21 +294,18 @@ jobs:
             echo "### Versions"
             echo "- **Bazzite/base OS:** ${BASE_OS_PRETTY} (VERSION_ID: ${BASE_OS_VERSION})"
             echo "- **Surface kernel:** ${SURFACE_KERNEL}"
-            echo "- **Brave Browser:** ${BRAVE_VERSION}"
-            echo "- **OpenCode Desktop:** ${OPENCODE_DESKTOP_VERSION}"
-            echo "- **Unsloth Desktop:** ${UNSLOTH_DESKTOP_VERSION}"
-            echo "- **SolidCraft:** ${SOLIDCRAFT_VERSION}"
-            echo "- **ArtCraft:** ${ARTCRAFT_VERSION}"
-            echo "- **Mission Center:** ${MISSION_CENTER_VERSION}"
+            echo "- **Brave Browser (Flatpak):** ${BRAVE_VERSION}"
+            echo "- **OpenCode (Flatpak):** ${OPENCODE_VERSION}"
+            echo "- **SolidCraft (Flatpak):** ${SOLIDCRAFT_VERSION}"
+            echo "- **ArtCraft (Flatpak):** ${ARTCRAFT_VERSION}"
+            echo "- **Mission Center (Flatpak):** ${MISSION_CENTER_VERSION}"
             echo ""
             echo "### Features"
             echo "- Linux Surface kernel (kernel-surface)"
             echo "- iptsd, libwacom-surface, surface-control"
-            echo "- Brave Browser (Firefox removed)"
-            echo "- OpenCode Desktop"
-            echo "- Unsloth Desktop"
-            echo "- SolidCraft and ArtCraft"
-            echo "- Mission Center"
+            echo "- Brave Browser (Firefox removed; Brave installed as system Flatpak)"
+            echo "- OpenCode, SolidCraft, ArtCraft, and Mission Center installed as system Flatpaks"
+            echo "- Apps without Flatpak support dropped from the image (planned for ujust recipes)"
             echo "- Based on \`ghcr.io/ublue-os/bazzite-dx:stable\` (detected base OS: ${BASE_OS_NAME} ${BASE_OS_VERSION})"
             echo ""
             echo "### Install (rebase)"
@@ -338,12 +334,11 @@ jobs:
             echo "- **Bazzite-SDX repository:** https://github.com/NexGen-3D-Printing/bazzite-sdx"
             echo "- **Bazzite-DX:** https://github.com/ublue-os/bazzite-dx"
             echo "- **Surface Linux kernel:** https://github.com/linux-surface/linux-surface"
-            echo "- **Brave:** https://brave.com/linux/"
-            echo "- **OpenCode:** https://github.com/anomalyco/opencode"
-            echo "- **Unsloth:** https://github.com/unslothai/unsloth"
+            echo "- **Brave (Flathub):** https://flathub.org/en/apps/com.brave.Browser"
+            echo "- **OpenCode (Flathub):** https://flathub.org/en/apps/ai.opencode.opencode"
             echo "- **SolidCraft:** https://github.com/tangency-labs/solidcraft"
             echo "- **ArtCraft:** https://github.com/storytold/artcraft"
-            echo "- **Mission Center:** https://gitlab.com/mission-center-devs/mission-center"
+            echo "- **Mission Center (Flathub):** https://flathub.org/en/apps/io.missioncenter.MissionCenter"
           } > /tmp/release-notes.md
 
           if gh release view "$TAG" >/dev/null 2>&1; then
