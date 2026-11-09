@@ -15,7 +15,7 @@ screens:
         script: "xdg-open https://github.com/NexGen-3D-Printing/bazzite-sdx/releases/tag/latest"
       - id: "install-all-bazzite-sdx-flatpaks"
         title: "Install core Bazzite-SDX Flatpak apps (all)"
-        description: "Installs the core curated set in one run (Bazzite-style; not baked into the OS image): Brave Browser, OpenCode app, Mission Center, SolidCraft, and ArtCraft. Requires network access and sudo for system Flatpak installs."
+        description: "Installs the core curated set in one run (Bazzite-style; not baked into the OS image): Brave Browser, OpenCode app, Mission Center, SolidCraft, and ArtCraft. Installs as user Flatpaks (per-user, no sudo required). Requires network access."
         default: false
         script: 'ujust install-bazzite-sdx-flatpaks; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
 
@@ -24,7 +24,7 @@ screens:
     actions:
       - id: "install-sdx-opencode"
         title: "OpenCode (app)"
-        description: "OpenCode is an open source AI coding agent that helps you write and run code with AI models, supporting agentic coding workflows (prompts, edits, and command execution). Install method (priority): Flatpak (preferred). Installs system Flatpak ai.opencode.opencode from Flathub. Source: https://github.com/anomalyco/opencode | Flathub: https://flathub.org/en/apps/ai.opencode.opencode"
+        description: "OpenCode is an open source AI coding agent that helps you write and run code with AI models, supporting agentic coding workflows (prompts, edits, and command execution). Install method (priority): Flatpak (preferred). Installs user Flatpak ai.opencode.opencode from Flathub. Source: https://github.com/anomalyco/opencode | Flathub: https://flathub.org/en/apps/ai.opencode.opencode"
         default: false
         script: 'ujust install-sdx-opencode; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
       - id: "install-sdx-opencode-cli"
@@ -34,7 +34,7 @@ screens:
         script: 'ujust install-sdx-opencode-cli; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
       - id: "install-sdx-lm-studio"
         title: "LM Studio"
-        description: "LM Studio is a desktop app for discovering, downloading, and running local LLMs, with chat and local server/API workflows. Install method (priority): Flatpak (preferred). Installs system Flatpak ai.lmstudio.lm-studio from Flathub (the Flathub package uses LM Studio's Linux AppImage as its upstream payload). Requires sudo and network access; model downloads are managed inside the app. Source: https://lmstudio.ai/ | https://github.com/flathub/ai.lmstudio.lm-studio"
+        description: "LM Studio is a desktop app for discovering, downloading, and running local LLMs, with chat and local server/API workflows. Install method (priority): Flatpak (preferred). Installs user Flatpak ai.lmstudio.lm-studio from Flathub (the Flathub package uses LM Studio's Linux AppImage as its upstream payload). Requires network access; model downloads are managed inside the app. Source: https://lmstudio.ai/ | https://github.com/flathub/ai.lmstudio.lm-studio"
         default: false
         script: 'ujust install-sdx-lm-studio; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
       - id: "install-sdx-unsloth-desktop"
@@ -44,12 +44,12 @@ screens:
         script: 'ujust install-sdx-unsloth-desktop; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
       - id: "install-sdx-artcraft"
         title: "ArtCraft"
-        description: "**Warning:** ArtCraft requires an account and may require a subscription for some features/services (check current ArtCraft terms). ArtCraft (storytold/artcraft) is an intentional crafting engine for artists, designers, and filmmakers, supporting creative production workflows. Install method (priority): upstream Flatpak bundle (Flatpak-format delivery). Downloads and installs the latest Linux x86_64 .flatpak bundle from GitHub releases at install time. Requires network access, sudo, and may take time due to bundle/runtimes. Source: https://github.com/storytold/artcraft | Website: https://getartcraft.com/"
+        description: "**Warning:** ArtCraft requires an account and may require a subscription for some features/services (check current ArtCraft terms). ArtCraft (storytold/artcraft) is an intentional crafting engine for artists, designers, and filmmakers, supporting creative production workflows. Install method (priority): upstream Flatpak bundle (Flatpak-format delivery). Downloads and installs the latest Linux x86_64 .flatpak bundle from GitHub releases at install time. Requires network access and may take time due to bundle/runtimes. Source: https://github.com/storytold/artcraft | Website: https://getartcraft.com/"
         default: false
         script: 'ujust install-sdx-artcraft; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
       - id: "install-sdx-craft-anything"
         title: "Craft Anything"
-        description: "Craft Anything (storytold/craft-anything) helps you explore how software works and craft/build software workflows (including agent-assisted exploration/build features, as provided upstream). Install method (priority): upstream Flatpak bundle (preferred over AppImage/rpm-ostree). Downloads and installs the latest Linux x86_64 .flatpak bundle from GitHub releases at install time. Requires network access, sudo, and may take time due to bundle/runtimes. Source: https://github.com/storytold/craft-anything"
+        description: "Craft Anything (storytold/craft-anything) helps you explore how software works and craft/build software workflows (including agent-assisted exploration/build features, as provided upstream). Install method (priority): upstream Flatpak bundle (preferred over AppImage/rpm-ostree). Downloads and installs the latest Linux x86_64 .flatpak bundle from GitHub releases at install time. Requires network access and may take time due to bundle/runtimes. Source: https://github.com/storytold/craft-anything"
         default: false
         script: 'ujust install-sdx-craft-anything; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
       - id: "install-sdx-rea"
@@ -73,7 +73,7 @@ screens:
     actions:
       - id: "install-sdx-brave"
         title: "Brave Browser"
-        description: "Brave is a privacy-focused web browser with built-in ad and tracker blocking, HTTPS upgrading, and optional Brave features (depending on configuration). Install method (priority): Flatpak (preferred). Installs system Flatpak com.brave.Browser from Flathub (verified). Bazzite-SDX removes the Firefox RPM when present and offers Brave via this Flatpak-based setup. Source: https://brave.com/ | Flathub: https://flathub.org/en/apps/com.brave.Browser"
+        description: "Brave is a privacy-focused web browser with built-in ad and tracker blocking, HTTPS upgrading, and optional Brave features (depending on configuration). Install method (priority): Flatpak (preferred). Installs user Flatpak com.brave.Browser from Flathub (verified). Bazzite-SDX removes the Firefox RPM when present and offers Brave via this Flatpak-based setup. Source: https://brave.com/ | Flathub: https://flathub.org/en/apps/com.brave.Browser"
         default: false
         script: 'ujust install-sdx-brave; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
 
@@ -82,17 +82,17 @@ screens:
     actions:
       - id: "install-sdx-solidcraft"
         title: "SolidCraft"
-        description: "SolidCraft (Tangency Labs) is a parametric CAD/modeling application for creating and iterating on 3D designs. Install method (priority): Flatpak (preferred). Installs system Flatpak io.tangencylabs.solidcraft from the SolidCraft Flatpak repository (Bazzite-SDX configures remotes; Flathub provides runtimes). Useful for mechanical/3D design and 3D printing workflows. Source: https://github.com/tangency-labs/solidcraft | Docs: https://docs.solidcraft.io/"
+        description: "SolidCraft (Tangency Labs) is a parametric CAD/modeling application for creating and iterating on 3D designs. Install method (priority): Flatpak (preferred). Installs user Flatpak io.tangencylabs.solidcraft from the SolidCraft Flatpak repository (Bazzite-SDX configures remotes; Flathub provides runtimes). Useful for mechanical/3D design and 3D printing workflows. Source: https://github.com/tangency-labs/solidcraft | Docs: https://docs.solidcraft.io/"
         default: false
         script: 'ujust install-sdx-solidcraft; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
       - id: "install-sdx-photocraft"
         title: "PhotoCraft"
-        description: "PhotoCraft (storytold/photocraft) is an open source photo editor (built in Rust) for image editing and creative workflows. Install method (priority): upstream Flatpak bundle (preferred over AppImage/rpm-ostree). Downloads and installs the latest Linux x86_64 .flatpak bundle from GitHub releases at install time. Requires network access, sudo, and may take time due to bundle/runtimes. Source: https://github.com/storytold/photocraft"
+        description: "PhotoCraft (storytold/photocraft) is an open source photo editor (built in Rust) for image editing and creative workflows. Install method (priority): upstream Flatpak bundle (preferred over AppImage/rpm-ostree). Downloads and installs the latest Linux x86_64 .flatpak bundle from GitHub releases at install time. Requires network access and may take time due to bundle/runtimes. Source: https://github.com/storytold/photocraft"
         default: false
         script: 'ujust install-sdx-photocraft; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
       - id: "install-sdx-pdfcraft"
         title: "PDFCraft"
-        description: "PDFCraft (storytold/pdfcraft) is an open source PDF reader/editor (built in Rust) for viewing and working with PDF documents. Install method (priority): upstream Flatpak bundle (preferred over AppImage/rpm-ostree). Downloads and installs the latest Linux x86_64 .flatpak bundle from GitHub releases at install time. Requires network access, sudo, and may take time due to bundle/runtimes. Source: https://github.com/storytold/pdfcraft"
+        description: "PDFCraft (storytold/pdfcraft) is an open source PDF reader/editor (built in Rust) for viewing and working with PDF documents. Install method (priority): upstream Flatpak bundle (preferred over AppImage/rpm-ostree). Downloads and installs the latest Linux x86_64 .flatpak bundle from GitHub releases at install time. Requires network access and may take time due to bundle/runtimes. Source: https://github.com/storytold/pdfcraft"
         default: false
         script: 'ujust install-sdx-pdfcraft; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
 
@@ -101,12 +101,12 @@ screens:
     actions:
       - id: "install-sdx-mission-center"
         title: "Mission Center"
-        description: "Mission Center is a modern system monitor for Linux showing CPU, memory, disk, network, and GPU usage (where supported), with per-app/process details and hardware information. Install method (priority): Flatpak (preferred). Installs system Flatpak io.missioncenter.MissionCenter from Flathub. Source: https://gitlab.com/mission-center-devs/mission-center | Flathub: https://flathub.org/en/apps/io.missioncenter.MissionCenter"
+        description: "Mission Center is a modern system monitor for Linux showing CPU, memory, disk, network, and GPU usage (where supported), with per-app/process details and hardware information. Install method (priority): Flatpak (preferred). Installs user Flatpak io.missioncenter.MissionCenter from Flathub. Source: https://gitlab.com/mission-center-devs/mission-center | Flathub: https://flathub.org/en/apps/io.missioncenter.MissionCenter"
         default: false
         script: 'ujust install-sdx-mission-center; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
       - id: "install-sdx-gearlever"
         title: "Gear Lever (AppImage manager)"
-        description: "Gear Lever helps you organize, integrate, and manage AppImage applications (menu entries, metadata, update workflows where supported). Install method (priority): Flatpak (preferred). Installs system Flatpak it.mijorus.gearlever from Flathub. Recommended for managing user AppImages like Unsloth Desktop installed via this portal. Source: https://github.com/mijorus/gearlever | Flathub: https://flathub.org/en/apps/it.mijorus.gearlever"
+        description: "Gear Lever helps you organize, integrate, and manage AppImage applications (menu entries, metadata, update workflows where supported). Install method (priority): Flatpak (preferred). Installs user Flatpak it.mijorus.gearlever from Flathub. Recommended for managing user AppImages like Unsloth Desktop installed via this portal. Source: https://github.com/mijorus/gearlever | Flathub: https://flathub.org/en/apps/it.mijorus.gearlever"
         default: false
         script: 'ujust install-sdx-gearlever; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
 
@@ -115,27 +115,27 @@ screens:
     actions:
       - id: "install-sdx-plex-desktop"
         title: "Plex Player (Plex Desktop)"
-        description: "Plex Desktop is the official Plex client for desktop playback and browsing your Plex libraries and services. Install method (priority): Flatpak (preferred). Installs system Flatpak tv.plex.PlexDesktop from Flathub. Requires a Plex account/server as applicable. Source: https://www.plex.tv/ | https://github.com/flathub/tv.plex.PlexDesktop"
+        description: "Plex Desktop is the official Plex client for desktop playback and browsing your Plex libraries and services. Install method (priority): Flatpak (preferred). Installs user Flatpak tv.plex.PlexDesktop from Flathub. Requires a Plex account/server as applicable. Source: https://www.plex.tv/ | https://github.com/flathub/tv.plex.PlexDesktop"
         default: false
         script: 'ujust install-sdx-plex-desktop; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
       - id: "install-sdx-plex-htpc"
         title: "Plex HTPC"
-        description: "Plex HTPC is Plex's home theater PC client with a TV-friendly interface, designed for big-screen setups and controller/remote use cases. Install method (priority): Flatpak (preferred). Installs system Flatpak tv.plex.PlexHTPC from Flathub. Source: https://www.plex.tv/media-server-downloads/#plex-app | https://github.com/flathub/tv.plex.PlexHTPC"
+        description: "Plex HTPC is Plex's home theater PC client with a TV-friendly interface, designed for big-screen setups and controller/remote use cases. Install method (priority): Flatpak (preferred). Installs user Flatpak tv.plex.PlexHTPC from Flathub. Source: https://www.plex.tv/media-server-downloads/#plex-app | https://github.com/flathub/tv.plex.PlexHTPC"
         default: false
         script: 'ujust install-sdx-plex-htpc; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
       - id: "install-sdx-vlc"
         title: "VLC media player"
-        description: "VLC is a versatile, open source multimedia player that supports a wide range of audio/video formats, streams, and playback features. Install method (priority): Flatpak (preferred). Installs system Flatpak org.videolan.VLC from Flathub. Source: https://www.videolan.org/vlc/ | https://flathub.org/en/apps/org.videolan.VLC"
+        description: "VLC is a versatile, open source multimedia player that supports a wide range of audio/video formats, streams, and playback features. Install method (priority): Flatpak (preferred). Installs user Flatpak org.videolan.VLC from Flathub. Source: https://www.videolan.org/vlc/ | https://flathub.org/en/apps/org.videolan.VLC"
         default: false
         script: 'ujust install-sdx-vlc; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
       - id: "install-sdx-delfin"
         title: "Delfin (Jellyfin client)"
-        description: "Delfin is a native Jellyfin client for streaming movies and TV shows from your Jellyfin server, with an MPV-based player and support for common Jellyfin plugins (as supported upstream). Install method (priority): Flatpak (preferred). Installs system Flatpak cafe.avery.Delfin from Flathub. Requires access to a Jellyfin server. Source: https://delfin.avery.cafe/ | https://flathub.org/en/apps/cafe.avery.Delfin"
+        description: "Delfin is a native Jellyfin client for streaming movies and TV shows from your Jellyfin server, with an MPV-based player and support for common Jellyfin plugins (as supported upstream). Install method (priority): Flatpak (preferred). Installs user Flatpak cafe.avery.Delfin from Flathub. Requires access to a Jellyfin server. Source: https://delfin.avery.cafe/ | https://flathub.org/en/apps/cafe.avery.Delfin"
         default: false
         script: 'ujust install-sdx-delfin; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
       - id: "install-sdx-web-app-hub"
         title: "Web App Hub"
-        description: "Web App Hub lets you create and manage web apps (site-specific browser apps) with dedicated icons and profiles, using installed browsers where supported. Install method (priority): Flatpak (preferred). Installs system Flatpak org.pvermeer.WebAppHub from Flathub. Useful for turning web services into app-like launchers. Source: https://github.com/PVermeer/web-app-hub | https://flathub.org/en/apps/org.pvermeer.WebAppHub"
+        description: "Web App Hub lets you create and manage web apps (site-specific browser apps) with dedicated icons and profiles, using installed browsers where supported. Install method (priority): Flatpak (preferred). Installs user Flatpak org.pvermeer.WebAppHub from Flathub. Useful for turning web services into app-like launchers. Source: https://github.com/PVermeer/web-app-hub | https://flathub.org/en/apps/org.pvermeer.WebAppHub"
         default: false
         script: 'ujust install-sdx-web-app-hub; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
 

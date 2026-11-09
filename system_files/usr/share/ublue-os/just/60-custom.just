@@ -10,9 +10,9 @@ install-sdx-brave:
     #!/usr/bin/bash
     set -euo pipefail
     echo "Configuring Flatpak remotes..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+    flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
     echo "Installing Brave Browser (com.brave.Browser) from Flathub..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update flathub com.brave.Browser || sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update com.brave.Browser
+    flatpak --user -y install --reinstall --or-update flathub com.brave.Browser || flatpak --user -y install --reinstall --or-update com.brave.Browser
     echo "Done."
 
 # Install OpenCode app (ai.opencode.opencode, Flathub)
@@ -21,9 +21,9 @@ install-sdx-opencode:
     #!/usr/bin/bash
     set -euo pipefail
     echo "Configuring Flatpak remotes..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+    flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
     echo "Installing OpenCode (ai.opencode.opencode) from Flathub..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update flathub ai.opencode.opencode || sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update ai.opencode.opencode
+    flatpak --user -y install --reinstall --or-update flathub ai.opencode.opencode || flatpak --user -y install --reinstall --or-update ai.opencode.opencode
     echo "Done."
 
 # Install Mission Center (io.missioncenter.MissionCenter, Flathub)
@@ -32,9 +32,9 @@ install-sdx-mission-center:
     #!/usr/bin/bash
     set -euo pipefail
     echo "Configuring Flatpak remotes..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+    flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
     echo "Installing Mission Center (io.missioncenter.MissionCenter) from Flathub..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update flathub io.missioncenter.MissionCenter || sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update io.missioncenter.MissionCenter
+    flatpak --user -y install --reinstall --or-update flathub io.missioncenter.MissionCenter || flatpak --user -y install --reinstall --or-update io.missioncenter.MissionCenter
     echo "Done."
 
 # Install SolidCraft (io.tangencylabs.solidcraft, SolidCraft Flatpak repo)
@@ -43,14 +43,14 @@ install-sdx-solidcraft:
     #!/usr/bin/bash
     set -euo pipefail
     echo "Configuring Flatpak remotes..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+    flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
     if [[ -f /etc/flatpak/remotes.d/solidcraft.flatpakrepo ]]; then
-        sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak remote-add --if-not-exists --system solidcraft /etc/flatpak/remotes.d/solidcraft.flatpakrepo || true
+        flatpak remote-add --if-not-exists --user solidcraft /etc/flatpak/remotes.d/solidcraft.flatpakrepo || true
     else
-        sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak remote-add --if-not-exists --system solidcraft https://docs.solidcraft.io/flatpak/solidcraft.flatpakrepo || true
+        flatpak remote-add --if-not-exists --user solidcraft https://docs.solidcraft.io/flatpak/solidcraft.flatpakrepo || true
     fi
     echo "Installing SolidCraft (io.tangencylabs.solidcraft)..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update solidcraft io.tangencylabs.solidcraft || sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update io.tangencylabs.solidcraft
+    flatpak --user -y install --reinstall --or-update solidcraft io.tangencylabs.solidcraft || flatpak --user -y install --reinstall --or-update io.tangencylabs.solidcraft
     echo "Done."
 
 # Install ArtCraft (upstream Flatpak bundle from latest storytold/artcraft release)
@@ -62,13 +62,13 @@ install-sdx-artcraft:
     echo "Check current terms at: https://getartcraft.com/"
     echo ""
     echo "Configuring Flatpak remotes (Flathub for runtimes)..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+    flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
     echo "Installing ArtCraft (upstream Flatpak bundle)..."
     tmp="$(mktemp -d)"
     trap 'rm -rf "${tmp}"' EXIT
     if art_url="$(curl -fsSL https://api.github.com/repos/storytold/artcraft/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a["browser_download_url"] for a in d.get("assets",[]) if a["name"].endswith("linux-x86_64.flatpak")))')" && [[ -n "${art_url}" ]]; then
         curl -fsSL -o "${tmp}/artcraft.flatpak" "${art_url}"
-        sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak install --system -y --noninteractive --reinstall "${tmp}/artcraft.flatpak" || sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak install --system -y --noninteractive "${tmp}/artcraft.flatpak"
+        flatpak install --user -y --noninteractive --reinstall "${tmp}/artcraft.flatpak" || flatpak install --user -y --noninteractive "${tmp}/artcraft.flatpak"
         echo "Done."
     else
         echo "Warning: could not resolve ArtCraft Flatpak bundle URL; install manually if needed."
@@ -81,13 +81,13 @@ install-sdx-photocraft:
     #!/usr/bin/bash
     set -euo pipefail
     echo "Configuring Flatpak remotes (Flathub for runtimes)..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+    flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
     echo "Installing PhotoCraft (upstream Flatpak bundle)..."
     tmp="$(mktemp -d)"
     trap 'rm -rf "${tmp}"' EXIT
     if url="$(curl -fsSL https://api.github.com/repos/storytold/photocraft/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a["browser_download_url"] for a in d.get("assets",[]) if a["name"].endswith("linux-x86_64.flatpak")))')" && [[ -n "${url}" ]]; then
         curl -fsSL -o "${tmp}/photocraft.flatpak" "${url}"
-        sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak install --system -y --noninteractive --reinstall "${tmp}/photocraft.flatpak" || sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak install --system -y --noninteractive "${tmp}/photocraft.flatpak"
+        flatpak install --user -y --noninteractive --reinstall "${tmp}/photocraft.flatpak" || flatpak install --user -y --noninteractive "${tmp}/photocraft.flatpak"
         echo "Done."
     else
         echo "Warning: could not resolve PhotoCraft Flatpak bundle URL; install manually if needed."
@@ -100,13 +100,13 @@ install-sdx-pdfcraft:
     #!/usr/bin/bash
     set -euo pipefail
     echo "Configuring Flatpak remotes (Flathub for runtimes)..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+    flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
     echo "Installing PDFCraft (upstream Flatpak bundle)..."
     tmp="$(mktemp -d)"
     trap 'rm -rf "${tmp}"' EXIT
     if url="$(curl -fsSL https://api.github.com/repos/storytold/pdfcraft/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a["browser_download_url"] for a in d.get("assets",[]) if a["name"].endswith("linux-x86_64.flatpak")))')" && [[ -n "${url}" ]]; then
         curl -fsSL -o "${tmp}/pdfcraft.flatpak" "${url}"
-        sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak install --system -y --noninteractive --reinstall "${tmp}/pdfcraft.flatpak" || sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak install --system -y --noninteractive "${tmp}/pdfcraft.flatpak"
+        flatpak install --user -y --noninteractive --reinstall "${tmp}/pdfcraft.flatpak" || flatpak install --user -y --noninteractive "${tmp}/pdfcraft.flatpak"
         echo "Done."
     else
         echo "Warning: could not resolve PDFCraft Flatpak bundle URL; install manually if needed."
@@ -119,13 +119,13 @@ install-sdx-craft-anything:
     #!/usr/bin/bash
     set -euo pipefail
     echo "Configuring Flatpak remotes (Flathub for runtimes)..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+    flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
     echo "Installing Craft Anything (upstream Flatpak bundle)..."
     tmp="$(mktemp -d)"
     trap 'rm -rf "${tmp}"' EXIT
     if url="$(curl -fsSL https://api.github.com/repos/storytold/craft-anything/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a["browser_download_url"] for a in d.get("assets",[]) if a["name"].endswith("linux-x86_64.flatpak")))')" && [[ -n "${url}" ]]; then
         curl -fsSL -o "${tmp}/craft-anything.flatpak" "${url}"
-        sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak install --system -y --noninteractive --reinstall "${tmp}/craft-anything.flatpak" || sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak install --system -y --noninteractive "${tmp}/craft-anything.flatpak"
+        flatpak install --user -y --noninteractive --reinstall "${tmp}/craft-anything.flatpak" || flatpak install --user -y --noninteractive "${tmp}/craft-anything.flatpak"
         echo "Done."
     else
         echo "Warning: could not resolve Craft Anything Flatpak bundle URL; install manually if needed."
@@ -138,25 +138,25 @@ install-bazzite-sdx-flatpaks:
     #!/usr/bin/bash
     set -euo pipefail
     echo "=== Brave Browser ==="
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update flathub com.brave.Browser || sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update com.brave.Browser
+    flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+    flatpak --user -y install --reinstall --or-update flathub com.brave.Browser || flatpak --user -y install --reinstall --or-update com.brave.Browser
     echo "=== OpenCode (app) ==="
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update flathub ai.opencode.opencode || sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update ai.opencode.opencode
+    flatpak --user -y install --reinstall --or-update flathub ai.opencode.opencode || flatpak --user -y install --reinstall --or-update ai.opencode.opencode
     echo "=== Mission Center ==="
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update flathub io.missioncenter.MissionCenter || sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update io.missioncenter.MissionCenter
+    flatpak --user -y install --reinstall --or-update flathub io.missioncenter.MissionCenter || flatpak --user -y install --reinstall --or-update io.missioncenter.MissionCenter
     echo "=== SolidCraft ==="
     if [[ -f /etc/flatpak/remotes.d/solidcraft.flatpakrepo ]]; then
-        sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak remote-add --if-not-exists --system solidcraft /etc/flatpak/remotes.d/solidcraft.flatpakrepo || true
+        flatpak remote-add --if-not-exists --user solidcraft /etc/flatpak/remotes.d/solidcraft.flatpakrepo || true
     else
-        sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak remote-add --if-not-exists --system solidcraft https://docs.solidcraft.io/flatpak/solidcraft.flatpakrepo || true
+        flatpak remote-add --if-not-exists --user solidcraft https://docs.solidcraft.io/flatpak/solidcraft.flatpakrepo || true
     fi
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update solidcraft io.tangencylabs.solidcraft || sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update io.tangencylabs.solidcraft
+    flatpak --user -y install --reinstall --or-update solidcraft io.tangencylabs.solidcraft || flatpak --user -y install --reinstall --or-update io.tangencylabs.solidcraft
     echo "=== ArtCraft ==="
     tmp="$(mktemp -d)"
     trap 'rm -rf "${tmp}"' EXIT
     if art_url="$(curl -fsSL https://api.github.com/repos/storytold/artcraft/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a["browser_download_url"] for a in d.get("assets",[]) if a["name"].endswith("linux-x86_64.flatpak")))')" && [[ -n "${art_url}" ]]; then
         curl -fsSL -o "${tmp}/artcraft.flatpak" "${art_url}"
-        sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak install --system -y --noninteractive --reinstall "${tmp}/artcraft.flatpak" || sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak install --system -y --noninteractive "${tmp}/artcraft.flatpak"
+        flatpak install --user -y --noninteractive --reinstall "${tmp}/artcraft.flatpak" || flatpak install --user -y --noninteractive "${tmp}/artcraft.flatpak"
     else
         echo "Warning: could not resolve ArtCraft Flatpak bundle URL; install manually if needed."
         exit 1
@@ -173,9 +173,9 @@ install-sdx-lm-studio:
     #!/usr/bin/bash
     set -euo pipefail
     echo "Configuring Flatpak remotes..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+    flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
     echo "Installing LM Studio (ai.lmstudio.lm-studio) from Flathub..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update flathub ai.lmstudio.lm-studio || sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update ai.lmstudio.lm-studio
+    flatpak --user -y install --reinstall --or-update flathub ai.lmstudio.lm-studio || flatpak --user -y install --reinstall --or-update ai.lmstudio.lm-studio
     echo "Done."
 
 # Install OpenCode CLI (official install script to user directory) — no official Flatpak CLI; user-local install
@@ -336,9 +336,9 @@ install-sdx-gearlever:
     #!/usr/bin/bash
     set -euo pipefail
     echo "Configuring Flatpak remotes..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+    flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
     echo "Installing Gear Lever (it.mijorus.gearlever) from Flathub..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update flathub it.mijorus.gearlever || sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update it.mijorus.gearlever
+    flatpak --user -y install --reinstall --or-update flathub it.mijorus.gearlever || flatpak --user -y install --reinstall --or-update it.mijorus.gearlever
     echo "Done."
 
 # ==========================================
@@ -351,9 +351,9 @@ install-sdx-plex-desktop:
     #!/usr/bin/bash
     set -euo pipefail
     echo "Configuring Flatpak remotes..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+    flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
     echo "Installing Plex Desktop (tv.plex.PlexDesktop) from Flathub..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update flathub tv.plex.PlexDesktop || sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update tv.plex.PlexDesktop
+    flatpak --user -y install --reinstall --or-update flathub tv.plex.PlexDesktop || flatpak --user -y install --reinstall --or-update tv.plex.PlexDesktop
     echo "Done."
 
 # Install Plex HTPC (tv.plex.PlexHTPC, Flathub)
@@ -362,9 +362,9 @@ install-sdx-plex-htpc:
     #!/usr/bin/bash
     set -euo pipefail
     echo "Configuring Flatpak remotes..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+    flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
     echo "Installing Plex HTPC (tv.plex.PlexHTPC) from Flathub..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update flathub tv.plex.PlexHTPC || sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update tv.plex.PlexHTPC
+    flatpak --user -y install --reinstall --or-update flathub tv.plex.PlexHTPC || flatpak --user -y install --reinstall --or-update tv.plex.PlexHTPC
     echo "Done."
 
 # Install VLC (org.videolan.VLC, Flathub)
@@ -373,9 +373,9 @@ install-sdx-vlc:
     #!/usr/bin/bash
     set -euo pipefail
     echo "Configuring Flatpak remotes..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+    flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
     echo "Installing VLC (org.videolan.VLC) from Flathub..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update flathub org.videolan.VLC || sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update org.videolan.VLC
+    flatpak --user -y install --reinstall --or-update flathub org.videolan.VLC || flatpak --user -y install --reinstall --or-update org.videolan.VLC
     echo "Done."
 
 # Install Delfin (cafe.avery.Delfin, Flathub) — Jellyfin client
@@ -384,9 +384,9 @@ install-sdx-delfin:
     #!/usr/bin/bash
     set -euo pipefail
     echo "Configuring Flatpak remotes..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+    flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
     echo "Installing Delfin (cafe.avery.Delfin) from Flathub..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update flathub cafe.avery.Delfin || sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update cafe.avery.Delfin
+    flatpak --user -y install --reinstall --or-update flathub cafe.avery.Delfin || flatpak --user -y install --reinstall --or-update cafe.avery.Delfin
     echo "Done."
 
 # Install Web App Hub (org.pvermeer.WebAppHub, Flathub)
@@ -395,9 +395,9 @@ install-sdx-web-app-hub:
     #!/usr/bin/bash
     set -euo pipefail
     echo "Configuring Flatpak remotes..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+    flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
     echo "Installing Web App Hub (org.pvermeer.WebAppHub) from Flathub..."
-    sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update flathub org.pvermeer.WebAppHub || sudo env XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share" flatpak --system -y install --reinstall --or-update org.pvermeer.WebAppHub
+    flatpak --user -y install --reinstall --or-update flathub org.pvermeer.WebAppHub || flatpak --user -y install --reinstall --or-update org.pvermeer.WebAppHub
     echo "Done."
 
 # ==========================================
