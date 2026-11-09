@@ -9,8 +9,8 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - '**/README.md'
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 env:
@@ -34,6 +34,8 @@ jobs:
       # These stage versions are pinned by https://github.com/renovatebot/renovate
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
 
       - name: Maximize build space
         uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
@@ -47,33 +49,95 @@ jobs:
             source image-template.env
             set +a
           fi
-          
+
           # Export environment variables so they are available to subsequent steps
           echo "IMAGE_NAME=${IMAGE_NAME%%[[:space:]]*}" >> ${GITHUB_ENV}
           echo "REPO_ORGANIZATION=${REPO_ORGANIZATION%%[[:space:]]*}" >> ${GITHUB_ENV}
           echo "IMAGE_DESC=${IMAGE_DESC%%[[:space:]]*}" >> ${GITHUB_ENV}
           echo "DEFAULT_TAG=${DEFAULT_TAG%%[[:space:]]*}" >> ${GITHUB_ENV}
-          
+
           # Output them for verification
           printf "IMAGE_NAME=%s\n" "${IMAGE_NAME%%[[:space:]]*}" > ${GITHUB_OUTPUT}
           printf "REPO_ORGANIZATION=%s\n" "${REPO_ORGANIZATION%%[[:space:]]*}" >> ${GITHUB_OUTPUT}
           printf "IMAGE_DESC=%s\n" "${IMAGE_DESC%%[[:space:]]*}" >> ${GITHUB_OUTPUT}
           printf "DEFAULT_TAG=%s\n" "${DEFAULT_TAG%%[[:space:]]*}" >> ${GITHUB_OUTPUT}
 
+      - name: Resolve version and publish settings
+        id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          IS_TAG=false
+          IS_SEMVER_TAG=false
+          PUBLISH=false
+          SEMVER_RELEASE=false
+          VERSION_LABEL="dev"
+          SEMVER_TAG=""
+          SEMVER_NUM=""
+          SHORT_SHA="${SHA:0:7}"
+
+          if [[ "${REF}" == refs/tags/v* ]]; then
+            IS_TAG=true
+            SEMVER_TAG="${REF_NAME}"
+            if [[ "${SEMVER_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              IS_SEMVER_TAG=true
+              SEMVER_RELEASE=true
+              PUBLISH=true
+              SEMVER_NUM="${SEMVER_TAG#v}"
+              VERSION_LABEL="${SEMVER_TAG}"
+              FILE_VERSION="$(tr -d '[:space:]' < VERSION)"
+              if [[ "${FILE_VERSION}" != "${SEMVER_NUM}" ]]; then
+                echo "::error::VERSION file (${FILE_VERSION}) does not match tag ${SEMVER_TAG} (expected ${SEMVER_NUM})"
+                exit 1
+              fi
+            else
+              echo "::error::Unsupported tag format '${SEMVER_TAG}'. Use SemVer tags like v0.1.0 (no pre-releases)."
+              exit 1
+            fi
+          elif [[ "${EVENT_NAME}" != "pull_request" && ( "${REF}" == "refs/heads/main" || "${EVENT_NAME}" == "schedule" || "${EVENT_NAME}" == "workflow_dispatch" ) ]]; then
+            PUBLISH=true
+            FILE_VERSION="$(tr -d '[:space:]' < VERSION 2>/dev/null || echo 0.0.0)"
+            VERSION_LABEL="main-${FILE_VERSION}-${SHORT_SHA}"
+          fi
+
+          {
+            echo "is_tag=${IS_TAG}"
+            echo "is_semver_tag=${IS_SEMVER_TAG}"
+            echo "publish=${PUBLISH}"
+            echo "semver_release=${SEMVER_RELEASE}"
+            echo "version_label=${VERSION_LABEL}"
+            echo "semver_tag=${SEMVER_TAG}"
+            echo "semver_num=${SEMVER_NUM}"
+            echo "short_sha=${SHORT_SHA}"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Debug environment
+        env:
+          PUBLISH: ${{ steps.version.outputs.publish }}
+          SEMVER_RELEASE: ${{ steps.version.outputs.semver_release }}
+          VERSION_LABEL: ${{ steps.version.outputs.version_label }}
+          SEMVER_TAG: ${{ steps.version.outputs.semver_tag }}
         run: |
           echo "=== Environment Variables ==="
           echo "IMAGE_NAME=${{ steps.load-env.outputs.IMAGE_NAME }}"
           echo "REPO_ORGANIZATION=${{ steps.load-env.outputs.REPO_ORGANIZATION }}"
           echo "IMAGE_DESC=${{ steps.load-env.outputs.IMAGE_DESC }}"
           echo "DEFAULT_TAG=${{ steps.load-env.outputs.DEFAULT_TAG }}"
+          echo "PUBLISH=${PUBLISH}"
+          echo "SEMVER_RELEASE=${SEMVER_RELEASE}"
+          echo "VERSION_LABEL=${VERSION_LABEL}"
+          echo "SEMVER_TAG=${SEMVER_TAG}"
 
       # Fail fast: confirm the token can actually write to GHCR before spending
       # ~40 minutes building. Opening a blob upload session is the exact request
       # that a real `podman push` fails on, so it is an authoritative check and
       # costs nothing (no layer data is transferred).
       - name: Verify GHCR write access
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        if: steps.version.outputs.publish == 'true'
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GHCR_USER: ${{ github.actor }}
@@ -125,6 +189,7 @@ jobs:
           REPO_ORGANIZATION: ${{ steps.load-env.outputs.REPO_ORGANIZATION }}
           IMAGE_DESC: ${{ steps.load-env.outputs.IMAGE_DESC }}
           DEFAULT_TAG: ${{ steps.load-env.outputs.DEFAULT_TAG }}
+          VERSION_LABEL: ${{ steps.version.outputs.version_label }}
         run: |
           set -euox pipefail
 
@@ -133,6 +198,7 @@ jobs:
           echo "DEBUG: IMAGE_DESC=${IMAGE_DESC}"
           echo "DEBUG: REPO_ORGANIZATION=${REPO_ORGANIZATION}"
           echo "DEBUG: DEFAULT_TAG=${DEFAULT_TAG}"
+          echo "DEBUG: VERSION_LABEL=${VERSION_LABEL}"
 
           # Image metadata
           LABELS=(
@@ -140,7 +206,7 @@ jobs:
             "--label" "org.opencontainers.image.title=${IMAGE_NAME}"
             "--label" "org.opencontainers.image.description=${IMAGE_DESC}"
             "--label" "org.opencontainers.image.vendor=${REPO_ORGANIZATION}"
-            "--label" "org.opencontainers.image.version=${DEFAULT_TAG}"
+            "--label" "org.opencontainers.image.version=${VERSION_LABEL}"
             "--label" "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}"
             "--label" "org.opencontainers.image.revision=${GITHUB_SHA}"
           )
@@ -160,27 +226,34 @@ jobs:
           podman tag "${IMAGE}" "${IMAGE_NAME}:${DEFAULT_TAG}"
           podman images
 
-      # If you are feeling adventurous, use the new distro agnostic rechunker
-      # https://github.com/coreos/chunkah
-      # You can delete the Rechunk with rpm-ostree portion then if you use this
-      #- name: Rechunk with Chunkah
-      #  id: rechunk
-      #  run: |
-      #    just rechunk \
-      #      ${IMAGE_NAME} \
-      #      ${DEFAULT_TAG}
-
       - name: Generate Build Tags
         id: gen-build-tags
+        env:
+          DEFAULT_TAG: ${{ steps.load-env.outputs.DEFAULT_TAG }}
+          SEMVER_RELEASE: ${{ steps.version.outputs.semver_release }}
+          SEMVER_TAG: ${{ steps.version.outputs.semver_tag }}
+          SEMVER_NUM: ${{ steps.version.outputs.semver_num }}
+          SHORT_SHA: ${{ steps.version.outputs.short_sha }}
         run: |
           set -euo pipefail
           DATE=$(date +%Y%m%d)
           BUILD_TAGS=()
-          BUILD_TAGS+=("${DEFAULT_TAG}")
-          BUILD_TAGS+=("${DEFAULT_TAG}-${DATE}")
+          if [[ "${SEMVER_RELEASE}" == "true" ]]; then
+            # SemVer releases (v* tags): publish version tags and move latest (recommended).
+            MINOR="${SEMVER_NUM%.*}"
+            BUILD_TAGS+=("${SEMVER_TAG}")
+            BUILD_TAGS+=("v${MINOR}")
+            BUILD_TAGS+=("${DEFAULT_TAG}")
+            BUILD_TAGS+=("sha-${SHORT_SHA}")
+          else
+            # Non-SemVer publishes (main/schedule/dispatch): do NOT move latest.
+            BUILD_TAGS+=("main")
+            BUILD_TAGS+=("main-${DATE}")
+            BUILD_TAGS+=("sha-${SHORT_SHA}")
+          fi
           echo "Tags for this Action..."
           echo "${BUILD_TAGS[@]}"
-          echo "alias_tags=${BUILD_TAGS[@]}" >> $GITHUB_OUTPUT
+          echo "alias_tags=${BUILD_TAGS[@]}" >> "$GITHUB_OUTPUT"
 
       - name: Tag Image
         id: tag-images
@@ -207,47 +280,60 @@ jobs:
       # They also check if the runner is on the default branch so that things like the merge queue (if you enable it), are going to work
       - name: Login to GitHub Container Registry (docker config)
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        if: steps.version.outputs.publish == 'true'
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry (podman)
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        if: steps.version.outputs.publish == 'true'
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
 
       - name: Push To GHCR
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        if: steps.version.outputs.publish == 'true'
         id: push-image
         env:
           IMAGE_NAME: ${{ steps.load-env.outputs.IMAGE_NAME }}
-          DEFAULT_TAG: ${{ steps.load-env.outputs.DEFAULT_TAG }}
           ALIAS_TAGS: ${{ steps.gen-build-tags.outputs.alias_tags }}
+          SEMVER_RELEASE: ${{ steps.version.outputs.semver_release }}
+          SEMVER_TAG: ${{ steps.version.outputs.semver_tag }}
         run: |
           set -euo pipefail
           # Debug: show all environment variables
           echo "DEBUG: IMAGE_NAME=${IMAGE_NAME}"
           echo "DEBUG: IMAGE_REGISTRY=${IMAGE_REGISTRY}"
           echo "DEBUG: ALIAS_TAGS=${ALIAS_TAGS}"
+          PRIMARY_DIGEST_TAG="main"
+          if [[ "${SEMVER_RELEASE}" == "true" && -n "${SEMVER_TAG}" ]]; then
+            PRIMARY_DIGEST_TAG="${SEMVER_TAG}"
+          fi
           for tag in ${ALIAS_TAGS}; do
             DESTINATION="${IMAGE_REGISTRY}/${IMAGE_NAME}:${tag}"
             echo "DEBUG: Pushing ${IMAGE_NAME}:${tag} to ${DESTINATION}"
             # Podman might need transport prefix for the destination
             podman push --digestfile=/tmp/digestfile "${IMAGE_NAME}:${tag}" "docker://${DESTINATION}"
+            if [[ "${tag}" == "${PRIMARY_DIGEST_TAG}" ]]; then
+              cp /tmp/digestfile /tmp/primary-digestfile
+            fi
           done
-          digest=$(< /tmp/digestfile)
+          if [[ -f /tmp/primary-digestfile ]]; then
+            digest=$(< /tmp/primary-digestfile)
+          else
+            digest=$(< /tmp/digestfile)
+          fi
           echo "Digest=${digest}" >> $GITHUB_OUTPUT
+          echo "digest_tag=${PRIMARY_DIGEST_TAG}" >> $GITHUB_OUTPUT
 
       - name: Install cosign
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        if: steps.version.outputs.publish == 'true'
         uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
         with:
           cosign-release: v2.6.1
 
       - name: Sign container image
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        if: steps.version.outputs.publish == 'true'
         id: sign
         env:
           DIGEST: ${{ steps.push-image.outputs.digest }}
@@ -264,14 +350,18 @@ jobs:
           printf '%s\n' "${{ secrets.COSIGN_PRIVATE_KEY }}" > "${KEY_FILE}"
           cosign sign --yes --key "${KEY_FILE}" "${IMAGE_REGISTRY}/${IMAGE_NAME}@${DIGEST}"
 
-      - name: Update GitHub Release (image info + portal/apps)
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+      - name: Update GitHub Release (SemVer tag)
+        if: steps.version.outputs.semver_release == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          DEFAULT_TAG: ${{ env.DEFAULT_TAG }}
+          IMAGE_NAME: ${{ steps.load-env.outputs.IMAGE_NAME }}
+          DEFAULT_TAG: ${{ steps.load-env.outputs.DEFAULT_TAG }}
+          SEMVER_TAG: ${{ steps.version.outputs.semver_tag }}
+          SEMVER_NUM: ${{ steps.version.outputs.semver_num }}
+          DIGEST: ${{ steps.push-image.outputs.digest }}
         run: |
           set -euo pipefail
+          # Use the locally built image for metadata extraction.
           IMG="${IMAGE_NAME}:${DEFAULT_TAG}"
 
           BASE_OS_PRETTY=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${PRETTY_NAME:-unknown}"' | head -n1)
@@ -279,18 +369,22 @@ jobs:
           BASE_OS_NAME=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${NAME:-unknown}"' | head -n1)
           SURFACE_KERNEL=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -q kernel-surface --qf "%{VERSION}-%{RELEASE}" 2>/dev/null || echo unknown' | head -n1)
 
-          TAG="latest"
-          TITLE="Bazzite-SDX"
+          TAG="${SEMVER_TAG}"
+          TITLE="Bazzite-SDX ${SEMVER_TAG}"
           {
-            echo "## Bazzite-SDX"
+            echo "## Bazzite-SDX ${SEMVER_TAG}"
             echo ""
-            echo "Bazzite-DX with Linux Surface kernel support. This \`latest\` release is auto-updated after each successful build on \`main\`."
+            echo "Bazzite-DX with Linux Surface kernel support. SemVer release published from tag \`${SEMVER_TAG}\` (version source: git tag + \`VERSION\` file)."
             echo ""
             echo "### Versions / Image info"
+            echo "- **Release:** ${SEMVER_TAG}"
             echo "- **Bazzite/base OS:** ${BASE_OS_PRETTY} (VERSION_ID: ${BASE_OS_VERSION})"
             echo "- **Surface kernel:** ${SURFACE_KERNEL}"
+            echo "- **Image digest:** \`${DIGEST}\`"
+            echo "- **Image (version):** \`ghcr.io/nexgen-3d-printing/bazzite-sdx:${SEMVER_TAG}\`"
+            echo "- **Image (latest stable):** \`ghcr.io/nexgen-3d-printing/bazzite-sdx:latest\`"
             echo ""
-            echo "### NexGen3D SDX Portal (new)"
+            echo "### NexGen3D SDX Portal"
             echo "The image includes **NexGen3D SDX Portal**, a separate yafti-based portal alongside the original Bazzite Portal. It provides category tabs, per-app install actions, and full app descriptions, and runs Bazzite-SDX \`ujust\` recipes (apps are **not baked into the OS image**). Flatpak apps install **per user** (Bazzite-style, no sudo required for app installs)."
             echo ""
             echo "**Launch:** open \`NexGen3D SDX Portal\` from the app menu (or run \`yafti_gtk.py /usr/share/yafti/nexgen3d-sdx.yml\`)."
@@ -330,8 +424,11 @@ jobs:
             echo "# Verify current state"
             echo "sudo bootc status"
             echo ""
-            echo "# Rebase to Bazzite-SDX (based on Bazzite-DX)"
-            echo "sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:latest"
+            echo "# Rebase to a specific SemVer release (recommended for pinning)"
+            echo "sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:${SEMVER_TAG}"
+            echo ""
+            echo "# Or track latest stable SemVer"
+            echo "# sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:latest"
             echo ""
             echo "# Reboot, then install apps via NexGen3D SDX Portal or:"
             echo "ujust install-bazzite-sdx-flatpaks"
@@ -340,7 +437,7 @@ jobs:
             echo "### Security verification"
             echo '```bash'
             echo "curl -fsSL https://raw.githubusercontent.com/NexGen-3D-Printing/bazzite-sdx/main/cosign.pub -o cosign.pub"
-            echo "cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:latest"
+            echo "cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:${SEMVER_TAG}"
             echo '```'
             echo ""
             echo "### Related resources"
