@@ -1,0 +1,13 @@
+[Unit]
+Description=Bazzite-SDX user setup (portal favorites/pinning best-effort)
+After=graphical-session.target
+Wants=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/bazzite-sdx-user-setup
+RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target
