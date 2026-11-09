@@ -7,7 +7,7 @@
 
 Bazzite-SDX is a bootc image built from **Bazzite-DX** (`ghcr.io/ublue-os/bazzite-dx:stable`) with the **Linux Surface kernel stack** pre-installed for Microsoft Surface devices.
 
-**Default install philosophy:** the default Bazzite-SDX install is based on the upstream **Bazzite-DX** experience and adds **Linux Surface kernel packages/support**. **Optional software is not installed by default** — all optional app installs are offered through the **NexGen3D SDX Portal** and are **purely optional** (Bazzite-style, user-initiated).
+**Default install philosophy:** the default Bazzite-SDX install is based on the upstream **Bazzite-DX** experience and adds **Linux Surface kernel packages/support**. **Optional software is not installed by default** - all optional app installs are offered through the **NexGen3D SDX Portal** and are **purely optional** (Bazzite-style, user-initiated).
 
 ## NexGen3D SDX Portal
 
@@ -31,13 +31,13 @@ Bazzite-SDX is a bootc image built from **Bazzite-DX** (`ghcr.io/ublue-os/bazzit
 
 ## What Makes It Special
 
-**Linux Surface Kernel Support** — Surface kernel and userspace support for Microsoft Surface devices:
+**Linux Surface Kernel Support** - Surface kernel and userspace support for Microsoft Surface devices:
 - `kernel-surface`, `iptsd`, `libwacom-surface`/data, `surface-control`, `surface-dtx-daemon`
 - Surface Pro, Book, Laptop, Studio, Go families (see [Supported Hardware](#supported-hardware))
 
-**Bazzite-DX base** — the Bazzite-DX experience (gaming + developer tooling), built from `ghcr.io/ublue-os/bazzite-dx:stable`. The repository metadata is currently configured for the Fedora 45 Surface kernel packages; the actual base OS version follows the upstream Bazzite-DX `:stable` image at build time.
+**Bazzite-DX base** - the Bazzite-DX experience (gaming + developer tooling), built from `ghcr.io/ublue-os/bazzite-dx:stable`. The repository metadata is currently configured for the Fedora 45 Surface kernel packages; the actual base OS version follows the upstream Bazzite-DX `:stable` image at build time.
 
-**Optional apps via NexGen3D SDX Portal** — no optional apps are baked into the OS image. Install only what you want after rebasing:
+**Optional apps via NexGen3D SDX Portal** - no optional apps are baked into the OS image. Install only what you want after rebasing:
 ```bash
 ujust install-bazzite-sdx-flatpaks
 ```
@@ -98,16 +98,16 @@ Bazzite-SDX includes the Linux Surface kernel stack (`kernel-surface`, `iptsd`, 
 
 | Device | Expected support (linux-surface) | Bazzite-SDX test status | Kernel tested |
 |--------|----------------------------------|-------------------------|---------------|
-| Surface Pro 3-5, 7, 8 | Varies by model | Requires Testing | — |
+| Surface Pro 3-5, 7, 8 | Varies by model | Requires Testing | - |
 | Surface Pro 6 | Good (typical linux-surface support) | **Confirmed** | `kernel-surface` 7.2.15-1.surface.fc45 (latest testing build, as of 2026-11-09) |
 | Surface Pro 9 | Varies (Intel/5G models differ) | **Confirmed** | `kernel-surface` 7.2.15-1.surface.fc45 (latest testing build, as of 2026-11-09) |
-| Surface Pro X | Partial (ARM-related limitations may apply) | Requires Testing | — |
-| Surface Book 1-3 | Good (typical linux-surface support) | Requires Testing | — |
-| Surface Laptop 1-6 | Varies by model | Requires Testing | — |
-| Surface Laptop Studio | Varies by model | Requires Testing | — |
-| Surface Laptop Go 1-3 | Varies by model | Requires Testing | — |
-| Surface Go 1-4 | Varies by model | Requires Testing | — |
-| Surface Studio 1-2+ | Varies by model | Requires Testing | — |
+| Surface Pro X | Partial (ARM-related limitations may apply) | Requires Testing | - |
+| Surface Book 1-3 | Good (typical linux-surface support) | Requires Testing | - |
+| Surface Laptop 1-6 | Varies by model | Requires Testing | - |
+| Surface Laptop Studio | Varies by model | Requires Testing | - |
+| Surface Laptop Go 1-3 | Varies by model | Requires Testing | - |
+| Surface Go 1-4 | Varies by model | Requires Testing | - |
+| Surface Studio 1-2+ | Varies by model | Requires Testing | - |
 
 > **Note:** “Confirmed” means Bazzite-SDX has been tested on that device model with the listed `kernel-surface` version. “Requires Testing” means it may work with the included Linux Surface stack but has not been confirmed in Bazzite-SDX. Hardware support details can vary by exact SKU/firmware; see the [linux-surface feature matrix](https://github.com/linux-surface/linux-surface/wiki/Supported-Devices-and-Features) for upstream status.
 
@@ -137,8 +137,8 @@ Bazzite-SDX uses coexisting channel/versioning:
 Build version labels: weekly = `weekly-YYYYMMDD+<sha>`, testing = `testing-YYYYMMDD+<sha>`, SemVer = `vX.Y.Z`.
 
 - [**Latest (weekly) release**](https://github.com/NexGen-3D-Printing/bazzite-sdx/releases/latest)
-- [RELEASE.md](RELEASE.md) — channel/release checklist (weekly, testing, SemVer).
-- [RELEASE-INFO.md](RELEASE-INFO.md) — repository release notes/history.
+- [RELEASE.md](RELEASE.md) - channel/release checklist (weekly, testing, SemVer).
+- [RELEASE-INFO.md](RELEASE-INFO.md) - repository release notes/history.
 
 ## Building from Source
 

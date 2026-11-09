@@ -2,9 +2,9 @@
 
 Bazzite-SDX uses **coexisting channels and versioning**:
 
-- **`latest` (weekly)** — automatic **weekly scheduled** build. Publishes image tags `latest`, `weekly`, `weekly-YYYYMMDD`, `sha-*`. Updates the GitHub release tagged `latest` and marks it **Latest**.
-- **`testing`** — **any build that is not the automatic weekly build** (pushes to `main`, manual `workflow_dispatch`). Publishes `testing`, `testing-YYYYMMDD`, `sha-*`. Updates the GitHub release tagged `testing` as a **prerelease** (not Latest).
-- **SemVer (coexisting, pinned)** — explicit `vMAJOR.MINOR.PATCH` tag pushes. Publishes `vX.Y.Z`, `vX.Y`, `sha-*` and creates/updates a versioned GitHub release (**not** Latest; `latest` remains the weekly channel). Source of truth: git tag `v*` + [`VERSION`](VERSION) (must match).
+- **`latest` (weekly)** - automatic **weekly scheduled** build. Publishes image tags `latest`, `weekly`, `weekly-YYYYMMDD`, `sha-*`. Updates the GitHub release tagged `latest` and marks it **Latest**.
+- **`testing`** - **any build that is not the automatic weekly build** (pushes to `main`, manual `workflow_dispatch`). Publishes `testing`, `testing-YYYYMMDD`, `sha-*`. Updates the GitHub release tagged `testing` as a **prerelease** (not Latest).
+- **SemVer (coexisting, pinned)** - explicit `vMAJOR.MINOR.PATCH` tag pushes. Publishes `vX.Y.Z`, `vX.Y`, `sha-*` and creates/updates a versioned GitHub release (**not** Latest; `latest` remains the weekly channel). Source of truth: git tag `v*` + [`VERSION`](VERSION) (must match).
 
 ## Version/build labels
 

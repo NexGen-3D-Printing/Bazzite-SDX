@@ -167,7 +167,7 @@ install-bazzite-sdx-flatpaks:
 # AI Tools (Flatpak > AppImage > rpm-ostree layer > Docker)
 # ==========================================
 
-# Install LM Studio (ai.lmstudio.lm-studio, Flathub) — Flatpak preferred
+# Install LM Studio (ai.lmstudio.lm-studio, Flathub) - Flatpak preferred
 [group("bazzite-sdx-ai")]
 install-sdx-lm-studio:
     #!/usr/bin/bash
@@ -178,7 +178,7 @@ install-sdx-lm-studio:
     flatpak --user -y install --reinstall --or-update flathub ai.lmstudio.lm-studio || flatpak --user -y install --reinstall --or-update ai.lmstudio.lm-studio
     echo "Done."
 
-# Install OpenCode CLI (official install script to user directory) — no official Flatpak CLI; user-local install
+# Install OpenCode CLI (official install script to user directory) - no official Flatpak CLI; user-local install
 [group("bazzite-sdx-ai")]
 install-sdx-opencode-cli:
     #!/usr/bin/bash
@@ -190,7 +190,7 @@ install-sdx-opencode-cli:
     echo "If 'opencode' is not found, add the install bin directory to your PATH (see installer output)."
     echo "Done."
 
-# Install Unsloth Desktop (latest Linux AppImage, user install) — no official Flatpak; AppImage preferred over rpm-ostree layer
+# Install Unsloth Desktop (latest Linux AppImage, user install) - no official Flatpak; AppImage preferred over rpm-ostree layer
 [group("bazzite-sdx-ai")]
 install-sdx-unsloth-desktop:
     #!/usr/bin/bash
@@ -216,7 +216,7 @@ install-sdx-unsloth-desktop:
     echo "Tip: integrate with Gear Lever (System Utilities) for menu/updates management, or run: ${out}"
     echo "Done."
 
-# Install/setup REA (morluto/rea) — reverse-engineering CLI/MCP toolset (rea-agents)
+# Install/setup REA (morluto/rea) - reverse-engineering CLI/MCP toolset (rea-agents)
 [group("bazzite-sdx-ai")]
 install-sdx-rea:
     #!/usr/bin/bash
@@ -277,7 +277,7 @@ install-sdx-rea:
     fi
     echo "Done."
 
-# Setup Harbor (av/harbor) — Docker Compose toolkit; requires Docker/Compose (or compatible)
+# Setup Harbor (av/harbor) - Docker Compose toolkit; requires Docker/Compose (or compatible)
 [group("bazzite-sdx-ai")]
 install-sdx-harbor:
     #!/usr/bin/bash
@@ -306,7 +306,7 @@ install-sdx-harbor:
     esac
     echo "Done."
 
-# Setup Odysseus (odysseus-dev/odysseus) — Docker Compose self-hosted AI workspace
+# Setup Odysseus (odysseus-dev/odysseus) - Docker Compose self-hosted AI workspace
 [group("bazzite-sdx-ai")]
 install-sdx-odysseus:
     #!/usr/bin/bash
@@ -348,7 +348,7 @@ install-sdx-odysseus:
 # System Utilities
 # ==========================================
 
-# Install Gear Lever (it.mijorus.gearlever, Flathub) — AppImage manager
+# Install Gear Lever (it.mijorus.gearlever, Flathub) - AppImage manager
 [group("bazzite-sdx-utils")]
 install-sdx-gearlever:
     #!/usr/bin/bash
@@ -396,7 +396,7 @@ install-sdx-vlc:
     flatpak --user -y install --reinstall --or-update flathub org.videolan.VLC || flatpak --user -y install --reinstall --or-update org.videolan.VLC
     echo "Done."
 
-# Install Delfin (cafe.avery.Delfin, Flathub) — Jellyfin client
+# Install Delfin (cafe.avery.Delfin, Flathub) - Jellyfin client
 [group("bazzite-sdx-media")]
 install-sdx-delfin:
     #!/usr/bin/bash

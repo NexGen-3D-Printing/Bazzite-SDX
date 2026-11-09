@@ -27,11 +27,11 @@ The image ships Flatpak remotes/lists and a `ujust` recipe, following the upstre
 ```bash
 ujust install-bazzite-sdx-flatpaks
 ```
-- **Brave Browser** — `com.brave.Browser` (Flathub); Firefox RPM removed during image build when present
-- **OpenCode** — `ai.opencode.opencode` (Flathub)
-- **SolidCraft** — `io.tangencylabs.solidcraft` (SolidCraft Flatpak repo)
-- **ArtCraft** — upstream Flatpak bundle from `storytold/artcraft` releases
-- **Mission Center** — `io.missioncenter.MissionCenter` (Flathub)
+- **Brave Browser** - `com.brave.Browser` (Flathub); Firefox RPM removed during image build when present
+- **OpenCode** - `ai.opencode.opencode` (Flathub)
+- **SolidCraft** - `io.tangencylabs.solidcraft` (SolidCraft Flatpak repo)
+- **ArtCraft** - upstream Flatpak bundle from `storytold/artcraft` releases
+- **Mission Center** - `io.missioncenter.MissionCenter` (Flathub)
 
 Apps without Flatpak support are dropped (planned for `ujust` recipes later).
 
@@ -58,11 +58,11 @@ cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:latest
 ## Supported Hardware
 
 ### Microsoft Surface devices
-- Surface Pro 3–9 (Pro X: partial/varies)
-- Surface Book 1–3
-- Surface Laptop 1–6, Laptop Studio, Laptop Go 1–2
-- Surface Go 1–3
-- Surface Studio 1–2
+- Surface Pro 3-9 (Pro X: partial/varies)
+- Surface Book 1-3
+- Surface Laptop 1-6, Laptop Studio, Laptop Go 1-2
+- Surface Go 1-3
+- Surface Studio 1-2
 
 Support depends on upstream [linux-surface](https://github.com/linux-surface/linux-surface) kernel/firmware status for each model.
 
