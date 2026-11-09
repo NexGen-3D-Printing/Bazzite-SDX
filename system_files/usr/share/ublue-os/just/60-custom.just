@@ -226,66 +226,54 @@ install-sdx-rea:
     echo ""
     echo "Notes:"
     echo "- Requires Node.js 22.x (>=22.23.4), 24.x (>=24.22.1), or 26.x (>=26.12.1) + npm."
-    echo "- This Bazzite-SDX image (Fedora 45) may not include a supported Node.js version."
     echo "- Deep/native analysis may require external tools (Hopper/Ghidra/IDA) configured separately."
     echo ""
-    if command -v npm >/dev/null 2>&1; then
-        node_ver="$(node --version 2>/dev/null || echo unknown)"
-        npm_ver="$(npm --version 2>/dev/null || echo unknown)"
-        echo "Node version: ${node_ver}"
-        echo "npm version: ${npm_ver}"
-        # Check if the version is supported (22.x, 24.x, or 26.x+)
-        if command -v node >/dev/null 2>&1; then
-            # Extract major version
-            major="$(node --version 2>/dev/null | sed -E 's/^v([0-9]+)\..*/\1/' || echo 0)"
-            if [[ "${major}" == "22" || "${major}" == "24" || "${major}" -ge "26" ]]; then
+    node_major=""
+    if command -v node >/dev/null 2>&1; then
+        node_major="$(node --version 2>/dev/null | sed -E 's/^v([0-9]+)\..*/\1/' || echo 0)"
+    fi
+    # Check if node/npm are available and supported
+    if command -v npm >/dev/null 2>&1 && [[ -n "${node_major}" ]] && [[ "${node_major}" == "22" || "${node_major}" == "24" || "${node_major}" -ge "26" ]]; then
+        #Supported Node.js + npm available
+        echo "Supported Node.js ${node_major}.x detected. Installing/updating globally: npm install --global rea-agents"
+        read -r -p "Proceed? [y/N] " ans
+        case "${ans}" in
+            y|Y|yes|YES)
+                npm install --global rea-agents
                 echo ""
-                echo "Supported Node.js version detected. Installing/updating globally: npm install --global rea-agents"
-                read -r -p "Proceed? [y/N] " ans
-                case "${ans}" in
-                    y|Y|yes|YES)
-                        npm install --global rea-agents
-                        echo ""
-                        echo "Done. Try: rea --help   (or)   rea doctor --json"
-                        echo "For agent setup: npx rea-agents@latest setup"
-                        ;;
-                    *)
-                        echo "Skipped. You can run without global install: npx -y rea-agents@latest --help"
-                        ;;
-                esac
-            else
-                echo ""
-                echo "WARNING: Node.js ${major}.x detected, but REA requires 22.x, 24.x, or 26.x+."
-                echo "To install a supported Node.js version (user-local) and REA:"
-                echo ""
-                echo "1. Install Node.js 24.x (recommended):"
-                echo "   curl -fsSL https://deb.nodesource.com/setup_24.x | bash -"
-                echo "   sudo dnf install -y nodejs"
-                echo ""
-                echo "2. Then: npm install --global rea-agents"
-                echo "   For agent setup: npx rea-agents@latest setup"
-                echo ""
-                echo "Docs: https://rea.tools"
-            fi
-        fi
-    elif command -v node >/dev/null 2>&1; then
-        echo "Node $(node --version 2>/dev/null || true) detected but npm not found."
-        echo "Use a Node environment with npm/npx, or install npm, then run:"
-        echo "  npm install --global rea-agents"
-        echo "  npx -y rea-agents@latest setup"
+                echo "Done. Try: rea --help   (or)   rea doctor --json"
+                echo "For agent setup: npx rea-agents@latest setup"
+                ;;
+            *)
+                echo "Skipped. You can run without global install: npx -y rea-agents@latest --help"
+                ;;
+        esac
     else
-        echo "Node/npm not found on PATH."
+        # Need to install Node.js layer
+        echo "Node.js ${node_major:-not installed} detected or npm missing."
+        echo "REA requires Node.js 22.x (>=22.23.4), 24.x (>=24.22.1), or 26.x (>=26.12.1)."
         echo ""
-        echo "To install a supported Node.js version (user-local) and REA:"
+        echo "Bazzite-SDX uses rpm-ostree for immutable package layering."
+        echo "This will install a supported Node.js version (24.x) as a system layer."
         echo ""
-        echo "1. Install Node.js 24.x (recommended):"
-        echo "   curl -fsSL https://deb.nodesource.com/setup_24.x | bash -"
-        echo "   sudo dnf install -y nodejs"
-        echo ""
-        echo "2. Then: npm install --global rea-agents"
-        echo "   For agent setup: npx rea-agents@latest setup"
-        echo ""
-        echo "Docs: https://rea.tools"
+        read -r -p "Proceed with 'sudo rpm-ostree install nodejs' for REA? [y/N] " ans
+        case "${ans}" in
+            y|Y|yes|YES)
+                echo ""
+                echo "Staging Node.js 24.x installation..."
+                echo "IMPORTANT: This change requires a reboot to apply. The package will not be available until after reboot."
+                echo ""
+                sudo rpm-ostree install nodejs
+                echo ""
+                echo "Reboot required to complete Node.js installation."
+                echo "After reboot, the REA CLI will be available and can be installed with: npm install --global rea-agents"
+                echo "For agent setup: npx rea-agents@latest setup"
+                ;;
+            *)
+                echo "Node.js installation skipped. REA cannot be installed without a supported Node.js version."
+                echo "To install later: sudo rpm-ostree install nodejs, then reboot, then run npm install --global rea-agents"
+                ;;
+        esac
     fi
     echo "Done."
 
