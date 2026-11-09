@@ -453,6 +453,14 @@ jobs:
             echo "curl -fsSL https://raw.githubusercontent.com/NexGen-3D-Printing/bazzite-sdx/main/cosign.pub -o cosign.pub"
             echo "cosign verify --key cosign.pub ${PRIMARY_IMAGE}"
             echo '```'
+            echo ""
+            if [[ "${RELEASE_KIND}" == "weekly" ]]; then
+              echo "---"
+              echo "![Latest release views](https://visitor-badge.laobi.icu/badge?page_id=NexGen-3D-Printing.bazzite-sdx.release.latest&left_text=Latest%20Release%20Views)"
+            elif [[ "${RELEASE_KIND}" == "testing" ]]; then
+              echo "---"
+              echo "![Testing release views](https://visitor-badge.laobi.icu/badge?page_id=NexGen-3D-Printing.bazzite-sdx.release.testing&left_text=Testing%20Release%20Views)"
+            fi
           } > /tmp/release-notes.md
 
           if gh release view "$TAG" >/dev/null 2>&1; then

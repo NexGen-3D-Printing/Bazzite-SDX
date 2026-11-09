@@ -202,3 +202,5 @@ Apache-2.0 (same as Bazzite and Universal Blue)
 **Built with ❤️ by NexGen-3D-Printing**
 
 *Making Linux work better for everyone, one device at a time.*
+
+![Landing page views](https://visitor-badge.laobi.icu/badge?page_id=NexGen-3D-Printing.bazzite-sdx.readme&left_text=Landing%20Page%20Views)
