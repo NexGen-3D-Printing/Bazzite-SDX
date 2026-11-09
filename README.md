@@ -13,7 +13,7 @@ Bazzite-SDX is a bootc image built from **Bazzite-DX** (`ghcr.io/ublue-os/bazzit
 
 **NexGen3D SDX Portal** is Bazzite-SDX’s companion app for optional post-install setup and software. It is a yafti-based portal (separate from the upstream Bazzite Portal) that runs Bazzite-SDX `ujust` recipes. Apps are **not baked into the OS image**; Flatpak apps install **per user** (no `sudo` required for app installs), following the Bazzite/Bazaar-style user experience.
 
-**Launch:** open **NexGen3D SDX Portal** from the app menu (or run `yafti_gtk.py /usr/share/yafti/nexgen3d-sdx.yml`). On first boot, Bazzite-SDX is configured to launch the NexGen3D SDX Portal.
+**Launch:** open **NexGen3D SDX Portal** from the app menu
 
 **Features:**
 - Category tabs: **Setup**, **AI Tools**, **Web Browsers**, **Creative Utilities**, **System Utilities**, **Media**, **System Management**
