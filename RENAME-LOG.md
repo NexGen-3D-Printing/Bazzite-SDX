@@ -10,13 +10,17 @@ Updated in-repo GitHub repository references to use the `Bazzite-SDX` repository
 - **GitHub repository path references**: replaced `NexGen-3D-Printing/bazzite-sdx` with `NexGen-3D-Printing/Bazzite-SDX` in repo files (GitHub URLs, raw.githubusercontent.com URLs, badge/page IDs, clone/docs references where applicable).
   - 24 replacements across 10 files (see commit diff): `artifacthub-repo.yml`, `PUSH_INSTRUCTIONS.md`, `FIX_SUMMARY.md`, `Containerfile` (source label context if present via repo refs), `README.md`, `RELEASE-INFO.md`, `SECURITY.md`, `.github/workflows/build.yml` (repo URL contexts), `system_files/usr/share/yafti/nexgen3d-sdx.yml`, and log tracking.
 
+## What was changed (second pass - safe cosmetic identifiers)
+- **`ujust` group display names** in `system_files/usr/share/ublue-os/just/60-custom.just` (27 groups): `bazzite-sdx` -> `Bazzite-SDX`, `bazzite-sdx-ai` -> `Bazzite-SDX-AI`, `bazzite-sdx-utils` -> `Bazzite-SDX-Utils`, `bazzite-sdx-media` -> `Bazzite-SDX-Media`, `bazzite-sdx-system` -> `Bazzite-SDX-System`. Cosmetic only; no command/script compatibility impact.
+- **NexGen3D SDX Portal (yafti) action IDs** (cosmetic): `bazzite-sdx-readme` -> `Bazzite-SDX-readme`, `bazzite-sdx-release` -> `Bazzite-SDX-release`. Recipe/command targets unchanged.
+
 ## What was intentionally NOT changed (compatibility / safety)
 These remain lowercase `bazzite-sdx` to avoid breaking existing installs, published artifacts, and functional identifiers:
 
 - **GHCR/container image name & bootc targets**: `ghcr.io/nexgen-3d-printing/bazzite-sdx:*` and all `bootc switch .../bazzite-sdx:*` / `cosign verify .../bazzite-sdx:*` references.
 - **`image-template.env`**: `IMAGE_NAME=bazzite-sdx` (drives published image name).
-- **Recipe/command identifiers**: `ujust install-bazzite-sdx-flatpaks` (kept for compatibility with existing docs/scripts/portal invocations).
-- **Internal/runtime paths & group IDs** (kept to avoid breakage/churn): `/etc/bazzite-sdx/`, `system_files/usr/share/ublue-os/bazzite-sdx/`, just group names like `[group("bazzite-sdx")]`, and similar functional identifiers.
+- **Recipe/command identifiers**: `ujust install-bazzite-sdx-flatpaks` and portal script invocations that call it (kept for compatibility).
+- **Internal/runtime paths & filenames** (kept to avoid breakage/churn): `/etc/bazzite-sdx/`, `system_files/usr/share/ublue-os/bazzite-sdx/`, `nexgen3d-sdx.yml` filename/path references, and similar functional identifiers.
 - **Local historical paths** in old docs (`/home/NexGen3D/Documents/OpenCode/bazzite-sdx`) were not treated as active config; adjust manually if desired.
 
 ## GitHub repository rename (manual step)

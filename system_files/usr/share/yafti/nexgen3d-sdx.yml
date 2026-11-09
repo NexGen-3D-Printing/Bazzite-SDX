@@ -3,12 +3,12 @@ screens:
   - title: "Setup"
     description: "Bazzite-SDX links and bulk installs"
     actions:
-      - id: "bazzite-sdx-readme"
+      - id: "Bazzite-SDX-readme"
         title: "Open Bazzite-SDX on GitHub"
         description: "Project page for Bazzite-SDX (Bazzite-DX + Linux Surface kernel), including source, issues, and documentation."
         default: false
         script: "xdg-open https://github.com/NexGen-3D-Printing/Bazzite-SDX"
-      - id: "bazzite-sdx-release"
+      - id: "Bazzite-SDX-release"
         title: "Open latest release notes"
         description: "View the auto-updated latest release for base OS/Surface kernel info and Bazzite-SDX app install instructions."
         default: false

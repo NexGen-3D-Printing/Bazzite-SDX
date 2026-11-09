@@ -5,7 +5,7 @@
 # ==========================================
 
 # Install Brave Browser (com.brave.Browser, Flathub)
-[group("bazzite-sdx")]
+[group("Bazzite-SDX")]
 install-sdx-brave:
     #!/usr/bin/bash
     set -euo pipefail
@@ -16,7 +16,7 @@ install-sdx-brave:
     echo "Done."
 
 # Install OpenCode app (ai.opencode.opencode, Flathub)
-[group("bazzite-sdx")]
+[group("Bazzite-SDX")]
 install-sdx-opencode:
     #!/usr/bin/bash
     set -euo pipefail
@@ -27,7 +27,7 @@ install-sdx-opencode:
     echo "Done."
 
 # Install Mission Center (io.missioncenter.MissionCenter, Flathub)
-[group("bazzite-sdx")]
+[group("Bazzite-SDX")]
 install-sdx-mission-center:
     #!/usr/bin/bash
     set -euo pipefail
@@ -38,7 +38,7 @@ install-sdx-mission-center:
     echo "Done."
 
 # Install SolidCraft (io.tangencylabs.solidcraft, SolidCraft Flatpak repo)
-[group("bazzite-sdx")]
+[group("Bazzite-SDX")]
 install-sdx-solidcraft:
     #!/usr/bin/bash
     set -euo pipefail
@@ -54,7 +54,7 @@ install-sdx-solidcraft:
     echo "Done."
 
 # Install ArtCraft (upstream Flatpak bundle from latest storytold/artcraft release)
-[group("bazzite-sdx-ai")]
+[group("Bazzite-SDX-AI")]
 install-sdx-artcraft:
     #!/usr/bin/bash
     set -euo pipefail
@@ -76,7 +76,7 @@ install-sdx-artcraft:
     fi
 
 # Install PhotoCraft (upstream Flatpak bundle from latest storytold/photocraft release)
-[group("bazzite-sdx")]
+[group("Bazzite-SDX")]
 install-sdx-photocraft:
     #!/usr/bin/bash
     set -euo pipefail
@@ -95,7 +95,7 @@ install-sdx-photocraft:
     fi
 
 # Install PDFCraft (upstream Flatpak bundle from latest storytold/pdfcraft release)
-[group("bazzite-sdx")]
+[group("Bazzite-SDX")]
 install-sdx-pdfcraft:
     #!/usr/bin/bash
     set -euo pipefail
@@ -114,7 +114,7 @@ install-sdx-pdfcraft:
     fi
 
 # Install Craft Anything (upstream Flatpak bundle from latest storytold/craft-anything release)
-[group("bazzite-sdx-ai")]
+[group("Bazzite-SDX-AI")]
 install-sdx-craft-anything:
     #!/usr/bin/bash
     set -euo pipefail
@@ -133,7 +133,7 @@ install-sdx-craft-anything:
     fi
 
 # Install all core Bazzite-SDX Flatpak apps (Brave, OpenCode app, Mission Center, SolidCraft, ArtCraft)
-[group("bazzite-sdx")]
+[group("Bazzite-SDX")]
 install-bazzite-sdx-flatpaks:
     #!/usr/bin/bash
     set -euo pipefail
@@ -168,7 +168,7 @@ install-bazzite-sdx-flatpaks:
 # ==========================================
 
 # Install LM Studio (ai.lmstudio.lm-studio, Flathub) - Flatpak preferred
-[group("bazzite-sdx-ai")]
+[group("Bazzite-SDX-AI")]
 install-sdx-lm-studio:
     #!/usr/bin/bash
     set -euo pipefail
@@ -179,7 +179,7 @@ install-sdx-lm-studio:
     echo "Done."
 
 # Install OpenCode CLI (official install script to user directory) - no official Flatpak CLI; user-local install
-[group("bazzite-sdx-ai")]
+[group("Bazzite-SDX-AI")]
 install-sdx-opencode-cli:
     #!/usr/bin/bash
     set -euo pipefail
@@ -191,7 +191,7 @@ install-sdx-opencode-cli:
     echo "Done."
 
 # Install Unsloth Desktop (latest Linux AppImage, user install) - no official Flatpak; AppImage preferred over rpm-ostree layer
-[group("bazzite-sdx-ai")]
+[group("Bazzite-SDX-AI")]
 install-sdx-unsloth-desktop:
     #!/usr/bin/bash
     set -euo pipefail
@@ -217,7 +217,7 @@ install-sdx-unsloth-desktop:
     echo "Done."
 
 # Install/setup REA (morluto/rea) - reverse-engineering CLI/MCP toolset (rea-agents)
-[group("bazzite-sdx-ai")]
+[group("Bazzite-SDX-AI")]
 install-sdx-rea:
     #!/usr/bin/bash
     set -euo pipefail
@@ -278,7 +278,7 @@ install-sdx-rea:
     echo "Done."
 
 # Setup Harbor (av/harbor) - Docker Compose toolkit; requires Docker/Compose (or compatible)
-[group("bazzite-sdx-ai")]
+[group("Bazzite-SDX-AI")]
 install-sdx-harbor:
     #!/usr/bin/bash
     set -euo pipefail
@@ -307,7 +307,7 @@ install-sdx-harbor:
     echo "Done."
 
 # Setup Odysseus (odysseus-dev/odysseus) - Docker Compose self-hosted AI workspace
-[group("bazzite-sdx-ai")]
+[group("Bazzite-SDX-AI")]
 install-sdx-odysseus:
     #!/usr/bin/bash
     set -euo pipefail
@@ -349,7 +349,7 @@ install-sdx-odysseus:
 # ==========================================
 
 # Install Gear Lever (it.mijorus.gearlever, Flathub) - AppImage manager
-[group("bazzite-sdx-utils")]
+[group("Bazzite-SDX-Utils")]
 install-sdx-gearlever:
     #!/usr/bin/bash
     set -euo pipefail
@@ -364,7 +364,7 @@ install-sdx-gearlever:
 # ==========================================
 
 # Install Plex Desktop (tv.plex.PlexDesktop, Flathub)
-[group("bazzite-sdx-media")]
+[group("Bazzite-SDX-Media")]
 install-sdx-plex-desktop:
     #!/usr/bin/bash
     set -euo pipefail
@@ -375,7 +375,7 @@ install-sdx-plex-desktop:
     echo "Done."
 
 # Install Plex HTPC (tv.plex.PlexHTPC, Flathub)
-[group("bazzite-sdx-media")]
+[group("Bazzite-SDX-Media")]
 install-sdx-plex-htpc:
     #!/usr/bin/bash
     set -euo pipefail
@@ -386,7 +386,7 @@ install-sdx-plex-htpc:
     echo "Done."
 
 # Install VLC (org.videolan.VLC, Flathub)
-[group("bazzite-sdx-media")]
+[group("Bazzite-SDX-Media")]
 install-sdx-vlc:
     #!/usr/bin/bash
     set -euo pipefail
@@ -397,7 +397,7 @@ install-sdx-vlc:
     echo "Done."
 
 # Install Delfin (cafe.avery.Delfin, Flathub) - Jellyfin client
-[group("bazzite-sdx-media")]
+[group("Bazzite-SDX-Media")]
 install-sdx-delfin:
     #!/usr/bin/bash
     set -euo pipefail
@@ -408,7 +408,7 @@ install-sdx-delfin:
     echo "Done."
 
 # Install Web App Hub (org.pvermeer.WebAppHub, Flathub)
-[group("bazzite-sdx-media")]
+[group("Bazzite-SDX-Media")]
 install-sdx-web-app-hub:
     #!/usr/bin/bash
     set -euo pipefail
@@ -423,7 +423,7 @@ install-sdx-web-app-hub:
 # ==========================================
 
 # Check for Bazzite-SDX/bootc image updates and optionally run ujust update
-[group("bazzite-sdx-system")]
+[group("Bazzite-SDX-System")]
 check-sdx-system-updates:
     #!/usr/bin/bash
     set -euo pipefail
@@ -473,7 +473,7 @@ check-sdx-system-updates:
     echo "Done."
 
 # Run Bazzite/ujust benchmark
-[group("bazzite-sdx-system")]
+[group("Bazzite-SDX-System")]
 run-sdx-benchmark:
     #!/usr/bin/bash
     set -euo pipefail
@@ -488,7 +488,7 @@ run-sdx-benchmark:
     echo "Done."
 
 # Show system information (fastfetch)
-[group("bazzite-sdx-system")]
+[group("Bazzite-SDX-System")]
 show-sdx-system-info:
     #!/usr/bin/bash
     set -euo pipefail
@@ -510,7 +510,7 @@ show-sdx-system-info:
 # ==========================================
 
 # Switch Bazzite-SDX to the weekly/latest channel (ghcr.io/nexgen-3d-printing/bazzite-sdx:latest)
-[group("bazzite-sdx-system")]
+[group("Bazzite-SDX-System")]
 rebase-sdx-latest:
     #!/usr/bin/bash
     set -euo pipefail
@@ -538,7 +538,7 @@ rebase-sdx-latest:
     echo "Done."
 
 # Switch Bazzite-SDX to the testing channel (ghcr.io/nexgen-3d-printing/bazzite-sdx:testing)
-[group("bazzite-sdx-system")]
+[group("Bazzite-SDX-System")]
 rebase-sdx-testing:
     #!/usr/bin/bash
     set -euo pipefail
@@ -567,7 +567,7 @@ rebase-sdx-testing:
     echo "Done."
 
 # Switch Bazzite-SDX to a specific image tag/version (e.g., v0.1.0 for SemVer rollback/pin)
-[group("bazzite-sdx-system")]
+[group("Bazzite-SDX-System")]
 rebase-sdx-version:
     #!/usr/bin/bash
     set -euo pipefail
