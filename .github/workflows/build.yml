@@ -430,21 +430,40 @@ jobs:
             echo "Or use **NexGen3D SDX Portal** for per-app installs and additional tools."
             echo ""
             echo "### Channels, switching & rollback (bootc)"
-            echo "- **Weekly/\`latest\` (automatic weekly build):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:latest\`"
-            echo "- **Testing (non-weekly commit/manual builds):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:testing\`"
-            echo "- **Pinned SemVer/specific tag (rollback or pin):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:v0.1.0\` (replace with the desired published tag)"
-            echo "- **Previous deployment rollback:** after rebooting into a bad deployment, \`sudo bootc rollback\` can revert to the previous deployment (different from switching to an arbitrary tag)."
-            echo "- **Portal:** NexGen3D SDX Portal → **System Management** includes actions to switch to Weekly/Latest, Testing, or a specific version/tag (with confirmation; reboot required)."
+            if [[ "${RELEASE_KIND}" == "testing" ]]; then
+              echo "- **Testing (this channel, non-weekly commit/manual builds):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:testing\`"
+              echo "- **Pinned SemVer/specific tag (rollback or pin):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:vX.Y.Z\` (replace with a published tag)"
+              echo "- **Previous deployment rollback:** after rebooting into a bad deployment, \`sudo bootc rollback\` can revert to the previous deployment (different from switching to an arbitrary tag)."
+              echo "- **Portal:** NexGen3D SDX Portal → **System Management** includes actions to switch channels/versions (with confirmation; reboot required)."
+            elif [[ "${RELEASE_KIND}" == "semver" ]]; then
+              echo "- **Pinned SemVer release (this tag):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:${SEMVER_TAG}\`"
+              echo "- **Pinned SemVer/specific tag (rollback or pin):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:vX.Y.Z\` (replace with a published tag)"
+              echo "- **Previous deployment rollback:** after rebooting into a bad deployment, \`sudo bootc rollback\` can revert to the previous deployment (different from switching to an arbitrary tag)."
+              echo "- **Portal:** NexGen3D SDX Portal → **System Management** includes actions to switch channels/versions (with confirmation; reboot required)."
+            else
+              echo "- **Weekly/\`latest\` (automatic weekly build):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:latest\`"
+              echo "- **Pinned SemVer/specific tag (rollback or pin):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:vX.Y.Z\` (replace with a published tag)"
+              echo "- **Previous deployment rollback:** after rebooting into a bad deployment, \`sudo bootc rollback\` can revert to the previous deployment (different from switching to an arbitrary tag)."
+              echo "- **Portal:** NexGen3D SDX Portal → **System Management** includes actions to switch channels/versions (with confirmation; reboot required)."
+            fi
             echo ""
             echo "### Install / rebase"
             echo '```bash'
             echo "sudo bootc status"
-            echo "# Weekly channel (latest):"
-            echo "sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:latest"
-            echo "# Testing channel:"
-            echo "# sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:testing"
-            echo "# Specific version/tag (SemVer pin/rollback):"
-            echo "# sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:v0.1.0"
+            if [[ "${RELEASE_KIND}" == "testing" ]]; then
+              echo "# Testing channel (non-weekly commit/manual builds):"
+              echo "sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:testing"
+            elif [[ "${RELEASE_KIND}" == "semver" ]]; then
+              echo "# Pinned SemVer release:"
+              echo "sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:${SEMVER_TAG}"
+              echo "# Specific version/tag (pin/rollback to another published tag):"
+              echo "# sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:vX.Y.Z"
+            else
+              echo "# Weekly channel (latest):"
+              echo "sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:latest"
+              echo "# Specific version/tag (SemVer pin/rollback):"
+              echo "# sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:vX.Y.Z"
+            fi
             echo "sudo reboot"
             echo '```'
             echo ""
