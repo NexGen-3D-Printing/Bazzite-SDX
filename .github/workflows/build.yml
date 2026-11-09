@@ -343,10 +343,16 @@ jobs:
           SHORT_SHA: ${{ steps.version.outputs.short_sha }}
           DATE_UTC: ${{ steps.version.outputs.date_utc }}
           DIGEST: ${{ steps.push-image.outputs.digest }}
+          DIGEST_TAG: ${{ steps.push-image.outputs.digest_tag }}
           REF_NAME: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          IMG="${IMAGE_NAME}:${DEFAULT_TAG}"
+          # Use a locally tagged image (sha tag is always published). DEFAULT_TAG may not
+          # be present locally for testing/semver builds because Tag Image only keeps ALIAS_TAGS.
+          IMG="${IMAGE_NAME}:sha-${SHORT_SHA}"
+          if ! podman image exists "${IMG}" 2>/dev/null; then
+            IMG="${IMAGE_NAME}:${DIGEST_TAG:-${DEFAULT_TAG}}"
+          fi
 
           BASE_OS_PRETTY=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${PRETTY_NAME:-unknown}"' | head -n1)
           BASE_OS_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${VERSION_ID:-${VERSION:-unknown}}"' | head -n1)
@@ -455,7 +461,7 @@ jobs:
             elif [[ "${MARK_LATEST}" == "true" ]]; then
               gh release edit "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md --latest
             else
-              gh release edit "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md --latest=false
+              gh release edit "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md
             fi
           else
             if [[ "${PRERELEASE}" == "true" ]]; then
@@ -463,6 +469,6 @@ jobs:
             elif [[ "${MARK_LATEST}" == "true" ]]; then
               gh release create "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md --latest
             else
-              gh release create "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md --latest=false
+              gh release create "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md
             fi
           fi
