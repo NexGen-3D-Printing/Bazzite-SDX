@@ -54,10 +54,13 @@ install-sdx-solidcraft:
     echo "Done."
 
 # Install ArtCraft (upstream Flatpak bundle from latest storytold/artcraft release)
-[group("bazzite-sdx")]
+[group("bazzite-sdx-ai")]
 install-sdx-artcraft:
     #!/usr/bin/bash
     set -euo pipefail
+    echo "WARNING: ArtCraft may require an account and may require a subscription for some features/services."
+    echo "Check current terms at: https://getartcraft.com/"
+    echo ""
     echo "Configuring Flatpak remotes (Flathub for runtimes)..."
     sudo flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
     echo "Installing ArtCraft (upstream Flatpak bundle)..."
@@ -69,6 +72,63 @@ install-sdx-artcraft:
         echo "Done."
     else
         echo "Warning: could not resolve ArtCraft Flatpak bundle URL; install manually if needed."
+        exit 1
+    fi
+
+# Install PhotoCraft (upstream Flatpak bundle from latest storytold/photocraft release)
+[group("bazzite-sdx")]
+install-sdx-photocraft:
+    #!/usr/bin/bash
+    set -euo pipefail
+    echo "Configuring Flatpak remotes (Flathub for runtimes)..."
+    sudo flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+    echo "Installing PhotoCraft (upstream Flatpak bundle)..."
+    tmp="$(mktemp -d)"
+    trap 'rm -rf "${tmp}"' EXIT
+    if url="$(curl -fsSL https://api.github.com/repos/storytold/photocraft/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a["browser_download_url"] for a in d.get("assets",[]) if a["name"].endswith("linux-x86_64.flatpak")))')" && [[ -n "${url}" ]]; then
+        curl -fsSL -o "${tmp}/photocraft.flatpak" "${url}"
+        sudo flatpak install --system -y --noninteractive --reinstall "${tmp}/photocraft.flatpak" || sudo flatpak install --system -y --noninteractive "${tmp}/photocraft.flatpak"
+        echo "Done."
+    else
+        echo "Warning: could not resolve PhotoCraft Flatpak bundle URL; install manually if needed."
+        exit 1
+    fi
+
+# Install PDFCraft (upstream Flatpak bundle from latest storytold/pdfcraft release)
+[group("bazzite-sdx")]
+install-sdx-pdfcraft:
+    #!/usr/bin/bash
+    set -euo pipefail
+    echo "Configuring Flatpak remotes (Flathub for runtimes)..."
+    sudo flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+    echo "Installing PDFCraft (upstream Flatpak bundle)..."
+    tmp="$(mktemp -d)"
+    trap 'rm -rf "${tmp}"' EXIT
+    if url="$(curl -fsSL https://api.github.com/repos/storytold/pdfcraft/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a["browser_download_url"] for a in d.get("assets",[]) if a["name"].endswith("linux-x86_64.flatpak")))')" && [[ -n "${url}" ]]; then
+        curl -fsSL -o "${tmp}/pdfcraft.flatpak" "${url}"
+        sudo flatpak install --system -y --noninteractive --reinstall "${tmp}/pdfcraft.flatpak" || sudo flatpak install --system -y --noninteractive "${tmp}/pdfcraft.flatpak"
+        echo "Done."
+    else
+        echo "Warning: could not resolve PDFCraft Flatpak bundle URL; install manually if needed."
+        exit 1
+    fi
+
+# Install Craft Anything (upstream Flatpak bundle from latest storytold/craft-anything release)
+[group("bazzite-sdx-ai")]
+install-sdx-craft-anything:
+    #!/usr/bin/bash
+    set -euo pipefail
+    echo "Configuring Flatpak remotes (Flathub for runtimes)..."
+    sudo flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+    echo "Installing Craft Anything (upstream Flatpak bundle)..."
+    tmp="$(mktemp -d)"
+    trap 'rm -rf "${tmp}"' EXIT
+    if url="$(curl -fsSL https://api.github.com/repos/storytold/craft-anything/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a["browser_download_url"] for a in d.get("assets",[]) if a["name"].endswith("linux-x86_64.flatpak")))')" && [[ -n "${url}" ]]; then
+        curl -fsSL -o "${tmp}/craft-anything.flatpak" "${url}"
+        sudo flatpak install --system -y --noninteractive --reinstall "${tmp}/craft-anything.flatpak" || sudo flatpak install --system -y --noninteractive "${tmp}/craft-anything.flatpak"
+        echo "Done."
+    else
+        echo "Warning: could not resolve Craft Anything Flatpak bundle URL; install manually if needed."
         exit 1
     fi
 
@@ -154,6 +214,49 @@ install-sdx-unsloth-desktop:
     ln -sf "${out}" "${bin_dir}/unsloth-desktop" || true
     echo "Installed: ${out}"
     echo "Tip: integrate with Gear Lever (System Utilities) for menu/updates management, or run: ${out}"
+    echo "Done."
+
+# Install/setup REA (morluto/rea) — reverse-engineering CLI/MCP toolset (rea-agents)
+[group("bazzite-sdx-ai")]
+install-sdx-rea:
+    #!/usr/bin/bash
+    set -euo pipefail
+    echo "REA (Reverse Engineer Anything, morluto/rea) is a CLI/MCP toolset for coding agents."
+    echo "No official Flatpak/AppImage desktop package detected; using user-local CLI install/setup (no rpm-ostree layer)."
+    echo ""
+    echo "Notes:"
+    echo "- REA commonly requires a supported Node.js version (check https://github.com/morluto/rea / https://rea.tools/)."
+    echo "- Deep native analysis may require external tools (Hopper/Ghidra/IDA) configured separately."
+    echo ""
+    if command -v npm >/dev/null 2>&1; then
+        echo "npm detected: $(npm --version 2>/dev/null || true)"
+        echo "Installing/updating globally: npm install --global rea-agents"
+        echo ""
+        read -r -p "Proceed with 'npm install --global rea-agents'? [y/N] " ans
+        case "${ans}" in
+            y|Y|yes|YES)
+                npm install --global rea-agents
+                echo ""
+                echo "Try: rea --help   (or)   rea doctor --json"
+                echo "For agent setup: npx rea-agents@latest setup"
+                ;;
+            *)
+                echo "Skipped npm global install."
+                echo "You can run without global install: npx -y rea-agents@latest --help"
+                ;;
+        esac
+    elif command -v node >/dev/null 2>&1; then
+        echo "Node detected ($(node --version 2>/dev/null || true)) but npm not found."
+        echo "Use a Node environment with npm/npx, or install npm, then run:"
+        echo "  npm install --global rea-agents"
+        echo "  npx -y rea-agents@latest setup"
+    else
+        echo "Node/npm not found on PATH."
+        echo "Install a supported Node.js environment first, then run:"
+        echo "  npm install --global rea-agents"
+        echo "  npx -y rea-agents@latest setup"
+        echo "Docs: https://github.com/morluto/rea"
+    fi
     echo "Done."
 
 # Setup Harbor (av/harbor) — Docker Compose toolkit; requires Docker/Compose (or compatible)

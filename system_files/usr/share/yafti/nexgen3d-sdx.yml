@@ -42,6 +42,21 @@ screens:
         description: "Unsloth Desktop is the official Unsloth local app for running and training models (chat, model workflows, and training features as provided by Unsloth). Install method (priority): no official Flatpak; AppImage (preferred over rpm-ostree layer). Downloads the latest Unsloth-Desktop-Linux.AppImage from GitHub releases to ~/Applications and creates a convenience symlink at ~/.local/bin/unsloth-desktop. Tip: use Gear Lever (System Utilities) to integrate/manage the AppImage. Requires network access. Source: https://unsloth.ai/ | https://github.com/unslothai/unsloth"
         default: false
         script: 'ujust install-sdx-unsloth-desktop; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
+      - id: "install-sdx-artcraft"
+        title: "ArtCraft"
+        description: "**Warning:** ArtCraft requires an account and may require a subscription for some features/services (check current ArtCraft terms). ArtCraft (storytold/artcraft) is an intentional crafting engine for artists, designers, and filmmakers, supporting creative production workflows. Install method (priority): upstream Flatpak bundle (Flatpak-format delivery). Downloads and installs the latest Linux x86_64 .flatpak bundle from GitHub releases at install time. Requires network access, sudo, and may take time due to bundle/runtimes. Source: https://github.com/storytold/artcraft | Website: https://getartcraft.com/"
+        default: false
+        script: 'ujust install-sdx-artcraft; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
+      - id: "install-sdx-craft-anything"
+        title: "Craft Anything"
+        description: "Craft Anything (storytold/craft-anything) helps you explore how software works and craft/build software workflows (including agent-assisted exploration/build features, as provided upstream). Install method (priority): upstream Flatpak bundle (preferred over AppImage/rpm-ostree). Downloads and installs the latest Linux x86_64 .flatpak bundle from GitHub releases at install time. Requires network access, sudo, and may take time due to bundle/runtimes. Source: https://github.com/storytold/craft-anything"
+        default: false
+        script: 'ujust install-sdx-craft-anything; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
+      - id: "install-sdx-rea"
+        title: "REA (morluto/rea)"
+        description: "REA (Reverse Engineer Anything, morluto/rea) is a CLI/MCP toolset that helps coding agents reverse engineer software (binaries, applications, and runtime behavior) with evidence-oriented workflows. Install method (priority): no official Flatpak/AppImage desktop package; user-local CLI install (preferred over rpm-ostree layering). Installs/sets up `rea-agents` using npm when available (`npm install --global rea-agents`) or provides `npx` guidance. Requires Node.js/npm (REA commonly targets Node 22.19+/supported LTS versions; check upstream docs). Deep native analysis may require external tools (Hopper/Ghidra/IDA) configured separately. Source: https://github.com/morluto/rea | Docs: https://rea.tools/"
+        default: false
+        script: 'ujust install-sdx-rea; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
       - id: "install-sdx-harbor"
         title: "Harbor (av/harbor)"
         description: "Harbor is a containerized local LLM toolkit/CLI that orchestrates Docker Compose-based AI services (backends, UIs, search, and related tools) with a unified workflow. Install method (priority): no Flatpak/AppImage/RPM appropriate for this toolkit; Docker/Compose-based setup (preferred for this project type). Runs Harbor's official installer (curl | bash) after confirmation. Prerequisites: Docker Engine + Docker Compose v2 (or compatible setup) and sufficient disk space. Source: https://github.com/av/harbor"
@@ -70,11 +85,16 @@ screens:
         description: "SolidCraft (Tangency Labs) is a parametric CAD/modeling application for creating and iterating on 3D designs. Install method (priority): Flatpak (preferred). Installs system Flatpak io.tangencylabs.solidcraft from the SolidCraft Flatpak repository (Bazzite-SDX configures remotes; Flathub provides runtimes). Useful for mechanical/3D design and 3D printing workflows. Source: https://github.com/tangency-labs/solidcraft | Docs: https://docs.solidcraft.io/"
         default: false
         script: 'ujust install-sdx-solidcraft; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
-      - id: "install-sdx-artcraft"
-        title: "ArtCraft"
-        description: "ArtCraft (storytold/artcraft) is an intentional crafting engine for artists, designers, and filmmakers, supporting creative production workflows. Install method (priority): upstream Flatpak bundle (Flatpak-format delivery). Downloads and installs the latest Linux x86_64 .flatpak bundle from GitHub releases at install time. Requires network access, sudo, and may take time due to bundle/runtimes. Source: https://github.com/storytold/artcraft | Website: https://getartcraft.com/"
+      - id: "install-sdx-photocraft"
+        title: "PhotoCraft"
+        description: "PhotoCraft (storytold/photocraft) is an open source photo editor (built in Rust) for image editing and creative workflows. Install method (priority): upstream Flatpak bundle (preferred over AppImage/rpm-ostree). Downloads and installs the latest Linux x86_64 .flatpak bundle from GitHub releases at install time. Requires network access, sudo, and may take time due to bundle/runtimes. Source: https://github.com/storytold/photocraft"
         default: false
-        script: 'ujust install-sdx-artcraft; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
+        script: 'ujust install-sdx-photocraft; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
+      - id: "install-sdx-pdfcraft"
+        title: "PDFCraft"
+        description: "PDFCraft (storytold/pdfcraft) is an open source PDF reader/editor (built in Rust) for viewing and working with PDF documents. Install method (priority): upstream Flatpak bundle (preferred over AppImage/rpm-ostree). Downloads and installs the latest Linux x86_64 .flatpak bundle from GitHub releases at install time. Requires network access, sudo, and may take time due to bundle/runtimes. Source: https://github.com/storytold/pdfcraft"
+        default: false
+        script: 'ujust install-sdx-pdfcraft; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status'
 
   - title: "System Utilities"
     description: "Monitoring and desktop utilities"
