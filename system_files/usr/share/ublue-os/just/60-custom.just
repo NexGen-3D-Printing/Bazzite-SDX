@@ -222,40 +222,70 @@ install-sdx-rea:
     #!/usr/bin/bash
     set -euo pipefail
     echo "REA (Reverse Engineer Anything, morluto/rea) is a CLI/MCP toolset for coding agents."
-    echo "No official Flatpak/AppImage desktop package detected; using user-local CLI install/setup (no rpm-ostree layer)."
+    echo "No official Flatpak/AppImage desktop package; using user-local CLI install/setup."
     echo ""
     echo "Notes:"
-    echo "- REA commonly requires a supported Node.js version (check https://github.com/morluto/rea / https://rea.tools/)."
-    echo "- Deep native analysis may require external tools (Hopper/Ghidra/IDA) configured separately."
+    echo "- Requires Node.js 22.x (>=22.23.4), 24.x (>=24.22.1), or 26.x (>=26.12.1) + npm."
+    echo "- This Bazzite-SDX image (Fedora 45) may not include a supported Node.js version."
+    echo "- Deep/native analysis may require external tools (Hopper/Ghidra/IDA) configured separately."
     echo ""
     if command -v npm >/dev/null 2>&1; then
-        echo "npm detected: $(npm --version 2>/dev/null || true)"
-        echo "Installing/updating globally: npm install --global rea-agents"
-        echo ""
-        read -r -p "Proceed with 'npm install --global rea-agents'? [y/N] " ans
-        case "${ans}" in
-            y|Y|yes|YES)
-                npm install --global rea-agents
+        node_ver="$(node --version 2>/dev/null || echo unknown)"
+        npm_ver="$(npm --version 2>/dev/null || echo unknown)"
+        echo "Node version: ${node_ver}"
+        echo "npm version: ${npm_ver}"
+        # Check if the version is supported (22.x, 24.x, or 26.x+)
+        if command -v node >/dev/null 2>&1; then
+            # Extract major version
+            major="$(node --version 2>/dev/null | sed -E 's/^v([0-9]+)\..*/\1/' || echo 0)"
+            if [[ "${major}" == "22" || "${major}" == "24" || "${major}" -ge "26" ]]; then
                 echo ""
-                echo "Try: rea --help   (or)   rea doctor --json"
-                echo "For agent setup: npx rea-agents@latest setup"
-                ;;
-            *)
-                echo "Skipped npm global install."
-                echo "You can run without global install: npx -y rea-agents@latest --help"
-                ;;
-        esac
+                echo "Supported Node.js version detected. Installing/updating globally: npm install --global rea-agents"
+                read -r -p "Proceed? [y/N] " ans
+                case "${ans}" in
+                    y|Y|yes|YES)
+                        npm install --global rea-agents
+                        echo ""
+                        echo "Done. Try: rea --help   (or)   rea doctor --json"
+                        echo "For agent setup: npx rea-agents@latest setup"
+                        ;;
+                    *)
+                        echo "Skipped. You can run without global install: npx -y rea-agents@latest --help"
+                        ;;
+                esac
+            else
+                echo ""
+                echo "WARNING: Node.js ${major}.x detected, but REA requires 22.x, 24.x, or 26.x+."
+                echo "To install a supported Node.js version (user-local) and REA:"
+                echo ""
+                echo "1. Install Node.js 24.x (recommended):"
+                echo "   curl -fsSL https://deb.nodesource.com/setup_24.x | bash -"
+                echo "   sudo dnf install -y nodejs"
+                echo ""
+                echo "2. Then: npm install --global rea-agents"
+                echo "   For agent setup: npx rea-agents@latest setup"
+                echo ""
+                echo "Docs: https://rea.tools"
+            fi
+        fi
     elif command -v node >/dev/null 2>&1; then
-        echo "Node detected ($(node --version 2>/dev/null || true)) but npm not found."
+        echo "Node $(node --version 2>/dev/null || true) detected but npm not found."
         echo "Use a Node environment with npm/npx, or install npm, then run:"
         echo "  npm install --global rea-agents"
         echo "  npx -y rea-agents@latest setup"
     else
         echo "Node/npm not found on PATH."
-        echo "Install a supported Node.js environment first, then run:"
-        echo "  npm install --global rea-agents"
-        echo "  npx -y rea-agents@latest setup"
-        echo "Docs: https://github.com/morluto/rea"
+        echo ""
+        echo "To install a supported Node.js version (user-local) and REA:"
+        echo ""
+        echo "1. Install Node.js 24.x (recommended):"
+        echo "   curl -fsSL https://deb.nodesource.com/setup_24.x | bash -"
+        echo "   sudo dnf install -y nodejs"
+        echo ""
+        echo "2. Then: npm install --global rea-agents"
+        echo "   For agent setup: npx rea-agents@latest setup"
+        echo ""
+        echo "Docs: https://rea.tools"
     fi
     echo "Done."
 
