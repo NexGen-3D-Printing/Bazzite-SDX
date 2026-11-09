@@ -1,6 +1,6 @@
 # Bazzite-SDX
 
-[![Build container image](https://github.com/NexGen-3D-Printing/bazzite-sdx/actions/workflows/build.yml/badge.svg)](https://github.com/NexGen-3D-Printing/bazzite-sdx/actions/workflows/build.yml)
+[![Build container image](https://github.com/NexGen-3D-Printing/Bazzite-SDX/actions/workflows/build.yml/badge.svg)](https://github.com/NexGen-3D-Printing/Bazzite-SDX/actions/workflows/build.yml)
 
 [![Universal Blue](https://img.shields.io/badge/Universal%20Blue-303030?style=for-the-badge&logo=universalblue)](https://universal-blue.org/)
 [![Bazzite-DX](https://img.shields.io/badge/Bazzite--DX-stable-294172?style=for-the-badge)](https://github.com/ublue-os/bazzite-dx)
@@ -43,7 +43,7 @@ ujust install-bazzite-sdx-flatpaks
 ```
 Or use **NexGen3D SDX Portal** for per-app installs and additional tools.
 
-> Base OS/kernel versions change per build. See the [**latest** release](https://github.com/NexGen-3D-Printing/bazzite-sdx/releases/tag/latest) for details from the most recent successful image build. Distribution is **rebase-only** (no custom USB installer ISO).
+> Base OS/kernel versions change per build. See the [**latest** release](https://github.com/NexGen-3D-Printing/Bazzite-SDX/releases/tag/latest) for details from the most recent successful image build. Distribution is **rebase-only** (no custom USB installer ISO).
 
 ## Quick Installation (Rebase)
 
@@ -86,7 +86,7 @@ rpm -qa | grep -E "(kernel-surface|iptsd|libwacom-surface|surface-)"
 ### Optional: Verify Image Signature
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NexGen-3D-Printing/bazzite-sdx/main/cosign.pub -o cosign.pub
+curl -fsSL https://raw.githubusercontent.com/NexGen-3D-Printing/Bazzite-SDX/main/cosign.pub -o cosign.pub
 cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:latest
 ```
 
@@ -94,7 +94,7 @@ cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:latest
 
 ### Microsoft Surface Devices
 
-Bazzite-SDX includes the Linux Surface kernel stack (`kernel-surface`, `iptsd`, libwacom-surface, etc.). Builds install the **latest available `kernel-surface` packages** from the linux-surface repo at build time; check the [latest release notes](https://github.com/NexGen-3D-Printing/bazzite-sdx/releases/tag/latest) or `rpm -q kernel-surface` on your system for the exact version.
+Bazzite-SDX includes the Linux Surface kernel stack (`kernel-surface`, `iptsd`, libwacom-surface, etc.). Builds install the **latest available `kernel-surface` packages** from the linux-surface repo at build time; check the [latest release notes](https://github.com/NexGen-3D-Printing/Bazzite-SDX/releases/tag/latest) or `rpm -q kernel-surface` on your system for the exact version.
 
 | Device | Expected support (linux-surface) | Bazzite-SDX test status | Kernel tested |
 |--------|----------------------------------|-------------------------|---------------|
@@ -136,7 +136,7 @@ Bazzite-SDX uses coexisting channel/versioning:
 
 Build version labels: weekly = `weekly-YYYYMMDD+<sha>`, testing = `testing-YYYYMMDD+<sha>`, SemVer = `vX.Y.Z`.
 
-- [**Latest (weekly) release**](https://github.com/NexGen-3D-Printing/bazzite-sdx/releases/latest)
+- [**Latest (weekly) release**](https://github.com/NexGen-3D-Printing/Bazzite-SDX/releases/latest)
 - [RELEASE.md](RELEASE.md) - channel/release checklist (weekly, testing, SemVer).
 - [RELEASE-INFO.md](RELEASE-INFO.md) - repository release notes/history.
 
@@ -146,7 +146,7 @@ This image is automatically built and published to GitHub Container Registry. If
 
 ```bash
 # Clone this repository
-git clone https://github.com/NexGen-3D-Printing/bazzite-sdx
+git clone https://github.com/NexGen-3D-Printing/Bazzite-SDX
 cd bazzite-sdx
 
 # Install dependencies
@@ -180,7 +180,7 @@ I'm NexGen-3D-Printing, creator of Bazzite-SDX. I'm a 3D printing enthusiast and
 ### Image won't boot
 - Verify the image signature: `cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:latest`
 - Try an earlier build tag (dated tags are published by CI)
-- Check the [issues](https://github.com/NexGen-3D-Printing/bazzite-sdx/issues)
+- Check the [issues](https://github.com/NexGen-3D-Printing/Bazzite-SDX/issues)
 
 ### Linux Surface kernel issues
 - Check the [linux-surface repository](https://github.com/linux-surface/linux-surface)

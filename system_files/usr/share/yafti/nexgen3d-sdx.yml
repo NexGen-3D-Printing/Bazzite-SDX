@@ -7,12 +7,12 @@ screens:
         title: "Open Bazzite-SDX on GitHub"
         description: "Project page for Bazzite-SDX (Bazzite-DX + Linux Surface kernel), including source, issues, and documentation."
         default: false
-        script: "xdg-open https://github.com/NexGen-3D-Printing/bazzite-sdx"
+        script: "xdg-open https://github.com/NexGen-3D-Printing/Bazzite-SDX"
       - id: "bazzite-sdx-release"
         title: "Open latest release notes"
         description: "View the auto-updated latest release for base OS/Surface kernel info and Bazzite-SDX app install instructions."
         default: false
-        script: "xdg-open https://github.com/NexGen-3D-Printing/bazzite-sdx/releases/tag/latest"
+        script: "xdg-open https://github.com/NexGen-3D-Printing/Bazzite-SDX/releases/tag/latest"
       - id: "install-all-bazzite-sdx-flatpaks"
         title: "Install core Bazzite-SDX Flatpak apps (all)"
         description: "Installs the core curated set in one run (Bazzite-style; not baked into the OS image): Brave Browser, OpenCode app, Mission Center, SolidCraft, and ArtCraft. Installs as user Flatpaks (per-user, no sudo required). Requires network access."

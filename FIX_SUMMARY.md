@@ -29,11 +29,11 @@ You need to push these commits to GitHub. Run:
 cd /home/NexGen3D/Documents/OpenCode/bazzite-sdx
 
 # Option 1: Using personal access token
-git remote set-url origin https://NexGen-3D-Printing:YOUR_PAT@github.com/NexGen-3D-Printing/bazzite-sdx.git
+git remote set-url origin https://NexGen-3D-Printing:YOUR_PAT@github.com/NexGen-3D-Printing/Bazzite-SDX.git
 git push origin main
 
 # Option 2: Using SSH
-git remote set-url origin git@github.com:NexGen-3D-Printing/bazzite-sdx.git
+git remote set-url origin git@github.com:NexGen-3D-Printing/Bazzite-SDX.git
 git push origin main
 ```
 

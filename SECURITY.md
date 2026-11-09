@@ -15,7 +15,7 @@ The **private key** is stored securely as a GitHub Actions secret (`COSIGN_PRIVA
 To verify an image:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NexGen-3D-Printing/bazzite-sdx/main/cosign.pub -o cosign.pub
+curl -fsSL https://raw.githubusercontent.com/NexGen-3D-Printing/Bazzite-SDX/main/cosign.pub -o cosign.pub
 cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:latest
 # or :testing / :vX.Y.Z
 ```
@@ -43,7 +43,7 @@ Then:
 ## Reporting a Vulnerability
 
 If you discover a security vulnerability, please report it responsibly:
-- GitHub Issues: https://github.com/NexGen-3D-Printing/bazzite-sdx/issues
+- GitHub Issues: https://github.com/NexGen-3D-Printing/Bazzite-SDX/issues
 
 ---
 

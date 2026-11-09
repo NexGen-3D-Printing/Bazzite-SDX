@@ -496,7 +496,7 @@ jobs:
             echo ""
             echo "### Security verification"
             echo '```bash'
-            echo "curl -fsSL https://raw.githubusercontent.com/NexGen-3D-Printing/bazzite-sdx/main/cosign.pub -o cosign.pub"
+            echo "curl -fsSL https://raw.githubusercontent.com/NexGen-3D-Printing/Bazzite-SDX/main/cosign.pub -o cosign.pub"
             echo "cosign verify --key cosign.pub ${PRIMARY_IMAGE}"
             echo '```'
           } > /tmp/release-notes.md

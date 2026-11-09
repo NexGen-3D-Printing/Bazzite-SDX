@@ -66,7 +66,7 @@ RUN mkdir -p /etc/bazzite-sdx && \
     "linux_surface_kernel = \"${SURFACE_KERNEL}\"" \
     '' \
     '[links]' \
-    'github = "https://github.com/NexGen-3D-Printing/bazzite-sdx"' \
+    'github = "https://github.com/NexGen-3D-Printing/Bazzite-SDX"' \
     'youtube = "https://www.youtube.com/@NexGen-3D"' \
     'bigcartel = "https://nexgen3d.bigcartel.com/"' \
     'printables = "https://www.printables.com/@NexGen3D"' \

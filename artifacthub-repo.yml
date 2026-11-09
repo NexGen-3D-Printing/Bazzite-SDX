@@ -8,9 +8,9 @@ owners: # (optional, used to claim repository ownership)
     email: nexgen3d@example.com
 
 # Social links for your repository
-documentation: https://github.com/NexGen-3D-Printing/bazzite-sdx/blob/main/README.md
+documentation: https://github.com/NexGen-3D-Printing/Bazzite-SDX/blob/main/README.md
 website: https://nexgen3d.bigcartel.com/
-bugTracker: https://github.com/NexGen-3D-Printing/bazzite-sdx/issues
+bugTracker: https://github.com/NexGen-3D-Printing/Bazzite-SDX/issues
 support: https://www.youtube.com/@NexGen-3D
 socialLinks:
   - name: YouTube
