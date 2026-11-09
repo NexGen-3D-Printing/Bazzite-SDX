@@ -94,16 +94,22 @@ cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:latest
 
 ### Microsoft Surface Devices
 
-| Device | Status |
-|--------|--------|
-| Surface Pro 3-9 | ✅ Full support |
-| Surface Pro X | ⚠️ Partial support |
-| Surface Book 1-3 | ✅ Full support |
-| Surface Laptop 1-6 | ✅ Full support |
-| Surface Laptop Studio | ✅ Full support |
-| Surface Laptop Go 1-2 | ✅ Full support |
-| Surface Go 1-3 | ✅ Full support |
-| Surface Studio 1-2 | ✅ Full support |
+Bazzite-SDX includes the Linux Surface kernel stack (`kernel-surface`, `iptsd`, libwacom-surface, etc.). Builds install the **latest available `kernel-surface` packages** from the linux-surface repo at build time; check the [latest release notes](https://github.com/NexGen-3D-Printing/bazzite-sdx/releases/tag/latest) or `rpm -q kernel-surface` on your system for the exact version.
+
+| Device | Expected support (linux-surface) | Bazzite-SDX test status | Kernel tested |
+|--------|----------------------------------|-------------------------|---------------|
+| Surface Pro 3-5, 7, 8 | Varies by model | Requires Testing | — |
+| Surface Pro 6 | Good (typical linux-surface support) | **Confirmed** | `kernel-surface` 7.2.15-1.surface.fc45 (Bazzite-SDX build) |
+| Surface Pro 9 | Varies (Intel/5G models differ) | **Confirmed** | `kernel-surface` 7.2.15-1.surface.fc45 (Bazzite-SDX build) |
+| Surface Pro X | Partial (ARM-related limitations may apply) | Requires Testing | — |
+| Surface Book 1-3 | Good (typical linux-surface support) | Requires Testing | — |
+| Surface Laptop 1-6 | Varies by model | Requires Testing | — |
+| Surface Laptop Studio | Varies by model | Requires Testing | — |
+| Surface Laptop Go 1-3 | Varies by model | Requires Testing | — |
+| Surface Go 1-4 | Varies by model | Requires Testing | — |
+| Surface Studio 1-2+ | Varies by model | Requires Testing | — |
+
+> **Note:** “Confirmed” means Bazzite-SDX has been tested on that device model with the listed `kernel-surface` version. “Requires Testing” means it may work with the included Linux Surface stack but has not been confirmed in Bazzite-SDX. Hardware support details can vary by exact SKU/firmware; see the [linux-surface feature matrix](https://github.com/linux-surface/linux-surface/wiki/Supported-Devices-and-Features) for upstream status.
 
 ### Other Hardware
 - Intel, AMD, and NVIDIA GPUs
