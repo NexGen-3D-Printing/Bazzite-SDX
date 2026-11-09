@@ -5,7 +5,8 @@ on:
     branches:
       - main
   schedule:
-    - cron: '05 10 * * *'  # 10:05am UTC everyday
+    # Weekly automatic build (publishes :latest)
+    - cron: '05 10 * * 0'  # Sunday 10:05am UTC
   push:
     branches:
       - main
@@ -31,7 +32,6 @@ jobs:
       id-token: write
 
     steps:
-      # These stage versions are pinned by https://github.com/renovatebot/renovate
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -43,26 +43,21 @@ jobs:
       - name: Load environment
         id: load-env
         run: |
-          # Source environment variables from image-template.env
           if [ -f image-template.env ]; then
             set -a
             source image-template.env
             set +a
           fi
-
-          # Export environment variables so they are available to subsequent steps
           echo "IMAGE_NAME=${IMAGE_NAME%%[[:space:]]*}" >> ${GITHUB_ENV}
           echo "REPO_ORGANIZATION=${REPO_ORGANIZATION%%[[:space:]]*}" >> ${GITHUB_ENV}
           echo "IMAGE_DESC=${IMAGE_DESC%%[[:space:]]*}" >> ${GITHUB_ENV}
           echo "DEFAULT_TAG=${DEFAULT_TAG%%[[:space:]]*}" >> ${GITHUB_ENV}
-
-          # Output them for verification
           printf "IMAGE_NAME=%s\n" "${IMAGE_NAME%%[[:space:]]*}" > ${GITHUB_OUTPUT}
           printf "REPO_ORGANIZATION=%s\n" "${REPO_ORGANIZATION%%[[:space:]]*}" >> ${GITHUB_OUTPUT}
           printf "IMAGE_DESC=%s\n" "${IMAGE_DESC%%[[:space:]]*}" >> ${GITHUB_OUTPUT}
           printf "DEFAULT_TAG=%s\n" "${DEFAULT_TAG%%[[:space:]]*}" >> ${GITHUB_OUTPUT}
 
-      - name: Resolve version and publish settings
+      - name: Resolve channel, version, and publish settings
         id: version
         env:
           EVENT_NAME: ${{ github.event_name }}
@@ -71,55 +66,74 @@ jobs:
           SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          IS_TAG=false
-          IS_SEMVER_TAG=false
+          SHORT_SHA="${SHA:0:7}"
+          DATE_UTC="$(date -u +%Y%m%d)"
+          FILE_VERSION="$(tr -d '[:space:]' < VERSION 2>/dev/null || echo 0.0.0)"
+          CHANNEL=""
           PUBLISH=false
-          SEMVER_RELEASE=false
-          VERSION_LABEL="dev"
+          VERSION_LABEL=""
+          RELEASE_KIND="none"   # weekly|testing|semver|none
           SEMVER_TAG=""
           SEMVER_NUM=""
-          SHORT_SHA="${SHA:0:7}"
 
-          if [[ "${REF}" == refs/tags/v* ]]; then
-            IS_TAG=true
+          if [[ "${EVENT_NAME}" == "pull_request" ]]; then
+            CHANNEL="pr"
+            PUBLISH=false
+            VERSION_LABEL="pr-${SHORT_SHA}"
+            RELEASE_KIND="none"
+          elif [[ "${REF}" == refs/tags/v* ]]; then
             SEMVER_TAG="${REF_NAME}"
             if [[ "${SEMVER_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-              IS_SEMVER_TAG=true
-              SEMVER_RELEASE=true
-              PUBLISH=true
               SEMVER_NUM="${SEMVER_TAG#v}"
-              VERSION_LABEL="${SEMVER_TAG}"
-              FILE_VERSION="$(tr -d '[:space:]' < VERSION)"
               if [[ "${FILE_VERSION}" != "${SEMVER_NUM}" ]]; then
                 echo "::error::VERSION file (${FILE_VERSION}) does not match tag ${SEMVER_TAG} (expected ${SEMVER_NUM})"
                 exit 1
               fi
+              CHANNEL="semver"
+              PUBLISH=true
+              VERSION_LABEL="${SEMVER_TAG}"
+              RELEASE_KIND="semver"
             else
-              echo "::error::Unsupported tag format '${SEMVER_TAG}'. Use SemVer tags like v0.1.0 (no pre-releases)."
+              echo "::error::Unsupported tag format '${SEMVER_TAG}'. Use SemVer tags like v0.1.0."
               exit 1
             fi
-          elif [[ "${EVENT_NAME}" != "pull_request" && ( "${REF}" == "refs/heads/main" || "${EVENT_NAME}" == "schedule" || "${EVENT_NAME}" == "workflow_dispatch" ) ]]; then
+          elif [[ "${EVENT_NAME}" == "schedule" ]]; then
+            # Automatic weekly build -> latest
+            CHANNEL="weekly"
             PUBLISH=true
-            FILE_VERSION="$(tr -d '[:space:]' < VERSION 2>/dev/null || echo 0.0.0)"
-            VERSION_LABEL="main-${FILE_VERSION}-${SHORT_SHA}"
+            VERSION_LABEL="weekly-${DATE_UTC}+${SHORT_SHA}"
+            RELEASE_KIND="weekly"
+          elif [[ "${EVENT_NAME}" == "push" || "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            # Any build that is not the automatic weekly build -> testing
+            CHANNEL="testing"
+            PUBLISH=true
+            VERSION_LABEL="testing-${DATE_UTC}+${SHORT_SHA}"
+            RELEASE_KIND="testing"
+          else
+            CHANNEL="testing"
+            PUBLISH=true
+            VERSION_LABEL="testing-${DATE_UTC}+${SHORT_SHA}"
+            RELEASE_KIND="testing"
           fi
 
           {
-            echo "is_tag=${IS_TAG}"
-            echo "is_semver_tag=${IS_SEMVER_TAG}"
+            echo "channel=${CHANNEL}"
             echo "publish=${PUBLISH}"
-            echo "semver_release=${SEMVER_RELEASE}"
             echo "version_label=${VERSION_LABEL}"
+            echo "release_kind=${RELEASE_KIND}"
             echo "semver_tag=${SEMVER_TAG}"
             echo "semver_num=${SEMVER_NUM}"
             echo "short_sha=${SHORT_SHA}"
+            echo "date_utc=${DATE_UTC}"
+            echo "file_version=${FILE_VERSION}"
           } >> "$GITHUB_OUTPUT"
 
       - name: Debug environment
         env:
+          CHANNEL: ${{ steps.version.outputs.channel }}
           PUBLISH: ${{ steps.version.outputs.publish }}
-          SEMVER_RELEASE: ${{ steps.version.outputs.semver_release }}
           VERSION_LABEL: ${{ steps.version.outputs.version_label }}
+          RELEASE_KIND: ${{ steps.version.outputs.release_kind }}
           SEMVER_TAG: ${{ steps.version.outputs.semver_tag }}
         run: |
           echo "=== Environment Variables ==="
@@ -127,15 +141,12 @@ jobs:
           echo "REPO_ORGANIZATION=${{ steps.load-env.outputs.REPO_ORGANIZATION }}"
           echo "IMAGE_DESC=${{ steps.load-env.outputs.IMAGE_DESC }}"
           echo "DEFAULT_TAG=${{ steps.load-env.outputs.DEFAULT_TAG }}"
+          echo "CHANNEL=${CHANNEL}"
           echo "PUBLISH=${PUBLISH}"
-          echo "SEMVER_RELEASE=${SEMVER_RELEASE}"
           echo "VERSION_LABEL=${VERSION_LABEL}"
+          echo "RELEASE_KIND=${RELEASE_KIND}"
           echo "SEMVER_TAG=${SEMVER_TAG}"
 
-      # Fail fast: confirm the token can actually write to GHCR before spending
-      # ~40 minutes building. Opening a blob upload session is the exact request
-      # that a real `podman push` fails on, so it is an authoritative check and
-      # costs nothing (no layer data is transferred).
       - name: Verify GHCR write access
         if: steps.version.outputs.publish == 'true'
         env:
@@ -147,41 +158,27 @@ jobs:
           REPO="${IMAGE_REGISTRY#ghcr.io/}/${IMAGE_NAME}"
           REPO="$(echo "${REPO}" | tr '[:upper:]' '[:lower:]')"
           echo "Checking write access to ghcr.io/${REPO}"
-
           TOKEN=$(curl -fsS -u "${GHCR_USER}:${GHCR_TOKEN}" \
             "https://ghcr.io/token?service=ghcr.io&scope=repository:${REPO}:push,pull" \
             | jq -r '.token')
-
           HEADERS=$(mktemp)
           BODY=$(mktemp)
           CODE=$(curl -sS -o "${BODY}" -D "${HEADERS}" -w '%{http_code}' \
             -X POST \
             -H "Authorization: Bearer ${TOKEN}" \
             "https://ghcr.io/v2/${REPO}/blobs/uploads/")
-
           echo "POST /v2/${REPO}/blobs/uploads/ -> HTTP ${CODE}"
-
           if [ "${CODE}" = "202" ]; then
-            echo "GITHUB_TOKEN can write to ghcr.io/${REPO}"
             LOCATION=$(grep -i '^location:' "${HEADERS}" | cut -d' ' -f2 | tr -d '\r' || true)
             if [ -n "${LOCATION}" ]; then
-              curl -sS -o /dev/null -X DELETE \
-                -H "Authorization: Bearer ${TOKEN}" "${LOCATION}" || true
+              curl -sS -o /dev/null -X DELETE -H "Authorization: Bearer ${TOKEN}" "${LOCATION}" || true
             fi
             exit 0
           fi
-
-          echo "Registry response:"
           cat "${BODY}"
           echo "::error::GITHUB_TOKEN cannot write to ghcr.io/${REPO} (HTTP ${CODE})."
-          echo "::error::The token authenticates but is not authorised for this package."
-          echo "::error::Fix one of:"
-          echo "::error::  a) package settings -> Manage Actions access -> add NexGen-3D-Printing/bazzite-sdx with Write"
-          echo "::error::  b) delete the stale package so the next push recreates it linked to this repo"
-          echo "::error::  c) account Settings -> Actions -> General -> Workflow permissions -> Read and write"
           exit 1
 
-      # This actually builds the container image
       - name: Build Image
         id: build-image
         env:
@@ -192,15 +189,6 @@ jobs:
           VERSION_LABEL: ${{ steps.version.outputs.version_label }}
         run: |
           set -euox pipefail
-
-          # Debug: print environment variables
-          echo "DEBUG: IMAGE_NAME=${IMAGE_NAME}"
-          echo "DEBUG: IMAGE_DESC=${IMAGE_DESC}"
-          echo "DEBUG: REPO_ORGANIZATION=${REPO_ORGANIZATION}"
-          echo "DEBUG: DEFAULT_TAG=${DEFAULT_TAG}"
-          echo "DEBUG: VERSION_LABEL=${VERSION_LABEL}"
-
-          # Image metadata
           LABELS=(
             "--label" "io.artifacthub.package.deprecated=false"
             "--label" "org.opencontainers.image.title=${IMAGE_NAME}"
@@ -210,11 +198,8 @@ jobs:
             "--label" "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}"
             "--label" "org.opencontainers.image.revision=${GITHUB_SHA}"
           )
-
-          # Build the image
           podman build "${LABELS[@]}" --pull=newer --tag "${IMAGE_NAME}:${DEFAULT_TAG}" --file Containerfile .
 
-      # This is optional, this provides smaller delta updates
       - name: Rechunk with rpm-ostree
         id: rechunk
         env:
@@ -229,28 +214,39 @@ jobs:
       - name: Generate Build Tags
         id: gen-build-tags
         env:
-          DEFAULT_TAG: ${{ steps.load-env.outputs.DEFAULT_TAG }}
-          SEMVER_RELEASE: ${{ steps.version.outputs.semver_release }}
+          CHANNEL: ${{ steps.version.outputs.channel }}
           SEMVER_TAG: ${{ steps.version.outputs.semver_tag }}
           SEMVER_NUM: ${{ steps.version.outputs.semver_num }}
           SHORT_SHA: ${{ steps.version.outputs.short_sha }}
+          DATE_UTC: ${{ steps.version.outputs.date_utc }}
         run: |
           set -euo pipefail
-          DATE=$(date +%Y%m%d)
           BUILD_TAGS=()
-          if [[ "${SEMVER_RELEASE}" == "true" ]]; then
-            # SemVer releases (v* tags): publish version tags and move latest (recommended).
-            MINOR="${SEMVER_NUM%.*}"
-            BUILD_TAGS+=("${SEMVER_TAG}")
-            BUILD_TAGS+=("v${MINOR}")
-            BUILD_TAGS+=("${DEFAULT_TAG}")
-            BUILD_TAGS+=("sha-${SHORT_SHA}")
-          else
-            # Non-SemVer publishes (main/schedule/dispatch): do NOT move latest.
-            BUILD_TAGS+=("main")
-            BUILD_TAGS+=("main-${DATE}")
-            BUILD_TAGS+=("sha-${SHORT_SHA}")
-          fi
+          case "${CHANNEL}" in
+            weekly)
+              # Automatic weekly build -> latest
+              BUILD_TAGS+=("latest")
+              BUILD_TAGS+=("weekly")
+              BUILD_TAGS+=("weekly-${DATE_UTC}")
+              BUILD_TAGS+=("sha-${SHORT_SHA}")
+              ;;
+            testing)
+              # Any build that is not the automatic weekly build -> testing
+              BUILD_TAGS+=("testing")
+              BUILD_TAGS+=("testing-${DATE_UTC}")
+              BUILD_TAGS+=("sha-${SHORT_SHA}")
+              ;;
+            semver)
+              # Explicit pinned SemVer release (coexists with weekly/testing channels)
+              MINOR="${SEMVER_NUM%.*}"
+              BUILD_TAGS+=("${SEMVER_TAG}")
+              BUILD_TAGS+=("v${MINOR}")
+              BUILD_TAGS+=("sha-${SHORT_SHA}")
+              ;;
+            *)
+              BUILD_TAGS+=("sha-${SHORT_SHA}")
+              ;;
+          esac
           echo "Tags for this Action..."
           echo "${BUILD_TAGS[@]}"
           echo "alias_tags=${BUILD_TAGS[@]}" >> "$GITHUB_OUTPUT"
@@ -263,21 +259,13 @@ jobs:
           ALIAS_TAGS: ${{ steps.gen-build-tags.outputs.alias_tags }}
         run: |
           set -euo pipefail
-
-          # Get Image ID
           IMAGE=$(podman inspect "${IMAGE_NAME}:${DEFAULT_TAG}" | jq -r '.[0].Id')
           podman untag "${IMAGE}"
-
-          # Tag Image
           for tag in ${ALIAS_TAGS}; do
             podman tag "${IMAGE}" "${IMAGE_NAME}:${tag}"
           done
-
-          # Show Images
           podman images
 
-      # These `if` statements are so that pull requests for your custom images do not make it publish any packages under your name without you knowing
-      # They also check if the runner is on the default branch so that things like the merge queue (if you enable it), are going to work
       - name: Login to GitHub Container Registry (docker config)
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         if: steps.version.outputs.publish == 'true'
@@ -297,22 +285,17 @@ jobs:
         env:
           IMAGE_NAME: ${{ steps.load-env.outputs.IMAGE_NAME }}
           ALIAS_TAGS: ${{ steps.gen-build-tags.outputs.alias_tags }}
-          SEMVER_RELEASE: ${{ steps.version.outputs.semver_release }}
+          CHANNEL: ${{ steps.version.outputs.channel }}
           SEMVER_TAG: ${{ steps.version.outputs.semver_tag }}
         run: |
           set -euo pipefail
-          # Debug: show all environment variables
-          echo "DEBUG: IMAGE_NAME=${IMAGE_NAME}"
-          echo "DEBUG: IMAGE_REGISTRY=${IMAGE_REGISTRY}"
           echo "DEBUG: ALIAS_TAGS=${ALIAS_TAGS}"
-          PRIMARY_DIGEST_TAG="main"
-          if [[ "${SEMVER_RELEASE}" == "true" && -n "${SEMVER_TAG}" ]]; then
-            PRIMARY_DIGEST_TAG="${SEMVER_TAG}"
-          fi
+          PRIMARY_DIGEST_TAG="testing"
+          if [[ "${CHANNEL}" == "weekly" ]]; then PRIMARY_DIGEST_TAG="latest"; fi
+          if [[ "${CHANNEL}" == "semver" && -n "${SEMVER_TAG}" ]]; then PRIMARY_DIGEST_TAG="${SEMVER_TAG}"; fi
           for tag in ${ALIAS_TAGS}; do
             DESTINATION="${IMAGE_REGISTRY}/${IMAGE_NAME}:${tag}"
             echo "DEBUG: Pushing ${IMAGE_NAME}:${tag} to ${DESTINATION}"
-            # Podman might need transport prefix for the destination
             podman push --digestfile=/tmp/digestfile "${IMAGE_NAME}:${tag}" "docker://${DESTINATION}"
             if [[ "${tag}" == "${PRIMARY_DIGEST_TAG}" ]]; then
               cp /tmp/digestfile /tmp/primary-digestfile
@@ -338,30 +321,31 @@ jobs:
         env:
           DIGEST: ${{ steps.push-image.outputs.digest }}
           IMAGE_NAME: ${{ steps.load-env.outputs.IMAGE_NAME }}
-          # The signing key uses an empty passphrase. cosign requires this
-          # variable to be PRESENT (even if empty) or it prompts for a password
-          # and fails on the non-interactive runner.
           COSIGN_PASSWORD: ""
         run: |
           set -euo pipefail
-          # Create a temporary key file from the secret
           KEY_FILE=$(mktemp)
           trap 'rm -f "${KEY_FILE}"' EXIT
           printf '%s\n' "${{ secrets.COSIGN_PRIVATE_KEY }}" > "${KEY_FILE}"
           cosign sign --yes --key "${KEY_FILE}" "${IMAGE_REGISTRY}/${IMAGE_NAME}@${DIGEST}"
 
-      - name: Update GitHub Release (SemVer tag)
-        if: steps.version.outputs.semver_release == 'true'
+      - name: Update GitHub Release
+        if: steps.version.outputs.release_kind != 'none' && steps.version.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMAGE_NAME: ${{ steps.load-env.outputs.IMAGE_NAME }}
           DEFAULT_TAG: ${{ steps.load-env.outputs.DEFAULT_TAG }}
+          RELEASE_KIND: ${{ steps.version.outputs.release_kind }}
+          CHANNEL: ${{ steps.version.outputs.channel }}
+          VERSION_LABEL: ${{ steps.version.outputs.version_label }}
           SEMVER_TAG: ${{ steps.version.outputs.semver_tag }}
           SEMVER_NUM: ${{ steps.version.outputs.semver_num }}
+          SHORT_SHA: ${{ steps.version.outputs.short_sha }}
+          DATE_UTC: ${{ steps.version.outputs.date_utc }}
           DIGEST: ${{ steps.push-image.outputs.digest }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          # Use the locally built image for metadata extraction.
           IMG="${IMAGE_NAME}:${DEFAULT_TAG}"
 
           BASE_OS_PRETTY=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${PRETTY_NAME:-unknown}"' | head -n1)
@@ -369,28 +353,57 @@ jobs:
           BASE_OS_NAME=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${NAME:-unknown}"' | head -n1)
           SURFACE_KERNEL=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -q kernel-surface --qf "%{VERSION}-%{RELEASE}" 2>/dev/null || echo unknown' | head -n1)
 
-          TAG="${SEMVER_TAG}"
-          TITLE="Bazzite-SDX ${SEMVER_TAG}"
+          if [[ "${RELEASE_KIND}" == "weekly" ]]; then
+            TAG="latest"
+            TITLE="Bazzite-SDX (Latest Weekly)"
+            MARK_LATEST=true
+            PRERELEASE=false
+            PRIMARY_IMAGE="ghcr.io/nexgen-3d-printing/bazzite-sdx:latest"
+            CHANNEL_NOTE="Automatic weekly build. \`latest\` tracks the newest weekly build. Commit/change builds (non-weekly) publish \`testing\` tags."
+          elif [[ "${RELEASE_KIND}" == "testing" ]]; then
+            TAG="testing"
+            TITLE="Bazzite-SDX (Testing)"
+            MARK_LATEST=false
+            PRERELEASE=true
+            PRIMARY_IMAGE="ghcr.io/nexgen-3d-printing/bazzite-sdx:testing"
+            CHANNEL_NOTE="Testing channel build (not the automatic weekly build). Published from \`${REF_NAME}\` / ${SHORT_SHA}. Use for validation; \`latest\` remains the weekly build."
+          elif [[ "${RELEASE_KIND}" == "semver" ]]; then
+            TAG="${SEMVER_TAG}"
+            TITLE="Bazzite-SDX ${SEMVER_TAG}"
+            MARK_LATEST=false
+            PRERELEASE=false
+            PRIMARY_IMAGE="ghcr.io/nexgen-3d-printing/bazzite-sdx:${SEMVER_TAG}"
+            CHANNEL_NOTE="Explicit SemVer release (coexists with weekly \`latest\` and \`testing\` channels). \`latest\` continues to track weekly builds."
+          else
+            echo "No release update for ${RELEASE_KIND}"
+            exit 0
+          fi
+
           {
-            echo "## Bazzite-SDX ${SEMVER_TAG}"
+            echo "## ${TITLE}"
             echo ""
-            echo "Bazzite-DX with Linux Surface kernel support. SemVer release published from tag \`${SEMVER_TAG}\` (version source: git tag + \`VERSION\` file)."
+            echo "Bazzite-DX with Linux Surface kernel support."
+            echo ""
+            echo "${CHANNEL_NOTE}"
             echo ""
             echo "### Versions / Image info"
-            echo "- **Release:** ${SEMVER_TAG}"
+            echo "- **Channel:** ${CHANNEL}"
+            echo "- **Build version:** \`${VERSION_LABEL}\`"
+            if [[ "${RELEASE_KIND}" == "semver" ]]; then echo "- **SemVer tag:** \`${SEMVER_TAG}\` (source of truth: git tag + \`VERSION\`)"; fi
             echo "- **Bazzite/base OS:** ${BASE_OS_PRETTY} (VERSION_ID: ${BASE_OS_VERSION})"
             echo "- **Surface kernel:** ${SURFACE_KERNEL}"
             echo "- **Image digest:** \`${DIGEST}\`"
-            echo "- **Image (version):** \`ghcr.io/nexgen-3d-printing/bazzite-sdx:${SEMVER_TAG}\`"
-            echo "- **Image (latest stable):** \`ghcr.io/nexgen-3d-printing/bazzite-sdx:latest\`"
+            echo "- **Primary image:** \`${PRIMARY_IMAGE}\`"
+            echo "- **Weekly/latest:** \`ghcr.io/nexgen-3d-printing/bazzite-sdx:latest\`"
+            echo "- **Testing:** \`ghcr.io/nexgen-3d-printing/bazzite-sdx:testing\`"
             echo ""
             echo "### NexGen3D SDX Portal"
-            echo "The image includes **NexGen3D SDX Portal**, a separate yafti-based portal alongside the original Bazzite Portal. It provides category tabs, per-app install actions, and full app descriptions, and runs Bazzite-SDX \`ujust\` recipes (apps are **not baked into the OS image**). Flatpak apps install **per user** (Bazzite-style, no sudo required for app installs)."
+            echo "The image includes **NexGen3D SDX Portal**, a separate yafti-based portal alongside the original Bazzite Portal. It provides category tabs, per-app install actions, and full app descriptions, and runs Bazzite-SDX \`ujust\` recipes (apps are **not baked into the OS image**). Flatpak apps install **per user** (Bazzite-style, no sudo required for app installs). NexGen3D SDX Portal is configured to launch on first boot; Steam autostart is disabled by default in Bazzite-SDX."
             echo ""
             echo "**Launch:** open \`NexGen3D SDX Portal\` from the app menu (or run \`yafti_gtk.py /usr/share/yafti/nexgen3d-sdx.yml\`)."
             echo ""
             echo "**Portal features:**"
-            echo "- Separate from the upstream Bazzite Portal (no autostart added by SDX)"
+            echo "- Separate from the upstream Bazzite Portal (configured to launch on first boot)"
             echo "- Category tabs: Setup, AI Tools, Web Browsers, Creative Utilities, System Utilities, Media, System Management"
             echo "- Per-app install options with full descriptions and source/install-method notes"
             echo "- \"Install all core apps\" option + per-app \`ujust\` recipes"
@@ -410,45 +423,41 @@ jobs:
             echo '```'
             echo "Or use **NexGen3D SDX Portal** for per-app installs and additional tools."
             echo ""
-            echo "### Features"
-            echo "- Linux Surface kernel (kernel-surface)"
-            echo "- iptsd, libwacom-surface, surface-control"
-            echo "- Firefox RPM removed when present"
-            echo "- **NexGen3D SDX Portal** + Bazzite-style \`ujust\` recipes (Flatpak/AppImage/Docker helpers; not baked into the image)"
-            echo "- Based on \`ghcr.io/ublue-os/bazzite-dx:stable\` (detected base OS: ${BASE_OS_NAME} ${BASE_OS_VERSION})"
-            echo ""
-            echo "### Install (rebase)"
-            echo "Install an official Bazzite image first (or use an existing Fedora Atomic/Bazzite/Kinoite installation compatible with bootc), then rebase to Bazzite-SDX:"
-            echo ""
+            echo "### Install / rebase"
             echo '```bash'
-            echo "# Verify current state"
             echo "sudo bootc status"
-            echo ""
-            echo "# Rebase to a specific SemVer release (recommended for pinning)"
-            echo "sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:${SEMVER_TAG}"
-            echo ""
-            echo "# Or track latest stable SemVer"
-            echo "# sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:latest"
-            echo ""
-            echo "# Reboot, then install apps via NexGen3D SDX Portal or:"
-            echo "ujust install-bazzite-sdx-flatpaks"
+            echo "# Weekly stable channel (latest):"
+            echo "sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:latest"
+            echo "# Testing channel (non-weekly commit/manual builds):"
+            echo "# sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:testing"
+            if [[ "${RELEASE_KIND}" == "semver" ]]; then
+              echo "# Pinned SemVer release:"
+              echo "# sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:${SEMVER_TAG}"
+            fi
+            echo "sudo reboot"
             echo '```'
             echo ""
             echo "### Security verification"
             echo '```bash'
             echo "curl -fsSL https://raw.githubusercontent.com/NexGen-3D-Printing/bazzite-sdx/main/cosign.pub -o cosign.pub"
-            echo "cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:${SEMVER_TAG}"
+            echo "cosign verify --key cosign.pub ${PRIMARY_IMAGE}"
             echo '```'
-            echo ""
-            echo "### Related resources"
-            echo "- **Bazzite-SDX repository:** https://github.com/NexGen-3D-Printing/bazzite-sdx"
-            echo "- **Bazzite-DX:** https://github.com/ublue-os/bazzite-dx"
-            echo "- **Surface Linux kernel:** https://github.com/linux-surface/linux-surface"
-            echo "- **Bazzite docs (ujust/Portal):** https://docs.bazzite.gg/"
           } > /tmp/release-notes.md
 
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release edit "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md --latest
+            if [[ "${PRERELEASE}" == "true" ]]; then
+              gh release edit "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md --prerelease
+            elif [[ "${MARK_LATEST}" == "true" ]]; then
+              gh release edit "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md --latest
+            else
+              gh release edit "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md --latest=false
+            fi
           else
-            gh release create "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md --latest
+            if [[ "${PRERELEASE}" == "true" ]]; then
+              gh release create "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md --prerelease
+            elif [[ "${MARK_LATEST}" == "true" ]]; then
+              gh release create "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md --latest
+            else
+              gh release create "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md --latest=false
+            fi
           fi

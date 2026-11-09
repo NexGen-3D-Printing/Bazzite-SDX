@@ -53,10 +53,13 @@ Bazzite-SDX is distributed as a bootc container image (no custom USB installer I
 # Verify current state
 sudo bootc status
 
-# Rebase to Bazzite-SDX (latest stable SemVer release)
+# Rebase to Bazzite-SDX (latest weekly build)
 sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:latest
 
-# Or pin to a specific release (recommended for reproducibility), e.g.:
+# Or track the testing channel (non-weekly commit/manual builds):
+# sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:testing
+
+# Or pin to a specific SemVer release (recommended for reproducibility), e.g.:
 # sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:v0.1.0
 
 # Reboot to apply
@@ -117,11 +120,18 @@ sudo bootc fetch --apply
 sudo reboot
 ```
 
-## Releases & Versioning
+## Releases & Channels
 
-- **SemVer releases:** stable releases are published from `v*` tags (source of truth: git tag + [`VERSION`](VERSION)). The `latest` image tag and GitHub “Latest” release track the newest stable SemVer release.
-- [**Latest release**](https://github.com/NexGen-3D-Printing/bazzite-sdx/releases/latest) — current stable release notes (base OS/Surface kernel, portal/apps, install/verification).
-- [RELEASE.md](RELEASE.md) — how to cut a SemVer release (checklist).
+Bazzite-SDX uses coexisting channel/versioning:
+
+- **`latest` (weekly):** automatic **weekly scheduled** build (`:latest`, `:weekly`, `:weekly-YYYYMMDD`). The GitHub **Latest** release tracks the newest weekly build.
+- **`testing`:** any build that is **not** the automatic weekly build (pushes to `main`, manual workflow runs). Publishes `:testing`, `:testing-YYYYMMDD`, `:sha-*` and updates a `testing` prerelease for validation.
+- **SemVer tags (coexisting, pinned):** explicit `vX.Y.Z` tag pushes create versioned releases/tags (source of truth: git tag + [`VERSION`](VERSION)). SemVer releases coexist with weekly/testing channels and do **not** move `latest` (weekly remains `latest`).
+
+Build version labels: weekly = `weekly-YYYYMMDD+<sha>`, testing = `testing-YYYYMMDD+<sha>`, SemVer = `vX.Y.Z`.
+
+- [**Latest (weekly) release**](https://github.com/NexGen-3D-Printing/bazzite-sdx/releases/latest)
+- [RELEASE.md](RELEASE.md) — channel/release checklist (weekly, testing, SemVer).
 - [RELEASE-INFO.md](RELEASE-INFO.md) — repository release notes/history.
 
 ## Building from Source
