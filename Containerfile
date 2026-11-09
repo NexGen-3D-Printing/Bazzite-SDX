@@ -54,13 +54,16 @@ RUN if ! grep -q '^PLATFORM_ID=' /usr/lib/os-release 2>/dev/null; then \
     fi
 
 ## Create release info file
-RUN mkdir -p /etc/bazzite-sdx && printf '%s\\n' \
+RUN mkdir -p /etc/bazzite-sdx && \
+    SURFACE_KERNEL="$(rpm -q kernel-surface --qf '%{VERSION}-%{RELEASE}' 2>/dev/null || echo unknown)" && \
+    BASE_VERSION_ID="$(. /usr/lib/os-release 2>/dev/null; echo "${VERSION_ID:-45}")" && \
+    printf '%s\n' \
     '# Bazzite-SDX Release Information' \
     '' \
     'version = "1.0.0"' \
-    'fedora_version = 45' \
+    "fedora_version = ${BASE_VERSION_ID}" \
     'base_image = "ghcr.io/ublue-os/bazzite-dx:stable"' \
-    'linux_surface_kernel = "7.2.15-1.surface.fc45"' \
+    "linux_surface_kernel = \"${SURFACE_KERNEL}\"" \
     '' \
     '[links]' \
     'github = "https://github.com/NexGen-3D-Printing/bazzite-sdx"' \
