@@ -14,7 +14,7 @@ Bazzite-SDX uses **coexisting channels and versioning**:
 
 ## Weekly `latest` builds (automatic)
 
-No manual action required. The scheduled workflow (weekly cron) builds and publishes the weekly `latest` channel.
+No manual action required. The scheduled workflow (weekly cron, **Monday 12:00 PM AWST / 04:00 UTC**) builds and publishes the weekly `latest` channel.
 
 Checklist after a weekly run:
 1. Verify Actions run for the scheduled build succeeded.

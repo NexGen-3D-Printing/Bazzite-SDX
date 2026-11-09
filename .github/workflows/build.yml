@@ -5,8 +5,8 @@ on:
     branches:
       - main
   schedule:
-    # Weekly automatic build (publishes :latest)
-    - cron: '05 10 * * 0'  # Sunday 10:05am UTC
+    # Weekly automatic build (publishes :latest) - Monday 12:00 PM AWST (UTC+8)
+    - cron: '0 4 * * 1'  # Monday 04:00 UTC / 12:00 PM AWST
   push:
     branches:
       - main

@@ -124,7 +124,7 @@ sudo reboot
 
 Bazzite-SDX uses coexisting channel/versioning:
 
-- **`latest` (weekly):** automatic **weekly scheduled** build (`:latest`, `:weekly`, `:weekly-YYYYMMDD`). The GitHub **Latest** release tracks the newest weekly build.
+- **`latest` (weekly):** automatic **weekly scheduled** build (Monday 12:00 PM AWST / 04:00 UTC; `:latest`, `:weekly`, `:weekly-YYYYMMDD`). The GitHub **Latest** release tracks the newest weekly build.
 - **`testing`:** any build that is **not** the automatic weekly build (pushes to `main`, manual workflow runs). Publishes `:testing`, `:testing-YYYYMMDD`, `:sha-*` and updates a `testing` prerelease for validation.
 - **SemVer tags (coexisting, pinned):** explicit `vX.Y.Z` tag pushes create versioned releases/tags (source of truth: git tag + [`VERSION`](VERSION)). SemVer releases coexist with weekly/testing channels and do **not** move `latest` (weekly remains `latest`).
 
