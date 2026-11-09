@@ -1,55 +1,50 @@
 # Security Notes for Bazzite-SDX
 
-## Cosign Signing
+## Image Signing (Cosign)
 
-Bazzite-SDX uses cosign for image signing. The **public key** (`cosign.pub`) is included in this repository for users to verify image signatures.
+Bazzite-SDX container images are signed with Cosign. The **public key** (`cosign.pub`) is included in this repository for users to verify image signatures.
 
-The **private key** is stored securely and is NOT included in this repository.
+The **private key** is stored securely as a GitHub Actions secret (`COSIGN_PRIVATE_KEY`) and is **NOT** included in this repository.
 
-## For Repository Owners
+## Channels and Verification
 
-If you fork this repository to build your own version, you **MUST** generate your own cosign keys:
+- **Weekly/latest:** `ghcr.io/nexgen-3d-printing/bazzite-sdx:latest`
+- **Testing:** `ghcr.io/nexgen-3d-printing/bazzite-sdx:testing`
+- **Pinned SemVer:** `ghcr.io/nexgen-3d-printing/bazzite-sdx:vX.Y.Z`
+
+To verify an image:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/NexGen-3D-Printing/bazzite-sdx/main/cosign.pub -o cosign.pub
+cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:latest
+# or :testing / :vX.Y.Z
+```
+
+## For Repository Owners / Forks
+
+If you fork this repository to build your own images, generate your own Cosign keys:
 
 ```bash
 COSIGN_PASSWORD="" cosign generate-key-pair
 ```
 
 Then:
-1. Add `cosign.pub` to your repository
-2. Add `cosign.key` contents as a GitHub Secret named `SIGNING_SECRET`
+1. Commit your `cosign.pub` to your fork.
+2. Add the private key contents as a GitHub Actions secret named `COSIGN_PRIVATE_KEY`.
+3. Update image references/workflow env to match your registry/namespace.
 
-## For Users
+## Repository Access Hygiene (Maintainers)
 
-Users installing Bazzite-SDX do **NOT** need cosign keys. The image is pre-built and pre-signed.
+- Use **fine-grained personal access tokens** scoped to this repository with minimum required permissions and short expiration.
+- Enable **2FA/passkeys** on the GitHub account.
+- Rotate/revoke tokens/keys when exposed or no longer needed.
+- Review collaborators, deploy keys, SSH keys, OAuth apps, and GitHub App installations periodically.
 
-To install:
-```bash
-sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:stable
-sudo reboot
-```
-
-### Optional: Verify Image Signature
-
-If you want to verify the image was built by NexGen-3D-Printing:
-
-```bash
-# Get the public key from the repository
-curl -fsSL https://raw.githubusercontent.com/NexGen-3D-Printing/bazzite-sdx/main/cosign.pub -o cosign.pub
-
-# Verify the image
-cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:stable
-```
-
-## File Locations
-
-- **cosign.pub** (public key) - In the repository (safe to share)
-- **cosign.key** (private key) - NOT in the repository (stored securely)
-
-## Security Contact
+## Reporting a Vulnerability
 
 If you discover a security vulnerability, please report it responsibly:
 - GitHub Issues: https://github.com/NexGen-3D-Printing/bazzite-sdx/issues
 
 ---
 
-*Last updated: 2026-11-06*
+*Last updated: 2026-11-09*
