@@ -486,3 +486,106 @@ show-sdx-system-info:
     echo ""
     echo "Press Enter to close..."
     read -r _
+
+# ==========================================
+# Image channel / version switching (bootc)
+# ==========================================
+
+# Switch Bazzite-SDX to the weekly/latest channel (ghcr.io/nexgen-3d-printing/bazzite-sdx:latest)
+[group("bazzite-sdx-system")]
+rebase-sdx-latest:
+    #!/usr/bin/bash
+    set -euo pipefail
+    image="ghcr.io/nexgen-3d-printing/bazzite-sdx:latest"
+    echo "This will switch (rebase) your system to: ${image}"
+    echo "Channel: latest = automatic weekly build."
+    echo ""
+    echo "Current status:"
+    sudo bootc status || true
+    echo ""
+    echo "After switching, reboot to apply the new deployment."
+    echo "Tip: 'sudo bootc rollback' can revert to the previous deployment after reboot if needed."
+    echo ""
+    read -r -p "Proceed with 'sudo bootc switch ${image}'? [y/N] " ans
+    case "${ans}" in
+        y|Y|yes|YES)
+            sudo bootc switch "${image}"
+            echo ""
+            echo "Switch staged. Reboot when ready: sudo systemctl reboot"
+            ;;
+        *)
+            echo "No changes made."
+            ;;
+    esac
+    echo "Done."
+
+# Switch Bazzite-SDX to the testing channel (ghcr.io/nexgen-3d-printing/bazzite-sdx:testing)
+[group("bazzite-sdx-system")]
+rebase-sdx-testing:
+    #!/usr/bin/bash
+    set -euo pipefail
+    image="ghcr.io/nexgen-3d-printing/bazzite-sdx:testing"
+    echo "This will switch (rebase) your system to: ${image}"
+    echo "Channel: testing = any build that is not the automatic weekly build (commits/manual builds)."
+    echo "Testing builds may be less stable than weekly/latest."
+    echo ""
+    echo "Current status:"
+    sudo bootc status || true
+    echo ""
+    echo "After switching, reboot to apply the new deployment."
+    echo "Tip: 'sudo bootc rollback' can revert to the previous deployment after reboot if needed."
+    echo ""
+    read -r -p "Proceed with 'sudo bootc switch ${image}'? [y/N] " ans
+    case "${ans}" in
+        y|Y|yes|YES)
+            sudo bootc switch "${image}"
+            echo ""
+            echo "Switch staged. Reboot when ready: sudo systemctl reboot"
+            ;;
+        *)
+            echo "No changes made."
+            ;;
+    esac
+    echo "Done."
+
+# Switch Bazzite-SDX to a specific image tag/version (e.g., v0.1.0 for SemVer rollback/pin)
+[group("bazzite-sdx-system")]
+rebase-sdx-version:
+    #!/usr/bin/bash
+    set -euo pipefail
+    base="ghcr.io/nexgen-3d-printing/bazzite-sdx"
+    echo "Switch (rebase) Bazzite-SDX to a specific tag/version."
+    echo "Examples: v0.1.0 (SemVer/pinned), latest, testing, weekly-20261109, testing-20261109"
+    echo "This can be used to pin a known-good release or roll forward/back to a specific published tag."
+    echo ""
+    echo "Current status:"
+    sudo bootc status || true
+    echo ""
+    read -r -p "Enter tag/version (e.g., v0.1.0): " tag
+    tag="$(printf '%s' "${tag}" | tr -d '[:space:]')"
+    if [[ -z "${tag}" ]]; then
+        echo "No tag provided. No changes made."
+        echo "Done."
+        exit 0
+    fi
+    if [[ ! "${tag}" =~ ^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$ ]]; then
+        echo "Invalid tag format. Use letters/numbers/dots/dashes/underscores/plus (e.g., v0.1.0)."
+        echo "No changes made."
+        exit 1
+    fi
+    image="${base}:${tag}"
+    echo ""
+    echo "Target: ${image}"
+    echo "After switching, reboot to apply. 'sudo bootc rollback' can revert to the previous deployment after reboot if needed."
+    read -r -p "Proceed with 'sudo bootc switch ${image}'? [y/N] " ans
+    case "${ans}" in
+        y|Y|yes|YES)
+            sudo bootc switch "${image}"
+            echo ""
+            echo "Switch staged. Reboot when ready: sudo systemctl reboot"
+            ;;
+        *)
+            echo "No changes made."
+            ;;
+    esac
+    echo "Done."
