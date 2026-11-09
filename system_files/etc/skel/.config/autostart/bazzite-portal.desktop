@@ -1,8 +1,11 @@
 [Desktop Entry]
 Name=NexGen3D SDX Portal
+GenericName=Setup Portal
 Comment=Optional Bazzite-SDX setup and app installs (Surface + DX)
 Exec=yafti_gtk.py /usr/share/yafti/nexgen3d-sdx.yml
 Icon=io.github.ublue_os.yafti_gtk
 Terminal=false
 Type=Application
 X-GNOME-Autostart-enabled=true
+StartupWMClass=io.github.ublue_os.yafti_gtk
+StartupNotify=true

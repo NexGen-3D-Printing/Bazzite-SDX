@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=NexGen3D SDX Portal
+GenericName=Setup Portal
+Comment=Setup and install curated Bazzite-SDX apps (runs ujust recipes)
+Exec=yafti_gtk.py /usr/share/yafti/nexgen3d-sdx.yml
+Icon=io.github.ublue_os.yafti_gtk
+Terminal=false
+Type=Application
+Categories=System;Settings;
+Keywords=bazzite;sdx;ujust;flatpak;nexgen3d;portal;
+StartupWMClass=io.github.ublue_os.yafti_gtk
+StartupNotify=true
+NoDisplay=false
