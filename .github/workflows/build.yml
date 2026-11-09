@@ -13,6 +13,12 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      unstable:
+        description: 'Build and publish unstable tags (use when running from experimental). Does not update latest/testing.'
+        required: false
+        type: boolean
+        default: false
 
 env:
   IMAGE_REGISTRY: "ghcr.io/nexgen-3d-printing"  # do not edit
@@ -64,6 +70,7 @@ jobs:
           REF: ${{ github.ref }}
           REF_NAME: ${{ github.ref_name }}
           SHA: ${{ github.sha }}
+          UNSTABLE_INPUT: ${{ inputs.unstable && 'true' || 'false' }}
         run: |
           set -euo pipefail
           SHORT_SHA="${SHA:0:7}"
@@ -72,7 +79,7 @@ jobs:
           CHANNEL=""
           PUBLISH=false
           VERSION_LABEL=""
-          RELEASE_KIND="none"   # weekly|testing|semver|none
+          RELEASE_KIND="none"   # weekly|testing|semver|unstable|none
           SEMVER_TAG=""
           SEMVER_NUM=""
 
@@ -103,6 +110,12 @@ jobs:
             PUBLISH=true
             VERSION_LABEL="weekly-${DATE_UTC}+${SHORT_SHA}"
             RELEASE_KIND="weekly"
+          elif [[ "${EVENT_NAME}" == "workflow_dispatch" && ( "${UNSTABLE_INPUT}" == "true" || "${REF_NAME}" == "experimental" ) ]]; then
+            # Manual unstable build (typically from experimental). Publishes :unstable tags; does not update latest/testing.
+            CHANNEL="unstable"
+            PUBLISH=true
+            VERSION_LABEL="unstable-${DATE_UTC}+${SHORT_SHA}"
+            RELEASE_KIND="unstable"
           elif [[ "${EVENT_NAME}" == "push" || "${EVENT_NAME}" == "workflow_dispatch" ]]; then
             # Any build that is not the automatic weekly build -> testing
             CHANNEL="testing"
@@ -236,6 +249,12 @@ jobs:
               BUILD_TAGS+=("testing-${DATE_UTC}")
               BUILD_TAGS+=("sha-${SHORT_SHA}")
               ;;
+            unstable)
+              # Manual experimental/unstable build (typically from experimental branch)
+              BUILD_TAGS+=("unstable")
+              BUILD_TAGS+=("unstable-${DATE_UTC}")
+              BUILD_TAGS+=("sha-${SHORT_SHA}")
+              ;;
             semver)
               # Explicit pinned SemVer release (coexists with weekly/testing channels)
               MINOR="${SEMVER_NUM%.*}"
@@ -292,6 +311,7 @@ jobs:
           echo "DEBUG: ALIAS_TAGS=${ALIAS_TAGS}"
           PRIMARY_DIGEST_TAG="testing"
           if [[ "${CHANNEL}" == "weekly" ]]; then PRIMARY_DIGEST_TAG="latest"; fi
+          if [[ "${CHANNEL}" == "unstable" ]]; then PRIMARY_DIGEST_TAG="unstable"; fi
           if [[ "${CHANNEL}" == "semver" && -n "${SEMVER_TAG}" ]]; then PRIMARY_DIGEST_TAG="${SEMVER_TAG}"; fi
           for tag in ${ALIAS_TAGS}; do
             DESTINATION="${IMAGE_REGISTRY}/${IMAGE_NAME}:${tag}"
@@ -373,6 +393,13 @@ jobs:
             PRERELEASE=true
             PRIMARY_IMAGE="ghcr.io/nexgen-3d-printing/bazzite-sdx:testing"
             CHANNEL_NOTE="Testing channel build (not the automatic weekly build). Published from \`${REF_NAME}\` / ${SHORT_SHA}. Use for validation; \`latest\` remains the weekly build."
+          elif [[ "${RELEASE_KIND}" == "unstable" ]]; then
+            TAG="unstable"
+            TITLE="Bazzite-SDX (Unstable / Experimental)"
+            MARK_LATEST=false
+            PRERELEASE=true
+            PRIMARY_IMAGE="ghcr.io/nexgen-3d-printing/bazzite-sdx:unstable"
+            CHANNEL_NOTE="Manual unstable/experimental build (typically from \`${REF_NAME}\`). Published only when explicitly triggered. Does not update \`latest\` or \`testing\`. Use for investigation; expect breakage."
           elif [[ "${RELEASE_KIND}" == "semver" ]]; then
             TAG="${SEMVER_TAG}"
             TITLE="Bazzite-SDX ${SEMVER_TAG}"
