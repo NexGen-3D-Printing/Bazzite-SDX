@@ -99,8 +99,8 @@ Bazzite-SDX includes the Linux Surface kernel stack (`kernel-surface`, `iptsd`, 
 | Device | Expected support (linux-surface) | Bazzite-SDX test status | Kernel tested |
 |--------|----------------------------------|-------------------------|---------------|
 | Surface Pro 3-5, 7, 8 | Varies by model | Requires Testing | — |
-| Surface Pro 6 | Good (typical linux-surface support) | **Confirmed** | `kernel-surface` 7.2.15-1.surface.fc45 (Bazzite-SDX build) |
-| Surface Pro 9 | Varies (Intel/5G models differ) | **Confirmed** | `kernel-surface` 7.2.15-1.surface.fc45 (Bazzite-SDX build) |
+| Surface Pro 6 | Good (typical linux-surface support) | **Confirmed** | `kernel-surface` 7.2.15-1.surface.fc45 (latest testing build, as of 2026-11-09) |
+| Surface Pro 9 | Varies (Intel/5G models differ) | **Confirmed** | `kernel-surface` 7.2.15-1.surface.fc45 (latest testing build, as of 2026-11-09) |
 | Surface Pro X | Partial (ARM-related limitations may apply) | Requires Testing | — |
 | Surface Book 1-3 | Good (typical linux-surface support) | Requires Testing | — |
 | Surface Laptop 1-6 | Varies by model | Requires Testing | — |
