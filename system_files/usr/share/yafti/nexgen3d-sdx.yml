@@ -216,6 +216,15 @@ screens:
 - title: System Management
   description: Updates, benchmarks, system information, and image channel/version switching
   actions:
+  - id: show-sdx-current-channel
+    title: Current image channel/build
+    description: Shows which Bazzite-SDX image channel/build you are currently booted on (for example latest or testing).
+    default: false
+    status_script: "rpm-ostree status --json 2>/dev/null | python3 -c \"import json,sys\\ntry:\\n d=json.load(sys.stdin)\\n dep=(d.get('deployments') or [{}])[0]\\n ref=dep.get('container-image-reference') or dep.get('container-image-reference-digest') or ''\\n tag=ref.rsplit(':',1)[-1] if ':' in ref else ''\\n tag=tag.split('@',1)[0]\\n if 'latest' in tag:\\n  print('latest')\\n elif 'testing' in tag:\\n  print('testing')\\n elif tag:\\n  print(tag)\\n else:\\n  print('unknown')\\nexcept Exception:\\n print('unknown')\""
+    options:
+    - id: install
+      label: Show details
+      script: 'echo "Current bootc/rpm-ostree deployment:"; echo; rpm-ostree status 2>/dev/null || bootc status 2>/dev/null || echo "Status unavailable"; echo; echo "Press Enter to close..."; read -r _'
   - id: check-sdx-system-updates
     title: Check for system updates (Bazzite-SDX image)
     description: Checks for bootc/rpm-ostree system updates (including newer Bazzite-SDX container builds available to your deployment) and shows status. After checking, it prompts whether you want to run the system update now; if you confirm, it runs 'ujust update'. On immutable/bootc systems, updates typically apply on reboot. May require sudo for checks/updates.
