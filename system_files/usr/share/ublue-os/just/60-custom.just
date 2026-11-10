@@ -15,15 +15,83 @@ install-sdx-brave:
     flatpak --user -y install --reinstall --or-update flathub com.brave.Browser || flatpak --user -y install --reinstall --or-update com.brave.Browser
     echo "Done."
 
-# Install OpenCode app (ai.opencode.opencode, Flathub)
+# Install OpenCode desktop app (AppImage, latest from anomalyco/opencode) - integrated via Gear Lever
 [group("Bazzite-SDX")]
 install-sdx-opencode:
     #!/usr/bin/bash
     set -euo pipefail
-    echo "Configuring Flatpak remotes..."
-    flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
-    echo "Installing OpenCode (ai.opencode.opencode) from Flathub..."
-    flatpak --user -y install --reinstall --or-update flathub ai.opencode.opencode || flatpak --user -y install --reinstall --or-update ai.opencode.opencode
+    echo "Installing OpenCode desktop (latest AppImage from anomalyco/opencode)..."
+    echo "This uses the upstream AppImage (newer than the Flathub package) and integrates it with Gear Lever."
+    echo ""
+
+    # Ensure Gear Lever is installed (required to integrate/manage the AppImage)
+    if ! flatpak --user info it.mijorus.gearlever >/dev/null 2>&1; then
+        echo "Gear Lever (AppImage manager) is not installed. Installing it first..."
+        flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+        flatpak --user -y install --reinstall --or-update flathub it.mijorus.gearlever || flatpak --user -y install --reinstall --or-update it.mijorus.gearlever
+        echo ""
+    fi
+
+    tmp="$(mktemp -d)"
+    trap 'rm -rf "${tmp}"' EXIT
+
+    echo "Resolving latest OpenCode desktop AppImage URL..."
+    app_url="$(curl -fsSL https://api.github.com/repos/anomalyco/opencode/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a["browser_download_url"] for a in d.get("assets",[]) if a["name"]=="opencode-desktop-linux-x86_64.AppImage"))')"
+    if [[ -z "${app_url}" ]]; then
+        echo "Could not resolve OpenCode desktop AppImage URL."
+        exit 1
+    fi
+
+    out="${tmp}/opencode-desktop-linux-x86_64.AppImage"
+    echo "Downloading ${app_url} ..."
+    curl -fL --progress-bar -o "${out}" "${app_url}"
+    chmod +x "${out}"
+
+    gearlever() { flatpak run --command=gearlever it.mijorus.gearlever "$@"; }
+
+    # Remove legacy Flathub OpenCode app if present to avoid duplicates/confusion
+    if flatpak --user info ai.opencode.opencode >/dev/null 2>&1; then
+        echo "Removing legacy OpenCode Flatpak (ai.opencode.opencode)..."
+        flatpak --user -y uninstall ai.opencode.opencode || true
+    fi
+
+    # If an existing Gear Lever-integrated OpenCode desktop app is present, remove it first so we can install the latest
+    existing_path="$(gearlever --list-installed --json 2>/dev/null | python3 -c 'import json,sys
+try:
+ d=json.load(sys.stdin)
+ for i in d.get("installed",[]):
+  n=(i.get("name") or "").lower(); p=(i.get("path") or "").lower()
+  if "opencode" in n or "opencode-desktop" in p:
+   print(i.get("path","")); break
+except Exception:
+ pass' || true)"
+    if [[ -n "${existing_path}" && -f "${existing_path}" ]]; then
+        echo "Removing existing Gear Lever-integrated OpenCode app (${existing_path}) before reinstall..."
+        gearlever --remove --yes "${existing_path}" || true
+    fi
+
+    echo "Integrating OpenCode AppImage with Gear Lever (adds to Applications menu and moves to Gear Lever default location)..."
+    gearlever --integrate --yes "${out}"
+
+    installed_path="$(gearlever --list-installed --json 2>/dev/null | python3 -c 'import json,sys
+try:
+ d=json.load(sys.stdin)
+ for i in d.get("installed",[]):
+  n=(i.get("name") or "").lower(); p=(i.get("path") or "").lower()
+  if "opencode" in n or "opencode-desktop" in p:
+   print(i.get("path","")); break
+except Exception:
+ pass' || true)"
+
+    if [[ -n "${installed_path}" && -f "${installed_path}" ]]; then
+        echo "Configuring Gear Lever update source (GitHub: anomalyco/opencode)..."
+        gearlever --set-update-source "${installed_path}" --manager GithubUpdater repo=anomalyco/opencode repo_filename=opencode-desktop-linux-x86_64.AppImage allow_prereleases=0 || echo "Warning: could not set Gear Lever update source automatically; you can configure it in Gear Lever."
+        echo "Installed: ${installed_path}"
+    else
+        echo "Warning: OpenCode was integrated, but its installed path could not be detected automatically."
+        echo "You can configure update source in Gear Lever (GitHub: anomalyco/opencode, asset: opencode-desktop-linux-x86_64.AppImage)."
+    fi
+
     echo "Done."
 
 # Install Mission Center (io.missioncenter.MissionCenter, Flathub)
@@ -132,26 +200,30 @@ install-sdx-craft-anything:
         exit 1
     fi
 
-# Install all core Bazzite-SDX Flatpak apps (Brave, OpenCode app, Mission Center, SolidCraft, ArtCraft)
+# Install all core Bazzite-SDX apps (Brave, OpenCode desktop, Mission Center, SolidCraft, ArtCraft)
 [group("Bazzite-SDX")]
 install-bazzite-sdx-flatpaks:
     #!/usr/bin/bash
     set -euo pipefail
-    echo "=== Brave Browser ==="
+    echo "=== Brave Browser (Flatpak) ==="
     flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
     flatpak --user -y install --reinstall --or-update flathub com.brave.Browser || flatpak --user -y install --reinstall --or-update com.brave.Browser
-    echo "=== OpenCode (app) ==="
-    flatpak --user -y install --reinstall --or-update flathub ai.opencode.opencode || flatpak --user -y install --reinstall --or-update ai.opencode.opencode
-    echo "=== Mission Center ==="
+    echo "=== OpenCode desktop (AppImage via Gear Lever) ==="
+    if command -v ujust >/dev/null 2>&1 && ujust --list 2>/dev/null | grep -q 'install-sdx-opencode'; then
+        ujust install-sdx-opencode
+    else
+        echo "ujust recipe install-sdx-opencode not found; run it from the portal or shell after install."
+    fi
+    echo "=== Mission Center (Flatpak) ==="
     flatpak --user -y install --reinstall --or-update flathub io.missioncenter.MissionCenter || flatpak --user -y install --reinstall --or-update io.missioncenter.MissionCenter
-    echo "=== SolidCraft ==="
+    echo "=== SolidCraft (Flatpak) ==="
     if [[ -f /etc/flatpak/remotes.d/solidcraft.flatpakrepo ]]; then
         flatpak remote-add --if-not-exists --user solidcraft /etc/flatpak/remotes.d/solidcraft.flatpakrepo || true
     else
         flatpak remote-add --if-not-exists --user solidcraft https://docs.solidcraft.io/flatpak/solidcraft.flatpakrepo || true
     fi
     flatpak --user -y install --reinstall --or-update solidcraft io.tangencylabs.solidcraft || flatpak --user -y install --reinstall --or-update io.tangencylabs.solidcraft
-    echo "=== ArtCraft ==="
+    echo "=== ArtCraft (Flatpak bundle) ==="
     tmp="$(mktemp -d)"
     trap 'rm -rf "${tmp}"' EXIT
     if art_url="$(curl -fsSL https://api.github.com/repos/storytold/artcraft/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a["browser_download_url"] for a in d.get("assets",[]) if a["name"].endswith("linux-x86_64.flatpak")))')" && [[ -n "${art_url}" ]]; then
@@ -161,7 +233,7 @@ install-bazzite-sdx-flatpaks:
         echo "Warning: could not resolve ArtCraft Flatpak bundle URL; install manually if needed."
         exit 1
     fi
-    echo "All core Bazzite-SDX Flatpak apps processed."
+    echo "All core Bazzite-SDX apps processed."
 
 # ==========================================
 # AI Tools (Flatpak > AppImage > rpm-ostree layer > Docker)

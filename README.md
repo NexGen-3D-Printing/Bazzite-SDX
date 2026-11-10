@@ -23,7 +23,7 @@ Bazzite-SDX is a bootc image built from **Bazzite-DX** (`ghcr.io/ublue-os/bazzit
 - System actions: check for image/system updates (prompts before running `ujust update`), run `ujust benchmark` (if available), show system info via `fastfetch`
 
 **Apps available via the portal (optional):**
-- **AI Tools:** OpenCode (app, user Flatpak) + OpenCode CLI (official user installer), LM Studio (user Flatpak), Unsloth Desktop (AppImage, user install), ArtCraft (upstream Flatpak bundle; *warning: requires an account and may require a subscription for some features/services*), Craft Anything (upstream Flatpak bundle), REA / `rea-agents` (user-local npm/npx CLI/MCP setup; requires supported Node.js/npm), Harbor (`av/harbor`, Docker/Compose setup), Odysseus (`odysseus-dev/odysseus`, Docker/Compose setup)
+- **AI Tools:** OpenCode (desktop app, AppImage integrated via Gear Lever for latest releases, with GitHub update source configured) + OpenCode CLI (official user installer), LM Studio (user Flatpak), Unsloth Desktop (AppImage, user install), ArtCraft (upstream Flatpak bundle; *warning: requires an account and may require a subscription for some features/services*), Craft Anything (upstream Flatpak bundle), REA / `rea-agents` (user-local npm/npx CLI/MCP setup; requires supported Node.js/npm), Harbor (`av/harbor`, Docker/Compose setup), Odysseus (`odysseus-dev/odysseus`, Docker/Compose setup)
 - **Web Browsers:** Brave Browser (user Flatpak; Firefox RPM removed from the image when present)
 - **Creative Utilities:** SolidCraft (user Flatpak), PhotoCraft (upstream Flatpak bundle), PDFCraft (upstream Flatpak bundle)
 - **System Utilities:** Mission Center (user Flatpak), Gear Lever (user Flatpak, AppImage manager)
