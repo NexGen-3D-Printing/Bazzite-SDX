@@ -309,9 +309,9 @@ screens:
     title: Launch Bazaar
     description: Open the Bazaar software store/app browser.
     default: false
-    script: gtk4-launch io.github.kolunmi.Bazaar >/dev/null 2>&1 || flatpak run io.github.kolunmi.Bazaar >/dev/null 2>&1 || xdg-open appstream://io.github.kolunmi.Bazaar || echo 'Could not launch Bazaar.'
+    script: gtk4-launch io.github.kolunmi.Bazaar >/dev/null 2>&1 & disown || bazaar >/dev/null 2>&1 & disown || echo 'Could not launch Bazaar.'
   - id: launch-gearlever
     title: Launch Gear Lever
     description: Open Gear Lever to manage and integrate AppImages.
     default: false
-    script: gtk4-launch it.mijorus.gearlever >/dev/null 2>&1 || flatpak run it.mijorus.gearlever >/dev/null 2>&1 || echo 'Could not launch Gear Lever. Install it from System Utilities if needed.'
+    script: gtk4-launch it.mijorus.gearlever >/dev/null 2>&1 & disown || flatpak run it.mijorus.gearlever >/dev/null 2>&1 & disown || echo 'Could not launch Gear Lever. Install it from System Utilities if needed.'
