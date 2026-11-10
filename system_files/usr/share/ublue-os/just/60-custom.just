@@ -15,13 +15,21 @@ install-sdx-brave:
     flatpak --user -y install --reinstall --or-update flathub com.brave.Browser || flatpak --user -y install --reinstall --or-update com.brave.Browser
     echo "Done."
 
-# Install OpenCode desktop app (AppImage, latest from anomalyco/opencode) - integrated via Gear Lever
+# Install OpenCode desktop app (AppImage from anomalyco/opencode) - integrated via Gear Lever
 [group("Bazzite-SDX")]
-install-sdx-opencode:
+install-sdx-opencode channel="stable":
     #!/usr/bin/bash
     set -euo pipefail
-    echo "Installing OpenCode desktop (latest AppImage from anomalyco/opencode)..."
-    echo "This uses the upstream AppImage (newer than the Flathub package) and integrates it with Gear Lever."
+    channel="{{channel}}"
+    case "${channel}" in
+        stable|prerelease|beta|pre-release) ;;
+        *) echo "Unknown channel '${channel}'. Use 'stable' or 'prerelease'."; exit 1 ;;
+    esac
+    if [[ "${channel}" == "pre-release" ]]; then channel="prerelease"; fi
+    if [[ "${channel}" == "beta" ]]; then channel="prerelease"; fi
+
+    echo "Installing OpenCode desktop (AppImage from anomalyco/opencode, channel: ${channel})..."
+    echo "This uses the upstream AppImage and integrates it with Gear Lever."
     echo ""
 
     # Ensure Gear Lever is installed (required to integrate/manage the AppImage)
@@ -35,10 +43,18 @@ install-sdx-opencode:
     tmp="$(mktemp -d)"
     trap 'rm -rf "${tmp}"' EXIT
 
-    echo "Resolving latest OpenCode desktop AppImage URL..."
-    app_url="$(curl -fsSL https://api.github.com/repos/anomalyco/opencode/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a["browser_download_url"] for a in d.get("assets",[]) if a["name"]=="opencode-desktop-linux-x86_64.AppImage"))')"
+    echo "Resolving OpenCode desktop AppImage URL (${channel})..."
+    if [[ "${channel}" == "prerelease" ]]; then
+        app_url="$(curl -fsSL "https://api.github.com/repos/anomalyco/opencode/releases?per_page=30" | python3 -c "import json,sys; rel=json.load(sys.stdin); print(next((a['browser_download_url'] for r in rel if r.get('prerelease') and not r.get('draft') for a in r.get('assets',[]) if a.get('name')=='opencode-desktop-linux-x86_64.AppImage'), ''))")"
+    else
+        app_url="$(curl -fsSL https://api.github.com/repos/anomalyco/opencode/releases/latest | python3 -c "import json,sys; d=json.load(sys.stdin); print(next((a['browser_download_url'] for a in d.get('assets',[]) if a.get('name')=='opencode-desktop-linux-x86_64.AppImage'), ''))")"
+    fi
     if [[ -z "${app_url}" ]]; then
-        echo "Could not resolve OpenCode desktop AppImage URL."
+        if [[ "${channel}" == "prerelease" ]]; then
+            echo "No pre-release/beta OpenCode desktop AppImage found right now."
+        else
+            echo "Could not resolve OpenCode desktop AppImage URL."
+        fi
         exit 1
     fi
 
@@ -55,7 +71,7 @@ install-sdx-opencode:
         flatpak --user -y uninstall ai.opencode.opencode || true
     fi
 
-    # If an existing Gear Lever-integrated OpenCode desktop app is present, remove it first so we can install the latest
+    # If an existing Gear Lever-integrated OpenCode desktop app is present, remove it first so we can install the selected release
     _gl_json="$(gearlever --list-installed --json 2>/dev/null || true)"
     existing_path="$(printf '%s' "${_gl_json}" | python3 -c "import json,sys; d=json.loads(sys.stdin.read() or '{}') if sys.stdin.readable() else {}; print(next((i.get('path','') for i in d.get('installed',[]) if 'opencode' in ((i.get('name') or '').lower()+' '+(i.get('path') or '').lower())),''))" 2>/dev/null || true)"
     if [[ -n "${existing_path}" && -f "${existing_path}" ]]; then
@@ -70,8 +86,10 @@ install-sdx-opencode:
     installed_path="$(printf '%s' "${_gl_json2}" | python3 -c "import json,sys; d=json.loads(sys.stdin.read() or '{}') if sys.stdin.readable() else {}; print(next((i.get('path','') for i in d.get('installed',[]) if 'opencode' in ((i.get('name') or '').lower()+' '+(i.get('path') or '').lower())),''))" 2>/dev/null || true)"
 
     if [[ -n "${installed_path}" && -f "${installed_path}" ]]; then
-        echo "Configuring Gear Lever update source (GitHub: anomalyco/opencode)..."
-        gearlever --set-update-source "${installed_path}" --manager GithubUpdater repo=anomalyco/opencode repo_filename=opencode-desktop-linux-x86_64.AppImage allow_prereleases=0 || echo "Warning: could not set Gear Lever update source automatically; you can configure it in Gear Lever."
+        allow_pre="0"
+        if [[ "${channel}" == "prerelease" ]]; then allow_pre="1"; fi
+        echo "Configuring Gear Lever update source (GitHub: anomalyco/opencode, prereleases: ${allow_pre})..."
+        gearlever --set-update-source "${installed_path}" --manager GithubUpdater repo=anomalyco/opencode repo_filename=opencode-desktop-linux-x86_64.AppImage allow_prereleases=${allow_pre} || echo "Warning: could not set Gear Lever update source automatically; you can configure it in Gear Lever."
         echo "Installed: ${installed_path}"
     else
         echo "Warning: OpenCode was integrated, but its installed path could not be detected automatically."
@@ -107,82 +125,150 @@ install-sdx-solidcraft:
     flatpak --user -y install --reinstall --or-update solidcraft io.tangencylabs.solidcraft || flatpak --user -y install --reinstall --or-update io.tangencylabs.solidcraft
     echo "Done."
 
-# Install ArtCraft (upstream Flatpak bundle from latest storytold/artcraft release)
+# Install ArtCraft (upstream Flatpak bundle from storytold/artcraft release)
 [group("Bazzite-SDX-AI")]
-install-sdx-artcraft:
+install-sdx-artcraft channel="stable":
     #!/usr/bin/bash
     set -euo pipefail
+    channel="{{channel}}"
+    case "${channel}" in
+        stable|prerelease|beta|pre-release) ;;
+        *) echo "Unknown channel '${channel}'. Use 'stable' or 'prerelease'."; exit 1 ;;
+    esac
+    if [[ "${channel}" == "pre-release" || "${channel}" == "beta" ]]; then channel="prerelease"; fi
     echo "WARNING: ArtCraft may require an account and may require a subscription for some features/services."
     echo "Check current terms at: https://getartcraft.com/"
     echo ""
     echo "Configuring Flatpak remotes (Flathub for runtimes)..."
     flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
-    echo "Installing ArtCraft (upstream Flatpak bundle)..."
+    echo "Installing ArtCraft (upstream Flatpak bundle, channel: ${channel})..."
     tmp="$(mktemp -d)"
     trap 'rm -rf "${tmp}"' EXIT
-    if art_url="$(curl -fsSL https://api.github.com/repos/storytold/artcraft/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a["browser_download_url"] for a in d.get("assets",[]) if a["name"].endswith("linux-x86_64.flatpak")))')" && [[ -n "${art_url}" ]]; then
+    if [[ "${channel}" == "prerelease" ]]; then
+        art_url="$(curl -fsSL "https://api.github.com/repos/storytold/artcraft/releases?per_page=30" | python3 -c "import json,sys; rel=json.load(sys.stdin); print(next((a['browser_download_url'] for r in rel if r.get('prerelease') and not r.get('draft') for a in r.get('assets',[]) if a.get('name','').endswith('linux-x86_64.flatpak')), ''))")"
+    else
+        art_url="$(curl -fsSL https://api.github.com/repos/storytold/artcraft/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next((a["browser_download_url"] for a in d.get("assets",[]) if a.get("name","" ).endswith("linux-x86_64.flatpak")), ""))')"
+    fi
+    if [[ -n "${art_url}" ]]; then
         curl -fsSL -o "${tmp}/artcraft.flatpak" "${art_url}"
         flatpak install --user -y --noninteractive --reinstall "${tmp}/artcraft.flatpak" || flatpak install --user -y --noninteractive "${tmp}/artcraft.flatpak"
+        mkdir -p "${HOME}/.config/bazzite-sdx/release-channel"
+        echo "${channel}" > "${HOME}/.config/bazzite-sdx/release-channel/install-sdx-artcraft"
         echo "Done."
     else
-        echo "Warning: could not resolve ArtCraft Flatpak bundle URL; install manually if needed."
+        if [[ "${channel}" == "prerelease" ]]; then
+            echo "No pre-release/beta ArtCraft Flatpak bundle found right now."
+        else
+            echo "Warning: could not resolve ArtCraft Flatpak bundle URL; install manually if needed."
+        fi
         exit 1
     fi
 
-# Install PhotoCraft (upstream Flatpak bundle from latest storytold/photocraft release)
+# Install PhotoCraft (upstream Flatpak bundle from storytold/photocraft release)
 [group("Bazzite-SDX")]
-install-sdx-photocraft:
+install-sdx-photocraft channel="stable":
     #!/usr/bin/bash
     set -euo pipefail
+    channel="{{channel}}"
+    case "${channel}" in
+        stable|prerelease|beta|pre-release) ;;
+        *) echo "Unknown channel '${channel}'. Use 'stable' or 'prerelease'."; exit 1 ;;
+    esac
+    if [[ "${channel}" == "pre-release" || "${channel}" == "beta" ]]; then channel="prerelease"; fi
     echo "Configuring Flatpak remotes (Flathub for runtimes)..."
     flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
-    echo "Installing PhotoCraft (upstream Flatpak bundle)..."
+    echo "Installing PhotoCraft (upstream Flatpak bundle, channel: ${channel})..."
     tmp="$(mktemp -d)"
     trap 'rm -rf "${tmp}"' EXIT
-    if url="$(curl -fsSL https://api.github.com/repos/storytold/photocraft/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a["browser_download_url"] for a in d.get("assets",[]) if a["name"].endswith("linux-x86_64.flatpak")))')" && [[ -n "${url}" ]]; then
+    if [[ "${channel}" == "prerelease" ]]; then
+        url="$(curl -fsSL "https://api.github.com/repos/storytold/photocraft/releases?per_page=30" | python3 -c "import json,sys; rel=json.load(sys.stdin); print(next((a['browser_download_url'] for r in rel if r.get('prerelease') and not r.get('draft') for a in r.get('assets',[]) if a.get('name','').endswith('linux-x86_64.flatpak')), ''))")"
+    else
+        url="$(curl -fsSL https://api.github.com/repos/storytold/photocraft/releases/latest | python3 -c "import json,sys; d=json.load(sys.stdin); print(next((a['browser_download_url'] for a in d.get('assets',[]) if a.get('name','').endswith('linux-x86_64.flatpak')), ''))")"
+    fi
+    if [[ -n "${url}" ]]; then
         curl -fsSL -o "${tmp}/photocraft.flatpak" "${url}"
         flatpak install --user -y --noninteractive --reinstall "${tmp}/photocraft.flatpak" || flatpak install --user -y --noninteractive "${tmp}/photocraft.flatpak"
+        mkdir -p "${HOME}/.config/bazzite-sdx/release-channel"
+        echo "${channel}" > "${HOME}/.config/bazzite-sdx/release-channel/install-sdx-photocraft"
         echo "Done."
     else
-        echo "Warning: could not resolve PhotoCraft Flatpak bundle URL; install manually if needed."
+        if [[ "${channel}" == "prerelease" ]]; then
+            echo "No pre-release/beta PhotoCraft Flatpak bundle found right now."
+        else
+            echo "Warning: could not resolve PhotoCraft Flatpak bundle URL; install manually if needed."
+        fi
         exit 1
     fi
 
-# Install PDFCraft (upstream Flatpak bundle from latest storytold/pdfcraft release)
+# Install PDFCraft (upstream Flatpak bundle from storytold/pdfcraft release)
 [group("Bazzite-SDX")]
-install-sdx-pdfcraft:
+install-sdx-pdfcraft channel="stable":
     #!/usr/bin/bash
     set -euo pipefail
+    channel="{{channel}}"
+    case "${channel}" in
+        stable|prerelease|beta|pre-release) ;;
+        *) echo "Unknown channel '${channel}'. Use 'stable' or 'prerelease'."; exit 1 ;;
+    esac
+    if [[ "${channel}" == "pre-release" || "${channel}" == "beta" ]]; then channel="prerelease"; fi
     echo "Configuring Flatpak remotes (Flathub for runtimes)..."
     flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
-    echo "Installing PDFCraft (upstream Flatpak bundle)..."
+    echo "Installing PDFCraft (upstream Flatpak bundle, channel: ${channel})..."
     tmp="$(mktemp -d)"
     trap 'rm -rf "${tmp}"' EXIT
-    if url="$(curl -fsSL https://api.github.com/repos/storytold/pdfcraft/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a["browser_download_url"] for a in d.get("assets",[]) if a["name"].endswith("linux-x86_64.flatpak")))')" && [[ -n "${url}" ]]; then
+    if [[ "${channel}" == "prerelease" ]]; then
+        url="$(curl -fsSL "https://api.github.com/repos/storytold/pdfcraft/releases?per_page=30" | python3 -c "import json,sys; rel=json.load(sys.stdin); print(next((a['browser_download_url'] for r in rel if r.get('prerelease') and not r.get('draft') for a in r.get('assets',[]) if a.get('name','').endswith('linux-x86_64.flatpak')), ''))")"
+    else
+        url="$(curl -fsSL https://api.github.com/repos/storytold/pdfcraft/releases/latest | python3 -c "import json,sys; d=json.load(sys.stdin); print(next((a['browser_download_url'] for a in d.get('assets',[]) if a.get('name','').endswith('linux-x86_64.flatpak')), ''))")"
+    fi
+    if [[ -n "${url}" ]]; then
         curl -fsSL -o "${tmp}/pdfcraft.flatpak" "${url}"
         flatpak install --user -y --noninteractive --reinstall "${tmp}/pdfcraft.flatpak" || flatpak install --user -y --noninteractive "${tmp}/pdfcraft.flatpak"
+        mkdir -p "${HOME}/.config/bazzite-sdx/release-channel"
+        echo "${channel}" > "${HOME}/.config/bazzite-sdx/release-channel/install-sdx-pdfcraft"
         echo "Done."
     else
-        echo "Warning: could not resolve PDFCraft Flatpak bundle URL; install manually if needed."
+        if [[ "${channel}" == "prerelease" ]]; then
+            echo "No pre-release/beta PDFCraft Flatpak bundle found right now."
+        else
+            echo "Warning: could not resolve PDFCraft Flatpak bundle URL; install manually if needed."
+        fi
         exit 1
     fi
 
-# Install Craft Anything (upstream Flatpak bundle from latest storytold/craft-anything release)
+# Install Craft Anything (upstream Flatpak bundle from storytold/craft-anything release)
 [group("Bazzite-SDX-AI")]
-install-sdx-craft-anything:
+install-sdx-craft-anything channel="stable":
     #!/usr/bin/bash
     set -euo pipefail
+    channel="{{channel}}"
+    case "${channel}" in
+        stable|prerelease|beta|pre-release) ;;
+        *) echo "Unknown channel '${channel}'. Use 'stable' or 'prerelease'."; exit 1 ;;
+    esac
+    if [[ "${channel}" == "pre-release" || "${channel}" == "beta" ]]; then channel="prerelease"; fi
     echo "Configuring Flatpak remotes (Flathub for runtimes)..."
     flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
-    echo "Installing Craft Anything (upstream Flatpak bundle)..."
+    echo "Installing Craft Anything (upstream Flatpak bundle, channel: ${channel})..."
     tmp="$(mktemp -d)"
     trap 'rm -rf "${tmp}"' EXIT
-    if url="$(curl -fsSL https://api.github.com/repos/storytold/craft-anything/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a["browser_download_url"] for a in d.get("assets",[]) if a["name"].endswith("linux-x86_64.flatpak")))')" && [[ -n "${url}" ]]; then
+    if [[ "${channel}" == "prerelease" ]]; then
+        url="$(curl -fsSL "https://api.github.com/repos/storytold/craft-anything/releases?per_page=30" | python3 -c "import json,sys; rel=json.load(sys.stdin); print(next((a['browser_download_url'] for r in rel if r.get('prerelease') and not r.get('draft') for a in r.get('assets',[]) if a.get('name','').endswith('linux-x86_64.flatpak')), ''))")"
+    else
+        url="$(curl -fsSL https://api.github.com/repos/storytold/craft-anything/releases/latest | python3 -c "import json,sys; d=json.load(sys.stdin); print(next((a['browser_download_url'] for a in d.get('assets',[]) if a.get('name','').endswith('linux-x86_64.flatpak')), ''))")"
+    fi
+    if [[ -n "${url}" ]]; then
         curl -fsSL -o "${tmp}/craft-anything.flatpak" "${url}"
         flatpak install --user -y --noninteractive --reinstall "${tmp}/craft-anything.flatpak" || flatpak install --user -y --noninteractive "${tmp}/craft-anything.flatpak"
+        mkdir -p "${HOME}/.config/bazzite-sdx/release-channel"
+        echo "${channel}" > "${HOME}/.config/bazzite-sdx/release-channel/install-sdx-craft-anything"
         echo "Done."
     else
-        echo "Warning: could not resolve Craft Anything Flatpak bundle URL; install manually if needed."
+        if [[ "${channel}" == "prerelease" ]]; then
+            echo "No pre-release/beta Craft Anything Flatpak bundle found right now."
+        else
+            echo "Warning: could not resolve Craft Anything Flatpak bundle URL; install manually if needed."
+        fi
         exit 1
     fi
 
@@ -248,20 +334,34 @@ install-sdx-opencode-cli:
     echo "If 'opencode' is not found, add the install bin directory to your PATH (see installer output)."
     echo "Done."
 
-# Install Unsloth Desktop (latest Linux AppImage, user install) - no official Flatpak; AppImage preferred over rpm-ostree layer
+# Install Unsloth Desktop (Linux AppImage, user install) - no official Flatpak; AppImage preferred over rpm-ostree layer
 [group("Bazzite-SDX-AI")]
-install-sdx-unsloth-desktop:
+install-sdx-unsloth-desktop channel="stable":
     #!/usr/bin/bash
     set -euo pipefail
-    echo "Installing Unsloth Desktop (latest Linux AppImage, user-local)..."
+    channel="{{channel}}"
+    case "${channel}" in
+        stable|prerelease|beta|pre-release) ;;
+        *) echo "Unknown channel '${channel}'. Use 'stable' or 'prerelease'."; exit 1 ;;
+    esac
+    if [[ "${channel}" == "pre-release" || "${channel}" == "beta" ]]; then channel="prerelease"; fi
+    echo "Installing Unsloth Desktop (Linux AppImage, user-local, channel: ${channel})..."
     dest_dir="${HOME}/Applications"
     bin_dir="${HOME}/.local/bin"
     mkdir -p "${dest_dir}" "${bin_dir}"
     tmp="$(mktemp -d)"
     trap 'rm -rf "${tmp}"' EXIT
-    app_url="$(curl -fsSL https://api.github.com/repos/unslothai/unsloth/releases/latest | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a["browser_download_url"] for a in d.get("assets",[]) if a["name"]=="Unsloth-Desktop-Linux.AppImage"))')"
+    if [[ "${channel}" == "prerelease" ]]; then
+        app_url="$(curl -fsSL "https://api.github.com/repos/unslothai/unsloth/releases?per_page=30" | python3 -c "import json,sys; rel=json.load(sys.stdin); print(next((a['browser_download_url'] for r in rel if r.get('prerelease') and not r.get('draft') for a in r.get('assets',[]) if a.get('name')=='Unsloth-Desktop-Linux.AppImage'), ''))")"
+    else
+        app_url="$(curl -fsSL https://api.github.com/repos/unslothai/unsloth/releases/latest | python3 -c "import json,sys; d=json.load(sys.stdin); print(next((a['browser_download_url'] for a in d.get('assets',[]) if a.get('name')=='Unsloth-Desktop-Linux.AppImage'), ''))")"
+    fi
     if [[ -z "${app_url}" ]]; then
-        echo "Could not resolve Unsloth Desktop AppImage URL."
+        if [[ "${channel}" == "prerelease" ]]; then
+            echo "No pre-release/beta Unsloth Desktop AppImage found right now."
+        else
+            echo "Could not resolve Unsloth Desktop AppImage URL."
+        fi
         exit 1
     fi
     out="${dest_dir}/Unsloth-Desktop-Linux.AppImage"
@@ -270,6 +370,8 @@ install-sdx-unsloth-desktop:
     chmod +x "${out}"
     # Optional convenience symlink
     ln -sf "${out}" "${bin_dir}/unsloth-desktop" || true
+    mkdir -p "${HOME}/.config/bazzite-sdx/release-channel"
+    echo "${channel}" > "${HOME}/.config/bazzite-sdx/release-channel/install-sdx-unsloth-desktop"
     echo "Installed: ${out}"
     echo "Tip: integrate with Gear Lever (System Utilities) for menu/updates management, or run: ${out}"
     echo "Done."
