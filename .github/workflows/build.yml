@@ -379,21 +379,45 @@ jobs:
           BASE_OS_NAME=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${NAME:-unknown}"' | head -n1)
           SURFACE_KERNEL=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -q kernel-surface --qf "%{VERSION}-%{RELEASE}" 2>/dev/null || echo unknown' | head -n1)
 
+          # Determine display version for rolling channels (Vx.y.z)
+          # - testing: increments patch from last known testing/latest display version
+          # - weekly/latest: takes current testing display version (so latest matches testing)
+          DISPLAY_VERSION=""
+          BASE_VER=""
+          for rel in testing latest; do
+            NAME_RAW="$(gh release view "$rel" --json name -q .name 2>/dev/null || true)"
+            if [[ "$NAME_RAW" =~ [Vv]([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+              BASE_VER="V${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
+              break
+            fi
+          done
+          [[ -z "$BASE_VER" ]] && BASE_VER="V1.0.0"
+
+          bump_patch() {
+            local v="${1#V}"; v="${v#v}"
+            local maj min pat
+            IFS=. read -r maj min pat <<< "$v"
+            echo "V${maj}.${min}.$((pat + 1))"
+          }
+
           if [[ "${RELEASE_KIND}" == "weekly" ]]; then
+            DISPLAY_VERSION="$BASE_VER"
             TAG="latest"
-            TITLE="Bazzite-SDX (Latest Weekly)"
+            TITLE="Bazzite-SDX ${DISPLAY_VERSION} (Latest Weekly)"
             MARK_LATEST=true
             PRERELEASE=false
             PRIMARY_IMAGE="ghcr.io/nexgen-3d-printing/bazzite-sdx:latest"
-            CHANNEL_NOTE="Automatic weekly build. \`latest\` tracks the newest weekly build. Commit/change builds (non-weekly) publish \`testing\` tags."
+            CHANNEL_NOTE="Automatic weekly build. \`latest\` tracks the newest weekly build and takes the current testing display version at build time. Commit/change builds (non-weekly) publish \`testing\` tags with an incremented display version."
           elif [[ "${RELEASE_KIND}" == "testing" ]]; then
+            DISPLAY_VERSION="$(bump_patch "$BASE_VER")"
             TAG="testing"
-            TITLE="Bazzite-SDX (Testing)"
+            TITLE="Bazzite-SDX ${DISPLAY_VERSION} (Testing)"
             MARK_LATEST=false
             PRERELEASE=true
             PRIMARY_IMAGE="ghcr.io/nexgen-3d-printing/bazzite-sdx:testing"
-            CHANNEL_NOTE="Testing channel build (not the automatic weekly build). Published from \`${REF_NAME}\` / ${SHORT_SHA}. Use for validation; \`latest\` remains the weekly build."
+            CHANNEL_NOTE="Testing channel build (not the automatic weekly build). Published from \`${REF_NAME}\` / ${SHORT_SHA}. Display version increments on each testing build; the weekly/latest build takes the current testing display version. Use for validation."
           elif [[ "${RELEASE_KIND}" == "unstable" ]]; then
+            DISPLAY_VERSION="Unstable ${DATE_UTC}-${SHORT_SHA}"
             TAG="unstable"
             TITLE="Bazzite-SDX (Unstable / Experimental)"
             MARK_LATEST=false
@@ -401,6 +425,7 @@ jobs:
             PRIMARY_IMAGE="ghcr.io/nexgen-3d-printing/bazzite-sdx:unstable"
             CHANNEL_NOTE="Manual unstable/experimental build (typically from \`${REF_NAME}\`). Published only when explicitly triggered. Does not update \`latest\` or \`testing\`. Use for investigation; expect breakage."
           elif [[ "${RELEASE_KIND}" == "semver" ]]; then
+            DISPLAY_VERSION="${SEMVER_TAG}"
             TAG="${SEMVER_TAG}"
             TITLE="Bazzite-SDX ${SEMVER_TAG}"
             MARK_LATEST=false
@@ -413,6 +438,8 @@ jobs:
           fi
 
           {
+            echo "# ${DISPLAY_VERSION}"
+            echo ""
             echo "## ${TITLE}"
             echo ""
             echo "Bazzite-DX with Linux Surface kernel support."
@@ -420,6 +447,7 @@ jobs:
             echo "${CHANNEL_NOTE}"
             echo ""
             echo "### Versions / Image info"
+            echo "- **Display version:** \`${DISPLAY_VERSION}\`"
             echo "- **Channel:** ${CHANNEL}"
             echo "- **Build version:** \`${VERSION_LABEL}\`"
             if [[ "${RELEASE_KIND}" == "semver" ]]; then echo "- **SemVer tag:** \`${SEMVER_TAG}\` (source of truth: git tag + \`VERSION\`)"; fi
@@ -443,14 +471,14 @@ jobs:
             echo "- System actions: check for updates (prompt before \`ujust update\`), switch channels/versions via bootc (\`latest\` weekly, \`testing\`, or specific SemVer/tag), run \`ujust benchmark\` (if available), show system info via \`fastfetch\`"
             echo ""
             echo "**Apps included / available via portal (install priority: Flatpak > AppImage > rpm-ostree layer > Docker, as applicable):**"
-            echo "- **AI Tools:** OpenCode app (\`ai.opencode.opencode\`, user Flatpak/Flathub), OpenCode CLI (official user installer), LM Studio (\`ai.lmstudio.lm-studio\`, user Flatpak/Flathub), Unsloth Desktop (latest AppImage, user install), ArtCraft (upstream Flatpak bundle from \`storytold/artcraft\`, user install; **warning:** requires an account and may require a subscription for some features/services), Craft Anything (upstream Flatpak bundle from \`storytold/craft-anything\`, user install), REA / \`rea-agents\` (\`morluto/rea\`, user-local npm/npx CLI/MCP setup; requires supported Node.js/npm), Harbor (\`av/harbor\`, Docker/Compose setup), Odysseus (\`odysseus-dev/odysseus\`, Docker/Compose setup)"
+            echo "- **AI Tools:** OpenCode desktop app (upstream AppImage integrated via Gear Lever, with stable/pre-release install options and GitHub update source), OpenCode CLI (official user installer), LM Studio (\`ai.lmstudio.lm-studio\`, user Flatpak/Flathub), Unsloth Desktop (AppImage, user install with stable/pre-release options), ArtCraft (upstream Flatpak bundle from \`storytold/artcraft\`, user install with stable/pre-release options; **warning:** requires an account and may require a subscription for some features/services), Craft Anything (upstream Flatpak bundle from \`storytold/craft-anything\`, user install with stable/pre-release options), REA / \`rea-agents\` (\`morluto/rea\`, user-local npm/npx CLI/MCP setup; requires supported Node.js/npm), Harbor (\`av/harbor\`, Docker/Compose setup), Odysseus (\`odysseus-dev/odysseus\`, Docker/Compose setup)"
             echo "- **Web Browsers:** Brave Browser (\`com.brave.Browser\`, user Flatpak/Flathub)"
-            echo "- **Creative Utilities:** SolidCraft (\`io.tangencylabs.solidcraft\`, user Flatpak via SolidCraft repo), PhotoCraft (upstream Flatpak bundle from \`storytold/photocraft\`, user install), PDFCraft (upstream Flatpak bundle from \`storytold/pdfcraft\`, user install)"
+            echo "- **Creative Utilities:** SolidCraft (\`io.tangencylabs.solidcraft\`, user Flatpak via SolidCraft repo), PhotoCraft (upstream Flatpak bundle from \`storytold/photocraft\`, user install with stable/pre-release options), PDFCraft (upstream Flatpak bundle from \`storytold/pdfcraft\`, user install with stable/pre-release options)"
             echo "- **System Utilities:** Mission Center (\`io.missioncenter.MissionCenter\`, user Flatpak/Flathub), Gear Lever (\`it.mijorus.gearlever\`, user Flatpak/Flathub)"
             echo "- **Media:** Plex Player/Plex Desktop (\`tv.plex.PlexDesktop\`, user Flatpak/Flathub), Plex HTPC (\`tv.plex.PlexHTPC\`, user Flatpak/Flathub), VLC (\`org.videolan.VLC\`, user Flatpak/Flathub), Delfin (\`cafe.avery.Delfin\`, user Flatpak/Flathub), Web App Hub (\`org.pvermeer.WebAppHub\`, user Flatpak/Flathub)"
             echo ""
             echo "### Quick install (core Bazzite-SDX apps)"
-            echo "After rebasing, install the core curated Flatpak set (per user, no sudo) with:"
+            echo "After rebasing, install the core curated app set with:"
             echo '```bash'
             echo "ujust install-bazzite-sdx-flatpaks"
             echo '```'
@@ -459,6 +487,7 @@ jobs:
             echo "### Channels, switching & rollback (bootc)"
             if [[ "${RELEASE_KIND}" == "testing" ]]; then
               echo "- **Testing (this channel, non-weekly commit/manual builds):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:testing\`"
+              echo "- **Weekly/latest (takes current testing display version on each weekly build):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:latest\`"
               echo "- **Pinned SemVer/specific tag (rollback or pin):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:vX.Y.Z\` (replace with a published tag)"
               echo "- **Previous deployment rollback:** after rebooting into a bad deployment, \`sudo bootc rollback\` can revert to the previous deployment (different from switching to an arbitrary tag)."
               echo "- **Portal:** NexGen3D SDX Portal → **System Management** includes actions to switch channels/versions (with confirmation; reboot required)."
@@ -469,6 +498,7 @@ jobs:
               echo "- **Portal:** NexGen3D SDX Portal → **System Management** includes actions to switch channels/versions (with confirmation; reboot required)."
             else
               echo "- **Weekly/\`latest\` (automatic weekly build):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:latest\`"
+              echo "- **Testing (non-weekly commit/manual builds):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:testing\`"
               echo "- **Pinned SemVer/specific tag (rollback or pin):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:vX.Y.Z\` (replace with a published tag)"
               echo "- **Previous deployment rollback:** after rebooting into a bad deployment, \`sudo bootc rollback\` can revert to the previous deployment (different from switching to an arbitrary tag)."
               echo "- **Portal:** NexGen3D SDX Portal → **System Management** includes actions to switch channels/versions (with confirmation; reboot required)."
@@ -488,8 +518,8 @@ jobs:
             else
               echo "# Weekly channel (latest):"
               echo "sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:latest"
-              echo "# Specific version/tag (SemVer pin/rollback):"
-              echo "# sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:vX.Y.Z"
+              echo "# Testing channel:"
+              echo "# sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:testing"
             fi
             echo "sudo reboot"
             echo '```'
