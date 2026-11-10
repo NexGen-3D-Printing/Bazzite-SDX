@@ -56,15 +56,8 @@ install-sdx-opencode:
     fi
 
     # If an existing Gear Lever-integrated OpenCode desktop app is present, remove it first so we can install the latest
-    existing_path="$(gearlever --list-installed --json 2>/dev/null | python3 -c 'import json,sys
-try:
- d=json.load(sys.stdin)
- for i in d.get("installed",[]):
-  n=(i.get("name") or "").lower(); p=(i.get("path") or "").lower()
-  if "opencode" in n or "opencode-desktop" in p:
-   print(i.get("path","")); break
-except Exception:
- pass' || true)"
+    _gl_json="$(gearlever --list-installed --json 2>/dev/null || true)"
+    existing_path="$(printf '%s' "${_gl_json}" | python3 -c "import json,sys; d=json.loads(sys.stdin.read() or '{}') if sys.stdin.readable() else {}; print(next((i.get('path','') for i in d.get('installed',[]) if 'opencode' in ((i.get('name') or '').lower()+' '+(i.get('path') or '').lower())),''))" 2>/dev/null || true)"
     if [[ -n "${existing_path}" && -f "${existing_path}" ]]; then
         echo "Removing existing Gear Lever-integrated OpenCode app (${existing_path}) before reinstall..."
         gearlever --remove --yes "${existing_path}" || true
@@ -73,15 +66,8 @@ except Exception:
     echo "Integrating OpenCode AppImage with Gear Lever (adds to Applications menu and moves to Gear Lever default location)..."
     gearlever --integrate --yes "${out}"
 
-    installed_path="$(gearlever --list-installed --json 2>/dev/null | python3 -c 'import json,sys
-try:
- d=json.load(sys.stdin)
- for i in d.get("installed",[]):
-  n=(i.get("name") or "").lower(); p=(i.get("path") or "").lower()
-  if "opencode" in n or "opencode-desktop" in p:
-   print(i.get("path","")); break
-except Exception:
- pass' || true)"
+    _gl_json2="$(gearlever --list-installed --json 2>/dev/null || true)"
+    installed_path="$(printf '%s' "${_gl_json2}" | python3 -c "import json,sys; d=json.loads(sys.stdin.read() or '{}') if sys.stdin.readable() else {}; print(next((i.get('path','') for i in d.get('installed',[]) if 'opencode' in ((i.get('name') or '').lower()+' '+(i.get('path') or '').lower())),''))" 2>/dev/null || true)"
 
     if [[ -n "${installed_path}" && -f "${installed_path}" ]]; then
         echo "Configuring Gear Lever update source (GitHub: anomalyco/opencode)..."
