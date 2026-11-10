@@ -15,7 +15,7 @@ screens:
     script: xdg-open https://github.com/NexGen-3D-Printing/Bazzite-SDX/releases/tag/latest
   - id: install-all-bazzite-sdx-flatpaks
     title: Install core Bazzite-SDX apps (all)
-    description: 'Installs the core curated set in one run (Bazzite-style; not baked into the OS image): Brave Browser (Flatpak), OpenCode desktop (AppImage integrated via Gear Lever), Mission Center (Flatpak), SolidCraft (Flatpak), and ArtCraft (Flatpak bundle). User-local installs where applicable (no sudo required for app installs). Requires network access.'
+    description: Installs the core set of recommended Bazzite-SDX apps (Brave, OpenCode, Mission Center, SolidCraft, and ArtCraft).
     default: false
     script: ujust install-bazzite-sdx-flatpaks; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
 - title: AI Tools
@@ -23,7 +23,7 @@ screens:
   actions:
   - id: install-sdx-opencode
     title: OpenCode (desktop app)
-    description: 'OpenCode is an open source AI coding agent that helps you write and run code with AI models, supporting agentic coding workflows (prompts, edits, and command execution). Install method (priority): AppImage (preferred here for latest releases) integrated via Gear Lever (Flatpak was previously used but lags behind). Downloads the latest opencode-desktop-linux-x86_64.AppImage from GitHub releases, ensures Gear Lever is installed, integrates the AppImage into the Applications menu, moves it to Gear Lever''s default location, and configures GitHub update source (anomalyco/opencode). If a legacy ai.opencode.opencode Flatpak is installed, it is removed to avoid duplicates. Requires network access. Source: https://github.com/anomalyco/opencode'
+    description: Open source AI coding agent for writing, editing, and running code with AI-assisted workflows.
     default: false
     status_script: flatpak run --command=gearlever it.mijorus.gearlever --list-installed 2>/dev/null | grep -qi opencode && echo install || echo uninstall
     options:
@@ -32,7 +32,7 @@ screens:
       script: ujust install-sdx-opencode; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
   - id: install-sdx-opencode-cli
     title: OpenCode CLI
-    description: 'Installs the OpenCode command-line interface using the official OpenCode v2 install script. Install method (priority): no official standalone CLI Flatpak/AppImage package used here; installs the official CLI to your user directory (typically ~/.opencode/bin) without rpm-ostree layering. After install, ensure the bin directory is on your PATH per installer output. Requires network access. Source: https://opencode.ai/ | https://github.com/anomalyco/opencode'
+    description: Command-line interface for OpenCode, for using the AI coding agent from your terminal.
     default: false
     status_script: command -v opencode >/dev/null 2>&1 || [ -x "$HOME/.opencode/bin/opencode" ] && echo install || echo uninstall
     options:
@@ -41,7 +41,7 @@ screens:
       script: ujust install-sdx-opencode-cli; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
   - id: install-sdx-lm-studio
     title: LM Studio
-    description: 'LM Studio is a desktop app for discovering, downloading, and running local LLMs, with chat and local server/API workflows. Install method (priority): Flatpak (preferred). Installs user Flatpak ai.lmstudio.lm-studio from Flathub (the Flathub package uses LM Studio''s Linux AppImage as its upstream payload). Requires network access; model downloads are managed inside the app. Source: https://lmstudio.ai/ | https://github.com/flathub/ai.lmstudio.lm-studio'
+    description: Desktop app for discovering, downloading, and running local LLMs with chat and local API workflows.
     default: false
     status_script: flatpak --user info ai.lmstudio.lm-studio >/dev/null 2>&1 && echo install || echo uninstall
     options:
@@ -50,7 +50,7 @@ screens:
       script: ujust install-sdx-lm-studio; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
   - id: install-sdx-unsloth-desktop
     title: Unsloth Desktop
-    description: 'Unsloth Desktop is the official Unsloth local app for running and training models (chat, model workflows, and training features as provided by Unsloth). Install method (priority): no official Flatpak; AppImage (preferred over rpm-ostree layer). Downloads the latest Unsloth-Desktop-Linux.AppImage from GitHub releases to ~/Applications and creates a convenience symlink at ~/.local/bin/unsloth-desktop. Tip: use Gear Lever (System Utilities) to integrate/manage the AppImage. Requires network access. Source: https://unsloth.ai/ | https://github.com/unslothai/unsloth'
+    description: Desktop app for running and training AI models locally with Unsloth.
     default: false
     status_script: '[ -f "$HOME/Applications/Unsloth-Desktop-Linux.AppImage" ] && echo install || echo uninstall'
     options:
@@ -59,7 +59,7 @@ screens:
       script: ujust install-sdx-unsloth-desktop; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
   - id: install-sdx-artcraft
     title: ArtCraft
-    description: '**Warning:** ArtCraft requires an account and may require a subscription for some features/services (check current ArtCraft terms). ArtCraft (storytold/artcraft) is an intentional crafting engine for artists, designers, and filmmakers, supporting creative production workflows. Install method (priority): upstream Flatpak bundle (Flatpak-format delivery). Downloads and installs the latest Linux x86_64 .flatpak bundle from GitHub releases at install time. Requires network access and may take time due to bundle/runtimes. Source: https://github.com/storytold/artcraft | Website: https://getartcraft.com/'
+    description: 'Warning: ArtCraft requires an account and may require a subscription for some features/services. Creative engine for artists, designers, and filmmakers.'
     default: false
     status_script: flatpak --user list --app --columns=application 2>/dev/null | grep -iq 'artcraft' && echo install || echo uninstall
     options:
@@ -68,7 +68,7 @@ screens:
       script: ujust install-sdx-artcraft; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
   - id: install-sdx-craft-anything
     title: Craft Anything
-    description: 'Craft Anything (storytold/craft-anything) helps you explore how software works and craft/build software workflows (including agent-assisted exploration/build features, as provided upstream). Install method (priority): upstream Flatpak bundle (preferred over AppImage/rpm-ostree). Downloads and installs the latest Linux x86_64 .flatpak bundle from GitHub releases at install time. Requires network access and may take time due to bundle/runtimes. Source: https://github.com/storytold/craft-anything'
+    description: Tool for exploring how software works and building or crafting software workflows.
     default: false
     status_script: flatpak --user info ai.storyteller.craft-anything >/dev/null 2>&1 && echo install || echo uninstall
     options:
@@ -77,7 +77,7 @@ screens:
       script: ujust install-sdx-craft-anything; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
   - id: install-sdx-rea
     title: REA (morluto/rea)
-    description: 'REA (Reverse Engineer Anything, morluto/rea) is a CLI/MCP toolset that helps coding agents reverse engineer software (binaries, applications, and runtime behavior) with evidence-oriented workflows. Install method (priority): no official Flatpak/AppImage desktop package; user-local CLI install (preferred over rpm-ostree layering). Installs/sets up `rea-agents` using npm when available (`npm install --global rea-agents`) or provides `npx` guidance. Requires Node.js/npm (REA requires Node.js 22.x (>=22.23.4), 24.x (>=24.22.1), or 26.x (>=26.12.1) + npm. This Bazzite-SDX image (Fedora 45) may not include a supported Node.js version; if detected, the installer layers Node.js via rpm-ostree and prompts you to reboot before the CLI is available). Deep native analysis may require external tools (Hopper/Ghidra/IDA) configured separately. Source: https://github.com/morluto/rea | Docs: https://rea.tools/'
+    description: CLI/MCP toolkit that helps coding agents reverse engineer software and binaries with evidence-oriented workflows.
     default: false
     status_script: command -v rea >/dev/null 2>&1 && echo install || echo uninstall
     options:
@@ -86,7 +86,7 @@ screens:
       script: ujust install-sdx-rea; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
   - id: install-sdx-harbor
     title: Harbor (av/harbor)
-    description: 'Harbor is a containerized local LLM toolkit/CLI that orchestrates Docker Compose-based AI services (backends, UIs, search, and related tools) with a unified workflow. Install method (priority): no Flatpak/AppImage/RPM appropriate for this toolkit; Docker/Compose-based setup (preferred for this project type). Runs Harbor''s official installer (curl | bash) after confirmation. Prerequisites: Docker Engine + Docker Compose v2 (or compatible setup) and sufficient disk space. Source: https://github.com/av/harbor'
+    description: Containerized local LLM toolkit that helps run and manage Docker Compose-based AI services and UIs.
     default: false
     status_script: command -v harbor >/dev/null 2>&1 && echo install || echo uninstall
     options:
@@ -95,7 +95,7 @@ screens:
       script: ujust install-sdx-harbor; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
   - id: install-sdx-odysseus
     title: Odysseus (odysseus-dev/odysseus)
-    description: 'Odysseus is a self-hosted AI workspace (chat/agents/research and productivity features as provided by the project) deployed via Docker Compose. Install method (priority): no Flatpak/AppImage/RPM appropriate; Docker/Compose-based setup. After confirmation, clones/updates ~/odysseus, creates .env from .env.example if missing, and runs ''docker compose up -d --build''. Default UI (when healthy): http://localhost:7011; first admin password appears in ''docker compose logs odysseus''. Prerequisites: Docker + Docker Compose and network access. Source: https://github.com/odysseus-dev/odysseus'
+    description: Self-hosted AI workspace for chat, agents, and research-style productivity workflows.
     default: false
     status_script: '[ -d "$HOME/odysseus" ] && echo install || echo uninstall'
     options:
@@ -107,7 +107,7 @@ screens:
   actions:
   - id: install-sdx-brave
     title: Brave Browser
-    description: 'Brave is a privacy-focused web browser with built-in ad and tracker blocking, HTTPS upgrading, and optional Brave features (depending on configuration). Install method (priority): Flatpak (preferred). Installs user Flatpak com.brave.Browser from Flathub (verified). Bazzite-SDX removes the Firefox RPM when present and offers Brave via this Flatpak-based setup. Source: https://brave.com/ | Flathub: https://flathub.org/en/apps/com.brave.Browser'
+    description: Privacy-focused web browser with built-in ad and tracker blocking.
     default: false
     status_script: flatpak --user info com.brave.Browser >/dev/null 2>&1 && echo install || echo uninstall
     options:
@@ -119,7 +119,7 @@ screens:
   actions:
   - id: install-sdx-solidcraft
     title: SolidCraft
-    description: 'SolidCraft (Tangency Labs) is a parametric CAD/modeling application for creating and iterating on 3D designs. Install method (priority): Flatpak (preferred). Installs user Flatpak io.tangencylabs.solidcraft from the SolidCraft Flatpak repository (Bazzite-SDX configures remotes; Flathub provides runtimes). Useful for mechanical/3D design and 3D printing workflows. Source: https://github.com/tangency-labs/solidcraft | Docs: https://docs.solidcraft.io/'
+    description: Parametric CAD and 3D modeling app for design and 3D printing workflows.
     default: false
     status_script: flatpak --user info io.tangencylabs.solidcraft >/dev/null 2>&1 && echo install || echo uninstall
     options:
@@ -128,7 +128,7 @@ screens:
       script: ujust install-sdx-solidcraft; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
   - id: install-sdx-photocraft
     title: PhotoCraft
-    description: 'PhotoCraft (storytold/photocraft) is an open source photo editor (built in Rust) for image editing and creative workflows. Install method (priority): upstream Flatpak bundle (preferred over AppImage/rpm-ostree). Downloads and installs the latest Linux x86_64 .flatpak bundle from GitHub releases at install time. Requires network access and may take time due to bundle/runtimes. Source: https://github.com/storytold/photocraft'
+    description: Open source photo editor for image editing and creative work.
     default: false
     status_script: flatpak --user info ai.storyteller.photocraft >/dev/null 2>&1 && echo install || echo uninstall
     options:
@@ -137,7 +137,7 @@ screens:
       script: ujust install-sdx-photocraft; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
   - id: install-sdx-pdfcraft
     title: PDFCraft
-    description: 'PDFCraft (storytold/pdfcraft) is an open source PDF reader/editor (built in Rust) for viewing and working with PDF documents. Install method (priority): upstream Flatpak bundle (preferred over AppImage/rpm-ostree). Downloads and installs the latest Linux x86_64 .flatpak bundle from GitHub releases at install time. Requires network access and may take time due to bundle/runtimes. Source: https://github.com/storytold/pdfcraft'
+    description: Open source PDF reader and editor for viewing and working with PDF documents.
     default: false
     status_script: flatpak --user info ai.storyteller.pdfcraft >/dev/null 2>&1 && echo install || echo uninstall
     options:
@@ -149,7 +149,7 @@ screens:
   actions:
   - id: install-sdx-mission-center
     title: Mission Center
-    description: 'Mission Center is a modern system monitor for Linux showing CPU, memory, disk, network, and GPU usage (where supported), with per-app/process details and hardware information. Install method (priority): Flatpak (preferred). Installs user Flatpak io.missioncenter.MissionCenter from Flathub. Source: https://gitlab.com/mission-center-devs/mission-center | Flathub: https://flathub.org/en/apps/io.missioncenter.MissionCenter'
+    description: System monitor for viewing CPU, memory, disk, network, GPU, and process usage.
     default: false
     status_script: flatpak --user info io.missioncenter.MissionCenter >/dev/null 2>&1 && echo install || echo uninstall
     options:
@@ -158,7 +158,7 @@ screens:
       script: ujust install-sdx-mission-center; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
   - id: install-sdx-gearlever
     title: Gear Lever (AppImage manager)
-    description: 'Gear Lever helps you organize, integrate, and manage AppImage applications (menu entries, metadata, update workflows where supported). Install method (priority): Flatpak (preferred). Installs user Flatpak it.mijorus.gearlever from Flathub. Recommended for managing user AppImages like Unsloth Desktop installed via this portal. Source: https://github.com/mijorus/gearlever | Flathub: https://flathub.org/en/apps/it.mijorus.gearlever'
+    description: AppImage manager for organizing, integrating, and managing AppImage applications.
     default: false
     status_script: flatpak --user info it.mijorus.gearlever >/dev/null 2>&1 && echo install || echo uninstall
     options:
@@ -170,7 +170,7 @@ screens:
   actions:
   - id: install-sdx-plex-desktop
     title: Plex Player (Plex Desktop)
-    description: 'Plex Desktop is the official Plex client for desktop playback and browsing your Plex libraries and services. Install method (priority): Flatpak (preferred). Installs user Flatpak tv.plex.PlexDesktop from Flathub. Requires a Plex account/server as applicable. Source: https://www.plex.tv/ | https://github.com/flathub/tv.plex.PlexDesktop'
+    description: Plex desktop client for browsing and playing media from your Plex libraries and services.
     default: false
     status_script: flatpak --user info tv.plex.PlexDesktop >/dev/null 2>&1 && echo install || echo uninstall
     options:
@@ -179,7 +179,7 @@ screens:
       script: ujust install-sdx-plex-desktop; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
   - id: install-sdx-plex-htpc
     title: Plex HTPC
-    description: 'Plex HTPC is Plex''s home theater PC client with a TV-friendly interface, designed for big-screen setups and controller/remote use cases. Install method (priority): Flatpak (preferred). Installs user Flatpak tv.plex.PlexHTPC from Flathub. Source: https://www.plex.tv/media-server-downloads/#plex-app | https://github.com/flathub/tv.plex.PlexHTPC'
+    description: Plex home theater client with a TV-friendly interface for big-screen setups.
     default: false
     status_script: flatpak --user info tv.plex.PlexHTPC >/dev/null 2>&1 && echo install || echo uninstall
     options:
@@ -188,7 +188,7 @@ screens:
       script: ujust install-sdx-plex-htpc; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
   - id: install-sdx-vlc
     title: VLC media player
-    description: 'VLC is a versatile, open source multimedia player that supports a wide range of audio/video formats, streams, and playback features. Install method (priority): Flatpak (preferred). Installs user Flatpak org.videolan.VLC from Flathub. Source: https://www.videolan.org/vlc/ | https://flathub.org/en/apps/org.videolan.VLC'
+    description: Versatile media player that supports a wide range of audio, video, and streaming formats.
     default: false
     status_script: flatpak --user info org.videolan.VLC >/dev/null 2>&1 && echo install || echo uninstall
     options:
@@ -197,7 +197,7 @@ screens:
       script: ujust install-sdx-vlc; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
   - id: install-sdx-delfin
     title: Delfin (Jellyfin client)
-    description: 'Delfin is a native Jellyfin client for streaming movies and TV shows from your Jellyfin server, with an MPV-based player and support for common Jellyfin plugins (as supported upstream). Install method (priority): Flatpak (preferred). Installs user Flatpak cafe.avery.Delfin from Flathub. Requires access to a Jellyfin server. Source: https://delfin.avery.cafe/ | https://flathub.org/en/apps/cafe.avery.Delfin'
+    description: Native Jellyfin client for streaming movies and TV shows from your Jellyfin server.
     default: false
     status_script: flatpak --user info cafe.avery.Delfin >/dev/null 2>&1 && echo install || echo uninstall
     options:
@@ -206,7 +206,7 @@ screens:
       script: ujust install-sdx-delfin; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
   - id: install-sdx-web-app-hub
     title: Web App Hub
-    description: 'Web App Hub lets you create and manage web apps (site-specific browser apps) with dedicated icons and profiles, using installed browsers where supported. Install method (priority): Flatpak (preferred). Installs user Flatpak org.pvermeer.WebAppHub from Flathub. Useful for turning web services into app-like launchers. Source: https://github.com/PVermeer/web-app-hub | https://flathub.org/en/apps/org.pvermeer.WebAppHub'
+    description: Create and manage web apps (site-specific browser apps) with dedicated launchers and profiles.
     default: false
     status_script: flatpak --user info org.pvermeer.WebAppHub >/dev/null 2>&1 && echo install || echo uninstall
     options:
