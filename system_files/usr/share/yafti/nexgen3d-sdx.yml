@@ -55,7 +55,7 @@ screens:
     title: Unsloth Desktop
     description: Desktop app for running and training AI models locally with Unsloth.
     default: false
-    status_script: 'if [ -f "$HOME/Applications/Unsloth-Desktop-Linux.AppImage" ]; then if [ "$(cat "$HOME/.config/bazzite-sdx/release-channel/install-sdx-unsloth-desktop" 2>/dev/null)" = "prerelease" ]; then echo beta; else echo install; fi; else echo uninstall; fi'
+    status_script: if [ -f "$HOME/Applications/Unsloth-Desktop-Linux.AppImage" ]; then if [ "$(cat "$HOME/.config/bazzite-sdx/release-channel/install-sdx-unsloth-desktop" 2>/dev/null)" = "prerelease" ]; then echo beta; else echo install; fi; else echo uninstall; fi
     options:
     - id: install
       label: Install / Reinstall (stable)
@@ -67,7 +67,7 @@ screens:
     title: ArtCraft
     description: 'Warning: ArtCraft requires an account and may require a subscription for some features/services. Creative engine for artists, designers, and filmmakers.'
     default: false
-    status_script: 'if flatpak --user list --app --columns=application 2>/dev/null | grep -iq "artcraft"; then if [ "$(cat "$HOME/.config/bazzite-sdx/release-channel/install-sdx-artcraft" 2>/dev/null)" = "prerelease" ]; then echo beta; else echo install; fi; else echo uninstall; fi'
+    status_script: if flatpak --user list --app --columns=application 2>/dev/null | grep -iq "artcraft"; then if [ "$(cat "$HOME/.config/bazzite-sdx/release-channel/install-sdx-artcraft" 2>/dev/null)" = "prerelease" ]; then echo beta; else echo install; fi; else echo uninstall; fi
     options:
     - id: install
       label: Install / Reinstall (stable)
@@ -79,7 +79,7 @@ screens:
     title: Craft Anything
     description: Tool for exploring how software works and building or crafting software workflows.
     default: false
-    status_script: 'if flatpak --user info ai.storyteller.craft-anything >/dev/null 2>&1; then if [ "$(cat "$HOME/.config/bazzite-sdx/release-channel/install-sdx-craft-anything" 2>/dev/null)" = "prerelease" ]; then echo beta; else echo install; fi; else echo uninstall; fi'
+    status_script: if flatpak --user info ai.storyteller.craft-anything >/dev/null 2>&1; then if [ "$(cat "$HOME/.config/bazzite-sdx/release-channel/install-sdx-craft-anything" 2>/dev/null)" = "prerelease" ]; then echo beta; else echo install; fi; else echo uninstall; fi
     options:
     - id: install
       label: Install / Reinstall (stable)
@@ -142,7 +142,7 @@ screens:
     title: PhotoCraft
     description: Open source photo editor for image editing and creative work.
     default: false
-    status_script: 'if flatpak --user info ai.storyteller.photocraft >/dev/null 2>&1; then if [ "$(cat "$HOME/.config/bazzite-sdx/release-channel/install-sdx-photocraft" 2>/dev/null)" = "prerelease" ]; then echo beta; else echo install; fi; else echo uninstall; fi'
+    status_script: if flatpak --user info ai.storyteller.photocraft >/dev/null 2>&1; then if [ "$(cat "$HOME/.config/bazzite-sdx/release-channel/install-sdx-photocraft" 2>/dev/null)" = "prerelease" ]; then echo beta; else echo install; fi; else echo uninstall; fi
     options:
     - id: install
       label: Install / Reinstall (stable)
@@ -154,7 +154,7 @@ screens:
     title: PDFCraft
     description: Open source PDF reader and editor for viewing and working with PDF documents.
     default: false
-    status_script: 'if flatpak --user info ai.storyteller.pdfcraft >/dev/null 2>&1; then if [ "$(cat "$HOME/.config/bazzite-sdx/release-channel/install-sdx-pdfcraft" 2>/dev/null)" = "prerelease" ]; then echo beta; else echo install; fi; else echo uninstall; fi'
+    status_script: if flatpak --user info ai.storyteller.pdfcraft >/dev/null 2>&1; then if [ "$(cat "$HOME/.config/bazzite-sdx/release-channel/install-sdx-pdfcraft" 2>/dev/null)" = "prerelease" ]; then echo beta; else echo install; fi; else echo uninstall; fi
     options:
     - id: install
       label: Install / Reinstall (stable)
@@ -234,7 +234,6 @@ screens:
 - title: System Management
   description: Updates, benchmarks, system information, and image channel/version switching
   actions:
-
   - id: check-sdx-system-updates
     title: Check for system updates (Bazzite-SDX image)
     description: Checks for bootc/rpm-ostree system updates (including newer Bazzite-SDX container builds available to your deployment) and shows status. After checking, it prompts whether you want to run the system update now; if you confirm, it runs 'ujust update'. On immutable/bootc systems, updates typically apply on reboot. May require sudo for checks/updates.
@@ -244,7 +243,7 @@ screens:
     title: Switch to Weekly/Latest channel (latest)
     description: 'Switches (rebases) your Bazzite-SDX deployment to the weekly automatic build channel: ghcr.io/nexgen-3d-printing/bazzite-sdx:latest. ''latest'' tracks the newest weekly build. Shows current bootc status, asks for confirmation before running ''sudo bootc switch'', and requires a reboot to apply. If the new deployment has issues after reboot, you can usually revert with ''sudo bootc rollback''.'
     default: false
-    status_script: "rpm-ostree status --json 2>/dev/null | python3 -c \"import json,sys; d={}; \\ntry:\\n d=json.load(sys.stdin)\\nexcept Exception:\\n pass\\nref=((d.get('deployments') or [{}])[0].get('container-image-reference') or ''); tag=ref.rsplit(':',1)[-1].split('@',1)[0] if ':' in ref else ''; print('active' if tag=='latest' else 'inactive')\""
+    status_script: rpm-ostree status --json 2>/dev/null | python3 -c "import json,sys; d={}; \ntry:\n d=json.load(sys.stdin)\nexcept Exception:\n pass\nref=((d.get('deployments') or [{}])[0].get('container-image-reference') or ''); tag=ref.rsplit(':',1)[-1].split('@',1)[0] if ':' in ref else ''; print('active' if tag=='latest' else 'inactive')"
     options:
     - id: install
       label: Switch to latest
@@ -253,7 +252,7 @@ screens:
     title: Switch to Testing channel (testing)
     description: 'Switches (rebases) your Bazzite-SDX deployment to the testing channel: ghcr.io/nexgen-3d-printing/bazzite-sdx:testing. ''testing'' includes builds that are not the automatic weekly build (commits/manual builds) and may be less stable. Shows current bootc status, asks for confirmation before running ''sudo bootc switch'', and requires a reboot to apply. To go back, switch to ''latest'' or a specific version/tag, or use ''sudo bootc rollback'' after reboot if applicable.'
     default: false
-    status_script: "rpm-ostree status --json 2>/dev/null | python3 -c \"import json,sys; d={}; \\ntry:\\n d=json.load(sys.stdin)\\nexcept Exception:\\n pass\\nref=((d.get('deployments') or [{}])[0].get('container-image-reference') or ''); tag=ref.rsplit(':',1)[-1].split('@',1)[0] if ':' in ref else ''; print('active' if tag=='testing' else 'inactive')\""
+    status_script: rpm-ostree status --json 2>/dev/null | python3 -c "import json,sys; d={}; \ntry:\n d=json.load(sys.stdin)\nexcept Exception:\n pass\nref=((d.get('deployments') or [{}])[0].get('container-image-reference') or ''); tag=ref.rsplit(':',1)[-1].split('@',1)[0] if ':' in ref else ''; print('active' if tag=='testing' else 'inactive')"
     options:
     - id: install
       label: Switch to testing
@@ -273,3 +272,46 @@ screens:
     description: Displays detailed system information using 'fastfetch' (fallback to 'neofetch' or basic OS info if unavailable). Helpful for quickly viewing OS/image, kernel, CPU/GPU, memory, and environment details when troubleshooting or sharing support info.
     default: false
     script: ujust show-sdx-system-info; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
+- title: SDX Links
+  description: Helpful links and quick launchers
+  actions:
+  - id: link-bazzite-donate
+    title: Bazzite donation/support page
+    description: Support Bazzite development via Open Collective.
+    default: false
+    script: xdg-open https://bazzite.gg/#sponsor
+  - id: link-nexgen-kofi
+    title: NexGen-3D-Printing Ko-fi
+    description: Support NexGen-3D-Printing / Bazzite-SDX on Ko-fi.
+    default: false
+    script: xdg-open https://ko-fi.com/nexgen3d
+  - id: link-universal-blue-discourse
+    title: Universal Blue Discourse
+    description: Community forums and discussions for Universal Blue projects.
+    default: false
+    script: xdg-open https://universal-blue.discourse.group/
+  - id: link-bazzite-sdx-site
+    title: Bazzite-SDX project page
+    description: Bazzite-SDX repository, documentation, and releases on GitHub.
+    default: false
+    script: xdg-open https://github.com/NexGen-3D-Printing/Bazzite-SDX
+  - id: link-bazzite-sdx-issues
+    title: Bazzite-SDX issues
+    description: Report bugs or request features for Bazzite-SDX.
+    default: false
+    script: xdg-open https://github.com/NexGen-3D-Printing/Bazzite-SDX/issues
+  - id: link-linux-surface
+    title: Linux Surface GitHub
+    description: Linux Surface project for kernel, drivers, and device support.
+    default: false
+    script: xdg-open https://github.com/linux-surface/linux-surface
+  - id: launch-bazaar
+    title: Launch Bazaar
+    description: Open the Bazaar software store/app browser.
+    default: false
+    script: gtk4-launch io.github.kolunmi.Bazaar >/dev/null 2>&1 || flatpak run io.github.kolunmi.Bazaar >/dev/null 2>&1 || xdg-open appstream://io.github.kolunmi.Bazaar || echo 'Could not launch Bazaar.'
+  - id: launch-gearlever
+    title: Launch Gear Lever
+    description: Open Gear Lever to manage and integrate AppImages.
+    default: false
+    script: gtk4-launch it.mijorus.gearlever >/dev/null 2>&1 || flatpak run it.mijorus.gearlever >/dev/null 2>&1 || echo 'Could not launch Gear Lever. Install it from System Utilities if needed.'
