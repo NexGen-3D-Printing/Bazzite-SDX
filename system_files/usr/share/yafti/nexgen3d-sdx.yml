@@ -272,6 +272,11 @@ screens:
     description: Displays detailed system information using 'fastfetch' (fallback to 'neofetch' or basic OS info if unavailable). Helpful for quickly viewing OS/image, kernel, CPU/GPU, memory, and environment details when troubleshooting or sharing support info.
     default: false
     script: ujust show-sdx-system-info; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
+  - id: install-sdx-dexnor-keyboard-fix
+    title: Install Dexnor keyboard/touchpad fix (optional)
+    description: Optional fix for the Dexnor Bluetooth keyboard/touchpad combo (keyboard latency and touchpad click issues).
+    default: false
+    script: ujust install-sdx-dexnor-keyboard-fix; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
 - title: SDX Links
   description: Helpful links and quick launchers
   actions:

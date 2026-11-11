@@ -767,3 +767,49 @@ rebase-sdx-version:
             ;;
     esac
     echo "Done."
+
+# Install Dexnor Keyboard Linux fix (optional; keyboard/touchpad fixes for Dexnor Bluetooth keyboard/touchpad combo)
+[group("Bazzite-SDX-System")]
+install-sdx-dexnor-keyboard-fix:
+    #!/usr/bin/bash
+    set -euo pipefail
+    echo "Dexnor Keyboard Linux fix (optional)"
+    echo "Installs userspace fixes for the Dexnor Bluetooth keyboard/touchpad combo (HID-over-GATT):"
+    echo "- Keyboard latency fix (BlueZ connection latency)"
+    echo "- Touchpad physical-click fix"
+    echo ""
+    echo "Source: https://github.com/NexGen-3D-Printing/Dexnor-Keyboard-Linux"
+    echo "This will clone/update the fix to ~/.local/Dexnor-Keyboard-Fix and run its installer (sudo required)."
+    echo "Pair the keyboard before running if this is a fresh setup."
+    echo ""
+    if ! command -v git >/dev/null 2>&1; then
+        echo "git is required but not found."
+        exit 1
+    fi
+    read -r -p "Proceed with Dexnor keyboard/touchpad fix installation? [y/N] " ans
+    case "${ans}" in
+        y|Y|yes|YES)
+            target="${HOME}/.local/Dexnor-Keyboard-Fix"
+            mkdir -p "${HOME}/.local"
+            if [[ -d "${target}/.git" ]]; then
+                echo "Updating existing fix checkout in ${target}..."
+                git -C "${target}" pull --ff-only || true
+            elif [[ -e "${target}" ]]; then
+                echo "Existing path ${target} is not a git checkout."
+                echo "Please move/remove it and run again, or run the installer from that location manually."
+                exit 1
+            else
+                echo "Cloning Dexnor-Keyboard-Linux to ${target}..."
+                git clone https://github.com/NexGen-3D-Printing/Dexnor-Keyboard-Linux.git "${target}"
+            fi
+            echo ""
+            echo "Running installer..."
+            bash "${target}/install.sh"
+            echo ""
+            echo "If needed, reconnect your Bluetooth keyboard/touchpad after installation."
+            ;;
+        *)
+            echo "No changes made."
+            ;;
+    esac
+    echo "Done."
