@@ -27,7 +27,7 @@ RUN dnf5 install -y --allowerasing \
 COPY build_files/rpmbuild/SDX-Control-Centre.spec /tmp/sdx-rpmbuild/SDX-Control-Centre.spec
 RUN set -euo pipefail && \
     dnf5 install -y rpm-build git tar gzip python3 && \
-    rpmdev_setuptree 2>/dev/null || mkdir -p /root/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS} && \
+    mkdir -p /root/rpmbuild/BUILD /root/rpmbuild/RPMS /root/rpmbuild/SOURCES /root/rpmbuild/SPECS /root/rpmbuild/SRPMS && \
     cp /tmp/sdx-rpmbuild/SDX-Control-Centre.spec /root/rpmbuild/SPECS/SDX-Control-Centre.spec && \
     git clone --depth 1 --branch v1.0.1 https://github.com/NexGen-3D-Printing/SDX-Control-Centre.git /tmp/sdx-cc-src && \
     tar -C /tmp -czf /root/rpmbuild/SOURCES/sdx-control-centre-1.0.1.tar.gz --transform 's,^sdx-cc-src,sdx-control-centre-1.0.1,' sdx-cc-src && \
