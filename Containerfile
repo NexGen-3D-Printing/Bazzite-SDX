@@ -23,6 +23,21 @@ RUN dnf5 install -y --allowerasing \
     surface-control \
     surface-dtx-daemon
 
+## Install SDX Control Centre (built from NexGen-3D-Printing/SDX-Control-Centre)
+COPY build_files/rpmbuild/SDX-Control-Centre.spec /tmp/sdx-rpmbuild/SDX-Control-Centre.spec
+RUN set -euo pipefail && \
+    dnf5 install -y rpm-build git tar gzip python3 && \
+    rpmdev_setuptree 2>/dev/null || mkdir -p /root/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS} && \
+    cp /tmp/sdx-rpmbuild/SDX-Control-Centre.spec /root/rpmbuild/SPECS/SDX-Control-Centre.spec && \
+    git clone --depth 1 --branch v1.0.1 https://github.com/NexGen-3D-Printing/SDX-Control-Centre.git /tmp/sdx-cc-src && \
+    tar -C /tmp -czf /root/rpmbuild/SOURCES/sdx-control-centre-1.0.1.tar.gz --transform 's,^sdx-cc-src,sdx-control-centre-1.0.1,' sdx-cc-src && \
+    rpmbuild -bb /root/rpmbuild/SPECS/SDX-Control-Centre.spec && \
+    rpm_path="$(find /root/rpmbuild/RPMS -name 'sdx-control-centre-*.rpm' | head -n1)" && \
+    test -n "${rpm_path}" && \
+    dnf5 install -y "${rpm_path}" && \
+    dnf5 remove -y rpm-build && \
+    rm -rf /tmp/sdx-rpmbuild /tmp/sdx-cc-src /root/rpmbuild
+
 ## Clean up GPG key
 RUN rm -f /usr/share/keyrings/linux-surface.gpg
 
