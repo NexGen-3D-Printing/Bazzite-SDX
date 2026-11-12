@@ -27,16 +27,17 @@ RUN dnf5 install -y --allowerasing \
 COPY build_files/rpmbuild/SDX-Control-Centre.spec /tmp/sdx-rpmbuild/SDX-Control-Centre.spec
 RUN set -euo pipefail && \
     dnf5 install -y rpm-build git tar gzip python3 && \
-    mkdir -p /root/rpmbuild/BUILD /root/rpmbuild/RPMS /root/rpmbuild/SOURCES /root/rpmbuild/SPECS /root/rpmbuild/SRPMS && \
-    cp /tmp/sdx-rpmbuild/SDX-Control-Centre.spec /root/rpmbuild/SPECS/SDX-Control-Centre.spec && \
+    rpmbuild_topdir="/var/tmp/rpmbuild" && \
+    mkdir -p "${rpmbuild_topdir}/BUILD" "${rpmbuild_topdir}/RPMS" "${rpmbuild_topdir}/SOURCES" "${rpmbuild_topdir}/SPECS" "${rpmbuild_topdir}/SRPMS" && \
+    cp /tmp/sdx-rpmbuild/SDX-Control-Centre.spec "${rpmbuild_topdir}/SPECS/SDX-Control-Centre.spec" && \
     git clone --depth 1 --branch v1.0.1 https://github.com/NexGen-3D-Printing/SDX-Control-Centre.git /tmp/sdx-cc-src && \
-    tar -C /tmp -czf /root/rpmbuild/SOURCES/sdx-control-centre-1.0.1.tar.gz --transform 's,^sdx-cc-src,sdx-control-centre-1.0.1,' sdx-cc-src && \
-    rpmbuild -bb /root/rpmbuild/SPECS/SDX-Control-Centre.spec && \
-    rpm_path="$(find /root/rpmbuild/RPMS -name 'sdx-control-centre-*.rpm' | head -n1)" && \
+    tar -C /tmp -czf "${rpmbuild_topdir}/SOURCES/sdx-control-centre-1.0.1.tar.gz" --transform 's,^sdx-cc-src,sdx-control-centre-1.0.1,' sdx-cc-src && \
+    rpmbuild --define "_topdir ${rpmbuild_topdir}" -bb "${rpmbuild_topdir}/SPECS/SDX-Control-Centre.spec" && \
+    rpm_path="$(find "${rpmbuild_topdir}/RPMS" -name 'sdx-control-centre-*.rpm' | head -n1)" && \
     test -n "${rpm_path}" && \
     dnf5 install -y "${rpm_path}" && \
     dnf5 remove -y rpm-build && \
-    rm -rf /tmp/sdx-rpmbuild /tmp/sdx-cc-src /root/rpmbuild
+    rm -rf /tmp/sdx-rpmbuild /tmp/sdx-cc-src "${rpmbuild_topdir}"
 
 ## Clean up GPG key
 RUN rm -f /usr/share/keyrings/linux-surface.gpg
