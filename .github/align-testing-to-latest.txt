@@ -1,0 +1,4 @@
+This file is used to align the testing display version with the latest release version.
+Latest release: V1.0.0
+Testing baseline: V1.0.0 (pre-release)
+Next testing build: V1.0.1
