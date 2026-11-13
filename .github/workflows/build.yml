@@ -19,6 +19,11 @@ on:
         required: false
         type: boolean
         default: false
+      build_latest:
+        description: 'Build and publish as latest/weekly (manual). Takes current testing display version.'
+        required: false
+        type: boolean
+        default: false
 
 env:
   IMAGE_REGISTRY: "ghcr.io/nexgen-3d-printing"  # do not edit
@@ -71,6 +76,7 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
           SHA: ${{ github.sha }}
           UNSTABLE_INPUT: ${{ inputs.unstable && 'true' || 'false' }}
+          BUILD_LATEST_INPUT: ${{ inputs.build_latest && 'true' || 'false' }}
         run: |
           set -euo pipefail
           SHORT_SHA="${SHA:0:7}"
@@ -104,8 +110,8 @@ jobs:
               echo "::error::Unsupported tag format '${SEMVER_TAG}'. Use SemVer tags like v0.1.0."
               exit 1
             fi
-          elif [[ "${EVENT_NAME}" == "schedule" ]]; then
-            # Automatic weekly build -> latest
+          elif [[ "${EVENT_NAME}" == "schedule" ]] || [[ "${EVENT_NAME}" == "workflow_dispatch" && "${BUILD_LATEST_INPUT}" == "true" && "${UNSTABLE_INPUT}" != "true" ]]; then
+            # Automatic weekly build -> latest, or manual latest build
             CHANNEL="weekly"
             PUBLISH=true
             VERSION_LABEL="weekly-${DATE_UTC}+${SHORT_SHA}"
