@@ -25,6 +25,8 @@ Checklist after a weekly run:
 
 Testing builds run automatically on pushes to `main` and can be run via **Actions → Build container image → Run workflow**. They do **not** move `latest`.
 
+A scheduled upstream check (Sunday and Tuesday-Saturday, 04:00 UTC) also runs a testing build when the linux-surface packages or the newest SDX Control Centre tag differ from the versions recorded in the `testing` release notes. While a build is already running the check skips, and a failed check never starts a build.
+
 Use `testing` for validation:
 ```bash
 sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:testing
@@ -74,5 +76,5 @@ Use SemVer tags when you want an explicit, reproducible/pinned release (`v0.1.0`
 ## Notes
 
 - `latest` = **weekly automatic build only**.
-- `testing` = **all non-weekly builds** (commits to `main`, manual dispatch).
+- `testing` = **all non-weekly builds** (commits to `main`, manual dispatch, automatic upstream package updates).
 - SemVer tags coexist for explicit pinned releases; if tag and `VERSION` don’t match, the workflow fails.
