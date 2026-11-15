@@ -7,9 +7,9 @@ on:
   schedule:
     # Weekly automatic build (publishes :latest) - Monday 12:00 PM AWST (UTC+8)
     - cron: '0 4 * * 1'  # Monday 04:00 UTC / 12:00 PM AWST
-    # Daily upstream package check (Tue-Sun). Only builds :testing when a
-    # linux-surface package or SDX Control Centre version has changed.
-    - cron: '0 4 * * 2-7'  # Tue-Sun 04:00 UTC / 12:00 PM AWST
+    # Daily upstream package check except Monday (Sunday + Tue-Sat). Only builds
+    # :testing when a linux-surface package or SDX Control Centre version changed.
+    - cron: '0 4 * * 0,2-6'  # Sun + Tue-Sat 04:00 UTC / 12:00 PM AWST
   push:
     branches:
       - main
