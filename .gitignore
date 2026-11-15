@@ -7,3 +7,7 @@ output
 _build-*/**/*
 *_chunkah_*_*
 *_rpm-ostree_*_*
+
+# Python bytecode
+__pycache__/
+*.pyc

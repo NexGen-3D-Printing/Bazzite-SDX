@@ -7,6 +7,9 @@ on:
   schedule:
     # Weekly automatic build (publishes :latest) - Monday 12:00 PM AWST (UTC+8)
     - cron: '0 4 * * 1'  # Monday 04:00 UTC / 12:00 PM AWST
+    # Daily upstream package check (Tue-Sun). Only builds :testing when a
+    # linux-surface package or SDX Control Centre version has changed.
+    - cron: '0 4 * * 2-7'  # Tue-Sun 04:00 UTC / 12:00 PM AWST
   push:
     branches:
       - main
@@ -24,6 +27,11 @@ on:
         required: false
         type: boolean
         default: false
+      check_upstream:
+        description: 'Run the upstream package check. Builds testing only when linux-surface packages or SDX Control Centre changed.'
+        required: false
+        type: boolean
+        default: false
 
 env:
   IMAGE_REGISTRY: "ghcr.io/nexgen-3d-printing"  # do not edit
@@ -33,8 +41,56 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check_upstream:
+    name: Check upstream packages
+    if: |
+      (github.event_name == 'schedule' && github.event.schedule != '0 4 * * 1') ||
+      (github.event_name == 'workflow_dispatch' && inputs.check_upstream && !inputs.build_latest && !inputs.unstable)
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      drift: ${{ steps.detect.outputs.drift }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: Skip when another build is active
+        id: active
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          count=$(gh run list --workflow build.yml --limit 30 --json databaseId,status \
+            | jq --arg id "${GITHUB_RUN_ID}" '[.[] | select(.status == "in_progress" or .status == "queued") | select((.databaseId|tostring) != $id)] | length')
+          if [ "${count}" -gt 0 ]; then
+            echo "Another build is active (${count}); skipping the upstream check."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Ensure zstd is available
+        if: steps.active.outputs.skip != 'true'
+        run: command -v zstd >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y zstd)
+
+      - name: Detect upstream package drift
+        id: detect
+        if: steps.active.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 .github/scripts/check_upstream.py
+
   build_push:
     name: Build and push image
+    needs: check_upstream
+    if: |
+      !cancelled() &&
+      needs.check_upstream.result != 'failure' &&
+      !(needs.check_upstream.result == 'success' && needs.check_upstream.outputs.drift != 'true')
     runs-on: ubuntu-26.04
 
     permissions:
@@ -72,6 +128,7 @@ jobs:
         id: version
         env:
           EVENT_NAME: ${{ github.event_name }}
+          EVENT_SCHEDULE: ${{ github.event.schedule }}
           REF: ${{ github.ref }}
           REF_NAME: ${{ github.ref_name }}
           SHA: ${{ github.sha }}
@@ -110,12 +167,18 @@ jobs:
               echo "::error::Unsupported tag format '${SEMVER_TAG}'. Use SemVer tags like v0.1.0."
               exit 1
             fi
-          elif [[ "${EVENT_NAME}" == "schedule" ]] || [[ "${EVENT_NAME}" == "workflow_dispatch" && "${BUILD_LATEST_INPUT}" == "true" && "${UNSTABLE_INPUT}" != "true" ]]; then
+          elif [[ "${EVENT_NAME}" == "schedule" && "${EVENT_SCHEDULE}" == "0 4 * * 1" ]] || [[ "${EVENT_NAME}" == "workflow_dispatch" && "${BUILD_LATEST_INPUT}" == "true" && "${UNSTABLE_INPUT}" != "true" ]]; then
             # Automatic weekly build -> latest, or manual latest build
             CHANNEL="weekly"
             PUBLISH=true
             VERSION_LABEL="weekly-${DATE_UTC}+${SHORT_SHA}"
             RELEASE_KIND="weekly"
+          elif [[ "${EVENT_NAME}" == "schedule" ]]; then
+            # Daily upstream-check build (only runs when drift was detected) -> testing
+            CHANNEL="testing"
+            PUBLISH=true
+            VERSION_LABEL="testing-${DATE_UTC}+${SHORT_SHA}"
+            RELEASE_KIND="testing"
           elif [[ "${EVENT_NAME}" == "workflow_dispatch" && ( "${UNSTABLE_INPUT}" == "true" || "${REF_NAME}" == "experimental" ) ]]; then
             # Manual unstable build (typically from experimental). Publishes :unstable tags; does not update latest/testing.
             CHANNEL="unstable"
@@ -383,7 +446,23 @@ jobs:
           BASE_OS_PRETTY=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${PRETTY_NAME:-unknown}"' | head -n1)
           BASE_OS_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${VERSION_ID:-${VERSION:-unknown}}"' | head -n1)
           BASE_OS_NAME=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${NAME:-unknown}"' | head -n1)
-          SURFACE_KERNEL=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc 'rpm -q kernel-surface --qf "%{VERSION}-%{RELEASE}" 2>/dev/null || echo unknown' | head -n1)
+          SURFACE_PKGS=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '
+            for p in kernel-surface iptsd libwacom-surface surface-control surface-dtx-daemon; do
+              printf "%s=%s\n" "$p" "$(rpm -q "$p" --qf "%{VERSION}-%{RELEASE}" 2>/dev/null || echo unknown)"
+            done
+            printf "sdx-control-centre=%s\n" "$(rpm -q sdx-control-centre --qf "%{VERSION}" 2>/dev/null || echo unknown)"
+          ' || true)
+          pkg_version() {
+            local value
+            value="$(printf '%s\n' "${SURFACE_PKGS}" | sed -n "s|^$1=||p" | head -n1)"
+            printf '%s' "${value:-unknown}"
+          }
+          SURFACE_KERNEL="$(pkg_version kernel-surface)"
+          IPTSD="$(pkg_version iptsd)"
+          LIBWACOM_SURFACE="$(pkg_version libwacom-surface)"
+          SURFACE_CONTROL="$(pkg_version surface-control)"
+          SURFACE_DTX_DAEMON="$(pkg_version surface-dtx-daemon)"
+          SDX_VERSION="$(pkg_version sdx-control-centre)"
 
           # Determine display version for rolling channels (Vx.y.z)
           # - testing: increments patch from last known testing/latest display version
@@ -459,6 +538,11 @@ jobs:
             if [[ "${RELEASE_KIND}" == "semver" ]]; then echo "- **SemVer tag:** \`${SEMVER_TAG}\` (source of truth: git tag + \`VERSION\`)"; fi
             echo "- **Bazzite/base OS:** ${BASE_OS_PRETTY} (VERSION_ID: ${BASE_OS_VERSION})"
             echo "- **Surface kernel:** ${SURFACE_KERNEL}"
+            echo "- **iptsd:** ${IPTSD}"
+            echo "- **libwacom-surface:** ${LIBWACOM_SURFACE}"
+            echo "- **surface-control:** ${SURFACE_CONTROL}"
+            echo "- **surface-dtx-daemon:** ${SURFACE_DTX_DAEMON}"
+            echo "- **SDX Control Centre:** ${SDX_VERSION}"
             echo "- **Image digest:** \`${DIGEST}\`"
             echo "- **Primary image:** \`${PRIMARY_IMAGE}\`"
             echo "- **Weekly/latest:** \`ghcr.io/nexgen-3d-printing/bazzite-sdx:latest\`"

@@ -24,15 +24,21 @@ RUN dnf5 install -y --allowerasing \
     surface-dtx-daemon
 
 ## Install SDX Control Centre (built from NexGen-3D-Printing/SDX-Control-Centre)
+## The newest upstream vX.Y.Z tag is resolved at build time so package updates are
+## picked up automatically (the daily upstream check triggers a rebuild when it changes).
 COPY build_files/rpmbuild/SDX-Control-Centre.spec /tmp/sdx-rpmbuild/SDX-Control-Centre.spec
 RUN set -euo pipefail && \
     dnf5 install -y rpm-build git tar gzip python3 && \
     rpmbuild_topdir="/var/tmp/rpmbuild" && \
     mkdir -p "${rpmbuild_topdir}/BUILD" "${rpmbuild_topdir}/RPMS" "${rpmbuild_topdir}/SOURCES" "${rpmbuild_topdir}/SPECS" "${rpmbuild_topdir}/SRPMS" && \
     cp /tmp/sdx-rpmbuild/SDX-Control-Centre.spec "${rpmbuild_topdir}/SPECS/SDX-Control-Centre.spec" && \
-    git clone --depth 1 --branch v1.0.1 https://github.com/NexGen-3D-Printing/SDX-Control-Centre.git /tmp/sdx-cc-src && \
-    tar -C /tmp -czf "${rpmbuild_topdir}/SOURCES/sdx-control-centre-1.0.1.tar.gz" --transform 's,^sdx-cc-src,sdx-control-centre-1.0.1,' sdx-cc-src && \
-    rpmbuild --define "_topdir ${rpmbuild_topdir}" -bb "${rpmbuild_topdir}/SPECS/SDX-Control-Centre.spec" && \
+    sdx_ref="$(git ls-remote --tags --refs https://github.com/NexGen-3D-Printing/SDX-Control-Centre.git 'v*' | awk -F'refs/tags/' '{print $2}' | sort -V | tail -n1)" && \
+    test -n "${sdx_ref}" && \
+    sdx_version="${sdx_ref#v}" && \
+    echo "Building SDX Control Centre ${sdx_version} (${sdx_ref})" && \
+    git clone --depth 1 --branch "${sdx_ref}" https://github.com/NexGen-3D-Printing/SDX-Control-Centre.git /tmp/sdx-cc-src && \
+    tar -C /tmp -czf "${rpmbuild_topdir}/SOURCES/sdx-control-centre-${sdx_version}.tar.gz" --transform "s,^sdx-cc-src,sdx-control-centre-${sdx_version}," sdx-cc-src && \
+    rpmbuild --define "_topdir ${rpmbuild_topdir}" --define "sdxver ${sdx_version}" -bb "${rpmbuild_topdir}/SPECS/SDX-Control-Centre.spec" && \
     rpm_path="$(find "${rpmbuild_topdir}/RPMS" -name 'sdx-control-centre-*.rpm' | head -n1)" && \
     test -n "${rpm_path}" && \
     dnf5 install -y "${rpm_path}" && \

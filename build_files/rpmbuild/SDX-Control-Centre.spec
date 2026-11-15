@@ -1,11 +1,15 @@
+# Version is supplied by the Containerfile from the latest vX.Y.Z upstream tag.
+# The fallback keeps the spec buildable on its own.
+%global sdxver %{?sdxver}%{!?sdxver:1.0.2}
+
 Name:           sdx-control-centre
-Version:        1.0.1
+Version:        %{sdxver}
 Release:        1%{?dist}
 Summary:        SDX Control Centre for Bazzite-DX Surface devices
 
 License:        GPL-3.0
 URL:            https://github.com/NexGen-3D-Printing/SDX-Control-Centre
-Source0:        sdx-control-centre-1.0.1.tar.gz
+Source0:        sdx-control-centre-%{version}.tar.gz
 
 BuildArch:      noarch
 
@@ -31,7 +35,7 @@ maintaining the original project, which has enabled this fork to exist.
 - System diagnostics: Health checks, hands-on tests, support bundles
 
 %prep
-%setup -q -n sdx-control-centre-1.0.1
+%setup -q -n sdx-control-centre-%{version}
 
 %build
 # No build needed - pure Python application
