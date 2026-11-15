@@ -188,10 +188,10 @@ def recorded_versions() -> dict[str, str]:
     recorded: dict[str, str] = {}
     for label in [*PACKAGES.values(), SDX_LABEL]:
         match = re.search(
-            r"\*\*" + re.escape(label) + r":\*\*\s*`([^`]+)`", body
+            r"\*\*" + re.escape(label) + r":\*\*\s*([^\n]+)", body
         )
         if match:
-            recorded[label] = match.group(1).strip()
+            recorded[label] = match.group(1).strip().strip("`").strip()
     return recorded
 
 
