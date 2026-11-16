@@ -47,7 +47,6 @@ jobs:
       (github.event_name == 'schedule' && github.event.schedule != '0 4 * * 1') ||
       (github.event_name == 'workflow_dispatch' && inputs.check_upstream && !inputs.build_latest && !inputs.unstable)
     runs-on: ubuntu-26.04
-    timeout-minutes: 15
     permissions:
       contents: read
       actions: read
@@ -129,7 +128,6 @@ jobs:
         id: version
         env:
           EVENT_NAME: ${{ github.event_name }}
-          EVENT_SCHEDULE: ${{ github.event.schedule }}
           REF: ${{ github.ref }}
           REF_NAME: ${{ github.ref_name }}
           SHA: ${{ github.sha }}
@@ -168,8 +166,8 @@ jobs:
               echo "::error::Unsupported tag format '${SEMVER_TAG}'. Use SemVer tags like v0.1.0."
               exit 1
             fi
-          elif [[ "${EVENT_NAME}" == "schedule" && "${EVENT_SCHEDULE}" == "0 4 * * 1" ]] || [[ "${EVENT_NAME}" == "workflow_dispatch" && "${BUILD_LATEST_INPUT}" == "true" && "${UNSTABLE_INPUT}" != "true" ]]; then
-            # Automatic weekly build -> latest, or manual latest build
+          elif [[ "${EVENT_NAME}" == "schedule" && "$(date -u +%u)" == "1" ]] || [[ "${EVENT_NAME}" == "workflow_dispatch" && "${BUILD_LATEST_INPUT}" == "true" && "${UNSTABLE_INPUT}" != "true" ]]; then
+            # Automatic weekly build (Monday) -> latest, or manual latest build
             CHANNEL="weekly"
             PUBLISH=true
             VERSION_LABEL="weekly-${DATE_UTC}+${SHORT_SHA}"
