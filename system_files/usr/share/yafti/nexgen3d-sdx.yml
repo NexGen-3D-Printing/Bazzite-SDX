@@ -241,7 +241,7 @@ screens:
     script: ujust check-sdx-system-updates; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
   - id: rebase-sdx-stable
     title: Switch to Stable channel (stable)
-    description: 'Switches (rebases) your Bazzite-SDX deployment to the weekly automatic build channel: ghcr.io/nexgen-3d-printing/bazzite-sdx:stable. ''stable'' tracks Bazzite-DX stable and is built when upstream changes are detected. Shows current bootc status, asks for confirmation before running ''sudo bootc switch'', and requires a reboot to apply. If the new deployment has issues after reboot, you can usually revert with ''sudo bootc rollback''.'
+    description: 'Switches (rebases) your Bazzite-SDX deployment to the stable channel: ghcr.io/nexgen-3d-printing/bazzite-sdx:stable. ''stable'' tracks Bazzite-DX stable and is built when upstream changes are detected. Shows current bootc status, asks for confirmation before running ''sudo bootc switch'', and requires a reboot to apply. If the new deployment has issues after reboot, you can usually revert with ''sudo bootc rollback''.'
     default: false
     status_script: rpm-ostree status --json 2>/dev/null | python3 -c "import json,sys; d={}; \ntry:\n d=json.load(sys.stdin)\nexcept Exception:\n pass\nref=((d.get('deployments') or [{}])[0].get('container-image-reference') or ''); tag=ref.rsplit(':',1)[-1].split('@',1)[0] if ':' in ref else ''; print('active' if tag=='stable' else 'inactive')"
     options:

@@ -671,7 +671,7 @@ show-sdx-system-info:
 
 # Switch Bazzite-SDX to the stable channel (ghcr.io/nexgen-3d-printing/bazzite-sdx:stable)
 [group("Bazzite-SDX-System")]
-rebase-sdx-latest:
+rebase-sdx-stable:
     #!/usr/bin/bash
     set -euo pipefail
     image="ghcr.io/nexgen-3d-printing/bazzite-sdx:stable"
