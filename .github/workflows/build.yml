@@ -562,7 +562,7 @@ jobs:
             TAG="testing"
             DISPLAY_VERSION="${BAZZITE_VERSION}"
             TITLE="Bazzite-SDX ${DISPLAY_VERSION} (Testing)"
-            PRERELEASE=true
+            PRERELEASE=false
             PRIMARY_IMAGE="ghcr.io/nexgen-3d-printing/bazzite-sdx:testing"
             CHANNEL_NOTE="Testing channel build from \`ghcr.io/ublue-os/bazzite-dx:testing\`. Built automatically when upstream changes are detected in Bazzite-DX Testing, linux-surface packages, or SDX Control Centre. Use for validation before relying on stable."
           elif [[ "${RELEASE_KIND}" == "unstable" ]]; then
