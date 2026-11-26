@@ -569,7 +569,7 @@ jobs:
             TAG="unstable"
             DISPLAY_VERSION="unstable-${DATE_UTC}-${SHORT_SHA}"
             TITLE="Bazzite-SDX (Unstable)"
-            PRERELEASE=true
+            PRERELEASE=false
             PRIMARY_IMAGE="ghcr.io/nexgen-3d-printing/bazzite-sdx:unstable"
             CHANNEL_NOTE="Manual unstable build from \`ghcr.io/ublue-os/bazzite-dx:unstable\`. Published only when explicitly triggered. Does not update \`stable\` or \`testing\`. Use for investigation; expect breakage."
           elif [[ "${RELEASE_KIND}" == "semver" ]]; then
