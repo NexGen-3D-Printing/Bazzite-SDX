@@ -4,11 +4,12 @@ This file documents the Bazzite-SDX image configuration and release history. For
 
 ## Current Configuration
 
-- **Image:** `ghcr.io/nexgen-3d-printing/bazzite-sdx:latest`
-- **Base:** `ghcr.io/ublue-os/bazzite-dx:stable` (Bazzite-DX)
+- **Stable image:** `ghcr.io/nexgen-3d-printing/bazzite-sdx:stable`
+- **Testing image:** `ghcr.io/nexgen-3d-printing/bazzite-sdx:testing`
+- **Base:** `ghcr.io/ublue-os/bazzite-dx:stable` (stable channel) / `ghcr.io/ublue-os/bazzite-dx:testing` (testing channel)
 - **Fedora/Surface metadata (repo config):** configured for Fedora 45 / `*.surface.fc45` context where stated (actual base OS version follows the upstream Bazzite-DX `:stable` image at build time)
 - **Distribution:** rebase-only (no custom USB installer ISO)
-- **Builds:** GitHub Actions `build.yml` publishes `:latest` and dated tags, signs with Cosign, and updates the `latest` release notes
+- **Builds:** GitHub Actions `build.yml` builds on upstream changes (Bazzite-DX, linux-surface, SDX Control Centre), publishes `:stable`/`:testing` and dated tags, signs with Cosign, and updates release notes. `latest` was renamed to `stable` (hard rename).
 
 ## What's Included
 
@@ -42,7 +43,7 @@ Includes the Bazzite-DX experience provided by the upstream base image (gaming +
 
 ```bash
 sudo bootc status
-sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:latest
+sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:stable
 sudo reboot
 ```
 
@@ -52,7 +53,7 @@ Verify:
 sudo bootc status
 uname -r
 rpm -qa | grep -E "(kernel-surface|iptsd|libwacom-surface|surface-)"
-cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:latest
+cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:stable
 ```
 
 ## Supported Hardware
@@ -81,7 +82,7 @@ Support depends on upstream [linux-surface](https://github.com/linux-surface/lin
 
 ## Troubleshooting
 
-- **Signature:** `cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:latest`
+- **Signature:** `cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:stable`
 - **Image/boot issues:** check [issues](https://github.com/NexGen-3D-Printing/Bazzite-SDX/issues) and try a dated tag if needed
 - **Surface hardware/kernel:** see [linux-surface/linux-surface](https://github.com/linux-surface/linux-surface)
 

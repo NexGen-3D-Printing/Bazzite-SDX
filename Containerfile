@@ -2,8 +2,10 @@
 FROM scratch AS ctx
 COPY system_files /system_files
 
-# Base Image - Using Bazzite-DX Stable
-FROM ghcr.io/ublue-os/bazzite-dx:stable
+# Base Image - Bazzite-DX Stable or Testing (selected by build arg)
+ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite-dx:stable
+FROM ${BASE_IMAGE}
+ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite-dx:stable
 
 ### MODIFICATIONS
 ## Install Linux Surface kernel packages directly from the Surface Linux repository
@@ -79,12 +81,13 @@ RUN if ! grep -q '^PLATFORM_ID=' /usr/lib/os-release 2>/dev/null; then \
 RUN mkdir -p /etc/bazzite-sdx && \
     SURFACE_KERNEL="$(rpm -q kernel-surface --qf '%{VERSION}-%{RELEASE}' 2>/dev/null || echo unknown)" && \
     BASE_VERSION_ID="$(. /usr/lib/os-release 2>/dev/null; echo "${VERSION_ID:-45}")" && \
+    BASE_IMG="${BASE_IMAGE:-ghcr.io/ublue-os/bazzite-dx:stable}" && \
     printf '%s\n' \
     '# Bazzite-SDX Release Information' \
     '' \
     'version = "1.0.0"' \
     "fedora_version = ${BASE_VERSION_ID}" \
-    'base_image = "ghcr.io/ublue-os/bazzite-dx:stable"' \
+    "base_image = \"${BASE_IMG}\"" \
     "linux_surface_kernel = \"${SURFACE_KERNEL}\"" \
     '' \
     '[links]' \

@@ -669,14 +669,14 @@ show-sdx-system-info:
 # Image channel / version switching (bootc)
 # ==========================================
 
-# Switch Bazzite-SDX to the weekly/latest channel (ghcr.io/nexgen-3d-printing/bazzite-sdx:latest)
+# Switch Bazzite-SDX to the stable channel (ghcr.io/nexgen-3d-printing/bazzite-sdx:stable)
 [group("Bazzite-SDX-System")]
 rebase-sdx-latest:
     #!/usr/bin/bash
     set -euo pipefail
-    image="ghcr.io/nexgen-3d-printing/bazzite-sdx:latest"
+    image="ghcr.io/nexgen-3d-printing/bazzite-sdx:stable"
     echo "This will switch (rebase) your system to: ${image}"
-    echo "Channel: latest = automatic weekly build."
+    echo "Channel: stable = tracks Bazzite-DX stable (built on upstream changes)."
     echo ""
     echo "Current status:"
     sudo bootc status || true
@@ -704,8 +704,8 @@ rebase-sdx-testing:
     set -euo pipefail
     image="ghcr.io/nexgen-3d-printing/bazzite-sdx:testing"
     echo "This will switch (rebase) your system to: ${image}"
-    echo "Channel: testing = any build that is not the automatic weekly build (commits/manual builds)."
-    echo "Testing builds may be less stable than weekly/latest."
+    echo "Channel: testing = tracks Bazzite-DX testing (built on upstream changes)."
+    echo "Testing builds may be less stable than stable."
     echo ""
     echo "Current status:"
     sudo bootc status || true
@@ -733,7 +733,7 @@ rebase-sdx-version:
     set -euo pipefail
     base="ghcr.io/nexgen-3d-printing/bazzite-sdx"
     echo "Switch (rebase) Bazzite-SDX to a specific tag/version."
-    echo "Examples: v0.1.0 (SemVer/pinned), latest, testing, weekly-20261109, testing-20261109"
+    echo "Examples: v0.1.0 (SemVer/pinned), stable, testing, stable-20261109, testing-20261109"
     echo "This can be used to pin a known-good release or roll forward/back to a specific published tag."
     echo ""
     echo "Current status:"

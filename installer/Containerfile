@@ -1,6 +1,6 @@
 # run with --cap-add sys_admin --security-opt label=disable
 
-ARG BASE_IMAGE=${BASE_IMAGE:-ghcr.io/nexgen-3d-printing/bazzite-sdx:latest}
+ARG BASE_IMAGE=${BASE_IMAGE:-ghcr.io/nexgen-3d-printing/bazzite-sdx:stable}
 
 FROM $BASE_IMAGE
 ARG BASE_IMAGE

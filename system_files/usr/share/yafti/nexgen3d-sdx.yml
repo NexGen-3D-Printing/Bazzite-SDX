@@ -9,10 +9,10 @@ screens:
     default: false
     script: xdg-open https://github.com/NexGen-3D-Printing/Bazzite-SDX
   - id: Bazzite-SDX-release
-    title: Open latest release notes
-    description: View the auto-updated latest release for base OS/Surface kernel info and Bazzite-SDX app install instructions.
+    title: Open stable release notes
+    description: View the auto-updated stable release for base OS/Surface kernel info and Bazzite-SDX app install instructions.
     default: false
-    script: xdg-open https://github.com/NexGen-3D-Printing/Bazzite-SDX/releases/tag/latest
+    script: xdg-open https://github.com/NexGen-3D-Printing/Bazzite-SDX/releases/tag/stable
   - id: install-all-bazzite-sdx-flatpaks
     title: Install core Bazzite-SDX apps (all)
     description: Installs the core set of recommended Bazzite-SDX apps (Brave, OpenCode, Mission Center, SolidCraft, and ArtCraft).
@@ -239,18 +239,18 @@ screens:
     description: Checks for bootc/rpm-ostree system updates (including newer Bazzite-SDX container builds available to your deployment) and shows status. After checking, it prompts whether you want to run the system update now; if you confirm, it runs 'ujust update'. On immutable/bootc systems, updates typically apply on reboot. May require sudo for checks/updates.
     default: false
     script: ujust check-sdx-system-updates; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
-  - id: rebase-sdx-latest
-    title: Switch to Weekly/Latest channel (latest)
-    description: 'Switches (rebases) your Bazzite-SDX deployment to the weekly automatic build channel: ghcr.io/nexgen-3d-printing/bazzite-sdx:latest. ''latest'' tracks the newest weekly build. Shows current bootc status, asks for confirmation before running ''sudo bootc switch'', and requires a reboot to apply. If the new deployment has issues after reboot, you can usually revert with ''sudo bootc rollback''.'
+  - id: rebase-sdx-stable
+    title: Switch to Stable channel (stable)
+    description: 'Switches (rebases) your Bazzite-SDX deployment to the weekly automatic build channel: ghcr.io/nexgen-3d-printing/bazzite-sdx:stable. ''stable'' tracks Bazzite-DX stable and is built when upstream changes are detected. Shows current bootc status, asks for confirmation before running ''sudo bootc switch'', and requires a reboot to apply. If the new deployment has issues after reboot, you can usually revert with ''sudo bootc rollback''.'
     default: false
-    status_script: rpm-ostree status --json 2>/dev/null | python3 -c "import json,sys; d={}; \ntry:\n d=json.load(sys.stdin)\nexcept Exception:\n pass\nref=((d.get('deployments') or [{}])[0].get('container-image-reference') or ''); tag=ref.rsplit(':',1)[-1].split('@',1)[0] if ':' in ref else ''; print('active' if tag=='latest' else 'inactive')"
+    status_script: rpm-ostree status --json 2>/dev/null | python3 -c "import json,sys; d={}; \ntry:\n d=json.load(sys.stdin)\nexcept Exception:\n pass\nref=((d.get('deployments') or [{}])[0].get('container-image-reference') or ''); tag=ref.rsplit(':',1)[-1].split('@',1)[0] if ':' in ref else ''; print('active' if tag=='stable' else 'inactive')"
     options:
     - id: install
-      label: Switch to latest
-      script: ujust rebase-sdx-latest; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
+      label: Switch to stable
+      script: ujust rebase-sdx-stable; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
   - id: rebase-sdx-testing
     title: Switch to Testing channel (testing)
-    description: 'Switches (rebases) your Bazzite-SDX deployment to the testing channel: ghcr.io/nexgen-3d-printing/bazzite-sdx:testing. ''testing'' includes builds that are not the automatic weekly build (commits/manual builds) and may be less stable. Shows current bootc status, asks for confirmation before running ''sudo bootc switch'', and requires a reboot to apply. To go back, switch to ''latest'' or a specific version/tag, or use ''sudo bootc rollback'' after reboot if applicable.'
+    description: 'Switches (rebases) your Bazzite-SDX deployment to the testing channel: ghcr.io/nexgen-3d-printing/bazzite-sdx:testing. ''testing'' tracks Bazzite-DX testing and is built when upstream changes are detected; it may be less stable. Shows current bootc status, asks for confirmation before running ''sudo bootc switch'', and requires a reboot to apply. To go back, switch to ''stable'' or a specific version/tag, or use ''sudo bootc rollback'' after reboot if applicable.'
     default: false
     status_script: rpm-ostree status --json 2>/dev/null | python3 -c "import json,sys; d={}; \ntry:\n d=json.load(sys.stdin)\nexcept Exception:\n pass\nref=((d.get('deployments') or [{}])[0].get('container-image-reference') or ''); tag=ref.rsplit(':',1)[-1].split('@',1)[0] if ':' in ref else ''; print('active' if tag=='testing' else 'inactive')"
     options:
@@ -259,7 +259,7 @@ screens:
       script: ujust rebase-sdx-testing; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
   - id: rebase-sdx-version
     title: Switch to specific version/tag (SemVer/rollback)
-    description: Switches (rebases) to a specific published Bazzite-SDX image tag. Useful for pinning a known-good release or rolling back/forward to a specific version (for example SemVer tags like v0.1.0), or other tags like weekly-YYYYMMDD/testing-YYYYMMDD when available. Prompts for the tag, validates it, shows current bootc status, and asks for confirmation before running 'sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:<tag>'. Reboot required to apply. 'sudo bootc rollback' reverts to the previous deployment (not the same as choosing an arbitrary tag).
+    description: Switches (rebases) to a specific published Bazzite-SDX image tag. Useful for pinning a known-good release or rolling back/forward to a specific version (for example SemVer tags like v0.1.0), or other tags like stable-YYYYMMDD/testing-YYYYMMDD when available. Prompts for the tag, validates it, shows current bootc status, and asks for confirmation before running 'sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:<tag>'. Reboot required to apply. 'sudo bootc rollback' reverts to the previous deployment (not the same as choosing an arbitrary tag).
     default: false
     script: ujust rebase-sdx-version; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
   - id: run-sdx-benchmark

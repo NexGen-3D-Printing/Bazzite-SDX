@@ -2,9 +2,9 @@
 
 Bazzite-SDX uses **coexisting channels and versioning**:
 
-- **`latest` (weekly)** - automatic **weekly scheduled** build. Publishes image tags `latest`, `weekly`, `weekly-YYYYMMDD`, `sha-*`. Updates the GitHub release tagged `latest` and marks it **Latest**.
-- **`testing`** - **any build that is not the automatic weekly build** (pushes to `main`, manual `workflow_dispatch`). Publishes `testing`, `testing-YYYYMMDD`, `sha-*`. Updates the GitHub release tagged `testing` as a **prerelease** (not Latest).
-- **SemVer (coexisting, pinned)** - explicit `vMAJOR.MINOR.PATCH` tag pushes. Publishes `vX.Y.Z`, `vX.Y`, `sha-*` and creates/updates a versioned GitHub release (**not** Latest; `latest` remains the weekly channel). Source of truth: git tag `v*` + [`VERSION`](VERSION) (must match).
+- **`stable`** - tracks **Bazzite-DX stable**. Publishes `stable`, `stable-YYYYMMDD`, `sha-*`. Updates the GitHub release tagged `stable`. Formerly `latest` (hard rename).
+- **`testing`** - tracks **Bazzite-DX testing**. Publishes `testing`, `testing-YYYYMMDD`, `sha-*`. Updates the GitHub release tagged `testing` as a **prerelease**.
+- **SemVer (coexisting, pinned)** - explicit `vMAJOR.MINOR.PATCH` tag pushes. Publishes `vX.Y.Z`, `vX.Y`, `sha-*` and creates/updates a versioned GitHub release. Source of truth: git tag `v*` + [`VERSION`](VERSION) (must match).
 
 ## Version/build labels
 
@@ -18,14 +18,14 @@ No manual action required. The scheduled workflow (weekly cron, **Monday 12:00 P
 
 Checklist after a weekly run:
 1. Verify Actions run for the scheduled build succeeded.
-2. Verify `ghcr.io/nexgen-3d-printing/bazzite-sdx:latest` (and `:weekly-*`) were published/signed.
+2. Verify `ghcr.io/nexgen-3d-printing/bazzite-sdx:stable` (and `:stable-*`) was published/signed.
 3. Verify the GitHub release `latest` is marked **Latest** and contains current base OS/Surface kernel/portal info.
 
-## Testing builds (non-weekly commits/manual)
+## Testing builds (automatic, change-driven)
 
-Testing builds run automatically on pushes to `main` and can be run via **Actions → Build container image → Run workflow**. They do **not** move `latest`.
+Testing builds track `ghcr.io/ublue-os/bazzite-dx:testing`. They run when the drift check detects changes in Bazzite-DX testing, linux-surface packages, or SDX Control Centre. Pushes to `main` and manual workflow dispatch can also trigger builds.
 
-A scheduled upstream check (Sunday and Tuesday-Saturday, 04:00 UTC) also runs a testing build when the linux-surface packages or the newest SDX Control Centre tag differ from the versions recorded in the `testing` release notes. While a build is already running the check skips, and a failed check never starts a build.
+Use `testing` for validation:
 
 Use `testing` for validation:
 ```bash
@@ -75,6 +75,7 @@ Use SemVer tags when you want an explicit, reproducible/pinned release (`v0.1.0`
 
 ## Notes
 
-- `latest` = **weekly automatic build only**.
-- `testing` = **all non-weekly builds** (commits to `main`, manual dispatch, automatic upstream package updates).
+- `stable` = tracks **Bazzite-DX stable**, built on upstream changes.
+- `testing` = tracks **Bazzite-DX testing**, built on upstream changes.
+- `latest` tag was renamed to `stable` (hard rename).
 - SemVer tags coexist for explicit pinned releases; if tag and `VERSION` don’t match, the workflow fails.

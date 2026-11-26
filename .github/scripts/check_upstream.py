@@ -1,21 +1,27 @@
 #!/usr/bin/env python3
-"""Detect upstream package drift for the Bazzite-SDX image.
+"""Detect upstream drift for Bazzite-SDX stable and testing channels.
 
-The script compares the package versions recorded in the current ``testing``
-release notes against:
+Compares versions recorded in the ``stable`` and ``testing`` release notes
+against current upstreams:
 
-* the newest linux-surface packages published for Fedora 45, and
-* the newest SDX Control Centre release tag.
+* Bazzite-DX base image (stable/testing) version + digest
+* linux-surface packages published for Fedora 45
+* newest SDX Control Centre release tag
 
-It writes ``drift=true|false`` to ``$GITHUB_OUTPUT`` so the caller can decide
-whether to run a testing build. Network or parse failures are reported as
-warnings and treated as "no drift" so a transient upstream outage cannot start
-a rebuild loop.
+Outputs (to $GITHUB_OUTPUT):
+  stable_drift=true|false
+  testing_drift=true|false
+  stable_bazzite_version=<version>
+  testing_bazzite_version=<version>
+
+Network or parse failures are reported as warnings and treated as "no drift"
+for that channel so a transient upstream outage cannot start a rebuild loop.
 """
 
 from __future__ import annotations
 
 import functools
+import json
 import os
 import re
 import subprocess
@@ -28,6 +34,11 @@ SDX_REPO = "https://github.com/NexGen-3D-Printing/SDX-Control-Centre.git"
 NS = {"c": "http://linux.duke.edu/metadata/common"}
 REPO_NS = {"r": "http://linux.duke.edu/metadata/repo"}
 
+BAZZITE_IMAGES = {
+    "stable": "ghcr.io/ublue-os/bazzite-dx:stable",
+    "testing": "ghcr.io/ublue-os/bazzite-dx:testing",
+}
+
 # rpm package name -> label used in the generated release notes
 PACKAGES = {
     "kernel-surface": "Surface kernel",
@@ -37,26 +48,40 @@ PACKAGES = {
     "surface-dtx-daemon": "surface-dtx-daemon",
 }
 SDX_LABEL = "SDX Control Centre"
+BAZZITE_VERSION_LABEL = "Bazzite version"
+BAZZITE_DIGEST_LABEL = "Bazzite digest"
 
 
 def warn(message: str) -> None:
     print(f"::warning::{message}")
 
 
-def emit(drift: bool, lines: list[str]) -> None:
+def emit(
+    stable_drift: bool,
+    testing_drift: bool,
+    lines: list[str],
+    stable_bazzite_version: str = "",
+    testing_bazzite_version: str = "",
+) -> None:
     summary = "\n".join(lines)
     print(summary)
     summary_file = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary_file:
         with open(summary_file, "a", encoding="utf-8") as handle:
-            handle.write("### Upstream package check\n\n")
+            handle.write("### Upstream drift check\n\n")
             for line in lines:
                 handle.write(f"- {line}\n")
             handle.write("\n")
     output_file = os.environ.get("GITHUB_OUTPUT")
     if output_file:
         with open(output_file, "a", encoding="utf-8") as handle:
-            handle.write(f"drift={'true' if drift else 'false'}\n")
+            handle.write(f"stable_drift={'true' if stable_drift else 'false'}\n")
+            handle.write(f"testing_drift={'true' if testing_drift else 'false'}\n")
+            handle.write(f"drift={'true' if (stable_drift or testing_drift) else 'false'}\n")
+            if stable_bazzite_version:
+                handle.write(f"stable_bazzite_version={stable_bazzite_version}\n")
+            if testing_bazzite_version:
+                handle.write(f"testing_bazzite_version={testing_bazzite_version}\n")
 
 
 def rpmvercmp(left: str, right: str) -> int:
@@ -177,16 +202,67 @@ def upstream_sdx() -> str:
     return max(tags, key=tag_key).lstrip("v")
 
 
-def recorded_versions() -> dict[str, str]:
+def upstream_bazzite(channel: str) -> dict[str, str]:
+    image = BAZZITE_IMAGES[channel]
+    # Prefer skopeo (available on ubuntu runners and in containers)
+    try:
+        result = subprocess.run(
+            ["skopeo", "inspect", f"docker://{image}"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=120,
+        )
+        data = json.loads(result.stdout)
+        labels = data.get("Labels") or {}
+        version = (
+            labels.get("org.opencontainers.image.version")
+            or labels.get("version")
+            or ""
+        ).strip()
+        digest = (data.get("Digest") or "").strip()
+        return {"version": version, "digest": digest}
+    except FileNotFoundError:
+        pass
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError(f"skopeo inspect failed for {image}: {exc}") from exc
+
+    # Fallback: podman inspect (if image is local/pullable)
     result = subprocess.run(
-        ["gh", "release", "view", "testing", "--json", "body", "-q", ".body"],
+        ["podman", "pull", "--quiet", image],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=300,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"cannot inspect {image}: skopeo missing and podman pull failed")
+    inspect = subprocess.run(
+        ["podman", "inspect", image, "--format", "{{json .}}"],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=60,
+    )
+    data = json.loads(inspect.stdout)
+    labels = data.get("Labels") or {}
+    return {
+        "version": (labels.get("org.opencontainers.image.version") or "").strip(),
+        "digest": (data.get("Digest") or "").strip(),
+    }
+
+
+def recorded_versions(release_tag: str) -> dict[str, str]:
+    result = subprocess.run(
+        ["gh", "release", "view", release_tag, "--json", "body", "-q", ".body"],
         capture_output=True,
         text=True,
         check=True,
     )
     body = result.stdout
     recorded: dict[str, str] = {}
-    for label in [*PACKAGES.values(), SDX_LABEL]:
+    labels = [*PACKAGES.values(), SDX_LABEL, BAZZITE_VERSION_LABEL, BAZZITE_DIGEST_LABEL]
+    for label in labels:
         match = re.search(
             r"\*\*" + re.escape(label) + r":\*\*\s*([^\n]+)", body
         )
@@ -195,50 +271,132 @@ def recorded_versions() -> dict[str, str]:
     return recorded
 
 
+def recorded_versions_for(channel: str) -> dict[str, str]:
+    tags = [channel]
+    if channel == "stable":
+        tags.append("latest")  # migration fallback
+    last_exc: Exception | None = None
+    for tag in tags:
+        try:
+            return recorded_versions(tag)
+        except Exception as exc:  # noqa: BLE001
+            last_exc = exc
+    if last_exc:
+        raise last_exc
+    return {}
+
+
+def compare_common(
+    channel: str,
+    recorded: dict[str, str],
+    upstream: dict[str, str],
+    sdx_upstream: str,
+) -> tuple[bool, list[str]]:
+    drift = False
+    lines: list[str] = []
+    for rpm_name, label in PACKAGES.items():
+        newest = upstream.get(rpm_name)
+        built = recorded.get(label)
+        if not newest:
+            lines.append(f"[{channel}] {label}: not found in upstream repository")
+            continue
+        if built is None or built == "unknown":
+            lines.append(f"[{channel}] {label}: not recorded yet (upstream {newest})")
+            continue
+        if built != newest:
+            drift = True
+            lines.append(f"[{channel}] CHANGED {label}: built {built} -> upstream {newest}")
+        else:
+            lines.append(f"[{channel}] ok {label}: {built}")
+
+    built_sdx = recorded.get(SDX_LABEL)
+    if built_sdx is None or built_sdx == "unknown":
+        lines.append(f"[{channel}] {SDX_LABEL}: not recorded yet (upstream {sdx_upstream})")
+    elif built_sdx != sdx_upstream:
+        drift = True
+        lines.append(
+            f"[{channel}] CHANGED {SDX_LABEL}: built {built_sdx} -> upstream {sdx_upstream}"
+        )
+    else:
+        lines.append(f"[{channel}] ok {SDX_LABEL}: {built_sdx}")
+    return drift, lines
+
+
+def compare_bazzite(channel: str, recorded: dict[str, str]) -> tuple[bool, list[str], str]:
+    lines: list[str] = []
+    try:
+        info = upstream_bazzite(channel)
+    except Exception as exc:  # noqa: BLE001
+        warn(f"could not inspect Bazzite-DX {channel}: {exc}")
+        return False, [f"[{channel}] Bazzite check failed; not triggering {channel} build"], ""
+
+    version = info.get("version", "")
+    digest = info.get("digest", "")
+    rec_version = recorded.get(BAZZITE_VERSION_LABEL)
+    rec_digest = recorded.get(BAZZITE_DIGEST_LABEL)
+
+    # Prefer digest for exactness; version as secondary signal.
+    changed = False
+    if not version and not digest:
+        lines.append(f"[{channel}] Bazzite-DX: no version/digest found")
+    elif rec_digest and digest and rec_digest != digest:
+        changed = True
+        lines.append(
+            f"[{channel}] CHANGED Bazzite-DX: {rec_version or 'unknown'} ({rec_digest[:19]}...) -> {version or 'unknown'} ({digest[:19]}...)"
+        )
+    elif rec_version and version and rec_version != version:
+        changed = True
+        lines.append(f"[{channel}] CHANGED Bazzite-DX version: {rec_version} -> {version}")
+    elif rec_digest is None and rec_version is None:
+        lines.append(f"[{channel}] Bazzite-DX: not recorded yet (upstream {version} {digest[:19]}...)")
+        # Do not force drift just because notes lack field yet; common packages will handle first build.
+    else:
+        lines.append(f"[{channel}] ok Bazzite-DX: {version} ({digest[:19]}...)")
+    return changed, lines, version
+
+
 def main() -> int:
     lines: list[str] = []
-
-    try:
-        recorded = recorded_versions()
-    except Exception as exc:  # noqa: BLE001
-        warn(f"could not read the testing release notes: {exc}")
-        recorded = {}
 
     try:
         upstream = upstream_packages()
         sdx_upstream = upstream_sdx()
     except Exception as exc:  # noqa: BLE001
-        warn(f"could not read upstream versions: {exc}")
-        emit(False, ["upstream check failed; not triggering a build"])
+        warn(f"could not read common upstream versions: {exc}")
+        emit(False, False, ["upstream check failed; not triggering builds"])
         return 0
 
-    drift = False
-    for rpm_name, label in PACKAGES.items():
-        newest = upstream.get(rpm_name)
-        built = recorded.get(label)
-        if not newest:
-            lines.append(f"{label}: not found in the upstream repository")
-            continue
-        if built is None or built == "unknown":
-            lines.append(f"{label}: not recorded yet (upstream {newest})")
-            continue
-        if built != newest:
-            drift = True
-            lines.append(f"CHANGED {label}: built {built} -> upstream {newest}")
-        else:
-            lines.append(f"ok {label}: {built}")
+    channel_results: dict[str, bool] = {}
+    bazzite_versions: dict[str, str] = {}
 
-    built_sdx = recorded.get(SDX_LABEL)
-    if built_sdx is None or built_sdx == "unknown":
-        lines.append(f"{SDX_LABEL}: not recorded yet (upstream {sdx_upstream})")
-    elif built_sdx != sdx_upstream:
-        drift = True
-        lines.append(f"CHANGED {SDX_LABEL}: built {built_sdx} -> upstream {sdx_upstream}")
-    else:
-        lines.append(f"ok {SDX_LABEL}: {built_sdx}")
+    for channel in ("stable", "testing"):
+        try:
+            recorded = recorded_versions_for(channel)
+        except Exception as exc:  # noqa: BLE001
+            warn(f"could not read {channel} release notes: {exc}")
+            recorded = {}
 
-    lines.append("RESULT: rebuild required" if drift else "RESULT: up to date")
-    emit(drift, lines)
+        common_drift, common_lines = compare_common(channel, recorded, upstream, sdx_upstream)
+        bazzite_drift, bazzite_lines, baz_ver = compare_bazzite(channel, recorded)
+        bazzite_versions[channel] = baz_ver
+        lines.extend(common_lines)
+        lines.extend(bazzite_lines)
+
+        # If release notes are missing entirely, treat as drift so we create it.
+        missing_notes = len(recorded) == 0
+        drift = common_drift or bazzite_drift or missing_notes
+        if missing_notes:
+            lines.append(f"[{channel}] release notes missing/unreadable -> rebuild required")
+        channel_results[channel] = drift
+        lines.append(f"[{channel}] RESULT: {'rebuild required' if drift else 'up to date'}")
+
+    emit(
+        channel_results.get("stable", False),
+        channel_results.get("testing", False),
+        lines,
+        bazzite_versions.get("stable", ""),
+        bazzite_versions.get("testing", ""),
+    )
     return 0
 
 

@@ -53,10 +53,10 @@ Bazzite-SDX is distributed as a bootc container image (no custom USB installer I
 # Verify current state
 sudo bootc status
 
-# Rebase to Bazzite-SDX (latest weekly build)
-sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:latest
+# Rebase to Bazzite-SDX (stable - tracks Bazzite-DX stable)
+sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:stable
 
-# Or track the testing channel (non-weekly commit/manual builds):
+# Or track the testing channel (tracks Bazzite-DX testing):
 # sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:testing
 
 # Or pin to a specific SemVer release (recommended for reproducibility), e.g.:
@@ -87,7 +87,7 @@ rpm -qa | grep -E "(kernel-surface|iptsd|libwacom-surface|surface-)"
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/NexGen-3D-Printing/Bazzite-SDX/main/cosign.pub -o cosign.pub
-cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:latest
+cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:stable
 ```
 
 ## Supported Hardware
@@ -130,13 +130,14 @@ sudo reboot
 
 Bazzite-SDX uses coexisting channel/versioning:
 
-- **`latest` (weekly):** automatic **weekly scheduled** build (Monday 12:00 PM AWST / 04:00 UTC; `:latest`, `:weekly`, `:weekly-YYYYMMDD`). The GitHub **Latest** release tracks the newest weekly build.
-- **`testing`:** any build that is **not** the automatic weekly build (pushes to `main`, manual workflow runs). Publishes `:testing`, `:testing-YYYYMMDD`, `:sha-*` and updates a `testing` prerelease for validation. A daily check (Tue-Sun, 04:00 UTC) also builds `testing` automatically when the linux-surface packages or SDX Control Centre publish a newer version.
-- **SemVer tags (coexisting, pinned):** explicit `vX.Y.Z` tag pushes create versioned releases/tags (source of truth: git tag + [`VERSION`](VERSION)). SemVer releases coexist with weekly/testing channels and do **not** move `latest` (weekly remains `latest`).
+- **`stable`:** tracks **Bazzite-DX stable**. Built automatically when upstream changes are detected in Bazzite-DX stable, linux-surface packages, or SDX Control Centre. Formerly published as `latest` (hard rename).
+- **`testing`:** tracks **Bazzite-DX testing**. Built automatically when upstream changes are detected in Bazzite-DX testing, linux-surface packages, or SDX Control Centre. Publishes `:testing`, `:testing-YYYYMMDD`, `:sha-*` and updates a `testing` prerelease.
+- **SemVer tags (coexisting, pinned):** explicit `vX.Y.Z` tag pushes create versioned releases/tags (source of truth: git tag + [`VERSION`](VERSION)).
 
-Build version labels: weekly = `weekly-YYYYMMDD+<sha>`, testing = `testing-YYYYMMDD+<sha>`, SemVer = `vX.Y.Z`.
+Build version labels: stable = `stable-YYYYMMDD+<sha>`, testing = `testing-YYYYMMDD+<sha>`, SemVer = `vX.Y.Z`. Display versions follow the Bazzite-DX base image version.
 
-- [**Latest (weekly) release**](https://github.com/NexGen-3D-Printing/Bazzite-SDX/releases/latest)
+- [**Stable release**](https://github.com/NexGen-3D-Printing/Bazzite-SDX/releases/tag/stable)
+- [**Testing release**](https://github.com/NexGen-3D-Printing/Bazzite-SDX/releases/tag/testing)
 - [RELEASE.md](RELEASE.md) - channel/release checklist (weekly, testing, SemVer).
 - [RELEASE-INFO.md](RELEASE-INFO.md) - repository release notes/history.
 
@@ -156,7 +157,7 @@ sudo dnf install podman just
 just build
 
 # Switch to the locally built image
-sudo bootc switch localhost/bazzite-sdx:latest
+sudo bootc switch localhost/bazzite-sdx:stable
 sudo reboot
 ```
 
@@ -178,7 +179,7 @@ I'm NexGen-3D-Printing, creator of Bazzite-SDX. I'm a 3D printing enthusiast and
 ## Troubleshooting
 
 ### Image won't boot
-- Verify the image signature: `cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:latest`
+- Verify the image signature: `cosign verify --key cosign.pub ghcr.io/nexgen-3d-printing/bazzite-sdx:stable`
 - Try an earlier build tag (dated tags are published by CI)
 - Check the [issues](https://github.com/NexGen-3D-Printing/Bazzite-SDX/issues)
 

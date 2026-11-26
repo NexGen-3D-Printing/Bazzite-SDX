@@ -5,11 +5,9 @@ on:
     branches:
       - main
   schedule:
-    # Weekly automatic build (publishes :latest) - Monday 12:00 PM AWST (UTC+8)
-    - cron: '0 4 * * 1'  # Monday 04:00 UTC / 12:00 PM AWST
-    # Daily upstream package check except Monday (Sunday + Tue-Sat). Only builds
-    # :testing when a linux-surface package or SDX Control Centre version changed.
-    - cron: '0 4 * * 0,2-6'  # Sun + Tue-Sat 04:00 UTC / 12:00 PM AWST
+    # Upstream drift check every 6 hours. Builds stable/testing only when
+    # Bazzite-DX, linux-surface packages, or SDX Control Centre changed.
+    - cron: '0 */6 * * *'
   push:
     branches:
       - main
@@ -17,21 +15,17 @@ on:
       - 'v*'
   workflow_dispatch:
     inputs:
-      unstable:
-        description: 'Build and publish unstable tags (use when running from experimental). Does not update latest/testing.'
+      channel:
+        description: 'Channel to build: auto (drift check), stable, testing, both, or unstable'
         required: false
-        type: boolean
-        default: false
-      build_latest:
-        description: 'Build and publish as latest/weekly (manual). Takes current testing display version.'
-        required: false
-        type: boolean
-        default: false
-      check_upstream:
-        description: 'Run the upstream package check. Builds testing only when linux-surface packages or SDX Control Centre changed.'
-        required: false
-        type: boolean
-        default: false
+        type: choice
+        default: auto
+        options:
+          - auto
+          - stable
+          - testing
+          - both
+          - unstable
 
 env:
   IMAGE_REGISTRY: "ghcr.io/nexgen-3d-printing"  # do not edit
@@ -42,16 +36,20 @@ concurrency:
 
 jobs:
   check_upstream:
-    name: Check upstream packages
+    name: Check upstream drift
     if: |
-      (github.event_name == 'schedule' && github.event.schedule != '0 4 * * 1') ||
-      (github.event_name == 'workflow_dispatch' && inputs.check_upstream && !inputs.build_latest && !inputs.unstable)
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && inputs.channel == 'auto')
     runs-on: ubuntu-26.04
     permissions:
       contents: read
       actions: read
     outputs:
+      stable_drift: ${{ steps.detect.outputs.stable_drift }}
+      testing_drift: ${{ steps.detect.outputs.testing_drift }}
       drift: ${{ steps.detect.outputs.drift }}
+      stable_bazzite_version: ${{ steps.detect.outputs.stable_bazzite_version }}
+      testing_bazzite_version: ${{ steps.detect.outputs.testing_bazzite_version }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -73,25 +71,113 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Ensure zstd is available
+      - name: Ensure zstd and skopeo are available
         if: steps.active.outputs.skip != 'true'
-        run: command -v zstd >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y zstd)
+        run: |
+          command -v zstd >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y zstd)
+          command -v skopeo >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y skopeo)
 
-      - name: Detect upstream package drift
+      - name: Detect upstream drift
         id: detect
         if: steps.active.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python3 .github/scripts/check_upstream.py
 
-  build_push:
-    name: Build and push image
+  plan:
+    name: Plan builds
     needs: check_upstream
     if: |
       !cancelled() &&
-      needs.check_upstream.result != 'failure' &&
-      !(needs.check_upstream.result == 'success' && needs.check_upstream.outputs.drift != 'true')
+      needs.check_upstream.result != 'failure'
     runs-on: ubuntu-26.04
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      has_builds: ${{ steps.plan.outputs.has_builds }}
+    steps:
+      - name: Determine build matrix
+        id: plan
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          INPUT_CHANNEL: ${{ inputs.channel || 'auto' }}
+          STABLE_DRIFT: ${{ needs.check_upstream.outputs.stable_drift || 'false' }}
+          TESTING_DRIFT: ${{ needs.check_upstream.outputs.testing_drift || 'false' }}
+        run: |
+          set -euo pipefail
+          channels=()
+
+          add_channel() {
+            local ch="$1"
+            for existing in "${channels[@]+"${channels[@]}"}"; do
+              [[ "$existing" == "$ch" ]] && return 0
+            done
+            channels+=("$ch")
+          }
+
+          if [[ "${EVENT_NAME}" == "pull_request" ]]; then
+            add_channel "testing"
+          elif [[ "${EVENT_NAME}" == "push" && "${REF}" == refs/tags/v* ]]; then
+            add_channel "stable"
+          elif [[ "${EVENT_NAME}" == "push" ]]; then
+            add_channel "stable"
+            add_channel "testing"
+          elif [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            case "${INPUT_CHANNEL}" in
+              stable) add_channel "stable" ;;
+              testing) add_channel "testing" ;;
+              both) add_channel "stable"; add_channel "testing" ;;
+              unstable) add_channel "unstable" ;;
+              auto)
+                [[ "${STABLE_DRIFT}" == "true" ]] && add_channel "stable"
+                [[ "${TESTING_DRIFT}" == "true" ]] && add_channel "testing"
+                ;;
+              *) echo "::error::Unknown channel ${INPUT_CHANNEL}"; exit 1 ;;
+            esac
+          elif [[ "${EVENT_NAME}" == "schedule" ]]; then
+            [[ "${STABLE_DRIFT}" == "true" ]] && add_channel "stable"
+            [[ "${TESTING_DRIFT}" == "true" ]] && add_channel "testing"
+          fi
+
+          if [[ ${#channels[@]} -eq 0 ]]; then
+            echo "No channels to build."
+            echo 'matrix={"include":[]}' >> "$GITHUB_OUTPUT"
+            echo "has_builds=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          json='{"include":['
+          first=true
+          for ch in "${channels[@]}"; do
+            if [[ "$first" == "true" ]]; then first=false; else json+=','; fi
+            case "$ch" in
+              stable)
+                base="ghcr.io/ublue-os/bazzite-dx:stable"
+                ;;
+              testing)
+                base="ghcr.io/ublue-os/bazzite-dx:testing"
+                ;;
+              unstable)
+                base="ghcr.io/ublue-os/bazzite-dx:testing"
+                ;;
+              *) echo "::error::Unknown channel $ch"; exit 1 ;;
+            esac
+            json+="{\"channel\":\"${ch}\",\"base_image\":\"${base}\"}"
+          done
+          json+=']}'
+
+          echo "matrix=${json}" >> "$GITHUB_OUTPUT"
+          echo "has_builds=true" >> "$GITHUB_OUTPUT"
+          echo "Planned channels: ${channels[*]}"
+
+  build_push:
+    name: Build and push (${{ matrix.channel }})
+    needs: [check_upstream, plan]
+    if: needs.plan.outputs.has_builds == 'true'
+    runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
 
     permissions:
       contents: write
@@ -131,17 +217,17 @@ jobs:
           REF: ${{ github.ref }}
           REF_NAME: ${{ github.ref_name }}
           SHA: ${{ github.sha }}
-          UNSTABLE_INPUT: ${{ inputs.unstable && 'true' || 'false' }}
-          BUILD_LATEST_INPUT: ${{ inputs.build_latest && 'true' || 'false' }}
+          MATRIX_CHANNEL: ${{ matrix.channel }}
+          MATRIX_BASE_IMAGE: ${{ matrix.base_image }}
         run: |
           set -euo pipefail
           SHORT_SHA="${SHA:0:7}"
           DATE_UTC="$(date -u +%Y%m%d)"
           FILE_VERSION="$(tr -d '[:space:]' < VERSION 2>/dev/null || echo 0.0.0)"
-          CHANNEL=""
-          PUBLISH=false
+          CHANNEL="${MATRIX_CHANNEL}"
+          PUBLISH=true
           VERSION_LABEL=""
-          RELEASE_KIND="none"   # weekly|testing|semver|unstable|none
+          RELEASE_KIND="${MATRIX_CHANNEL}"   # stable|testing|semver|unstable|pr
           SEMVER_TAG=""
           SEMVER_NUM=""
 
@@ -158,7 +244,7 @@ jobs:
                 echo "::error::VERSION file (${FILE_VERSION}) does not match tag ${SEMVER_TAG} (expected ${SEMVER_NUM})"
                 exit 1
               fi
-              CHANNEL="semver"
+              CHANNEL="stable"
               PUBLISH=true
               VERSION_LABEL="${SEMVER_TAG}"
               RELEASE_KIND="semver"
@@ -166,35 +252,24 @@ jobs:
               echo "::error::Unsupported tag format '${SEMVER_TAG}'. Use SemVer tags like v0.1.0."
               exit 1
             fi
-          elif [[ "${EVENT_NAME}" == "schedule" && "$(date -u +%u)" == "1" ]] || [[ "${EVENT_NAME}" == "workflow_dispatch" && "${BUILD_LATEST_INPUT}" == "true" && "${UNSTABLE_INPUT}" != "true" ]]; then
-            # Automatic weekly build (Monday) -> latest, or manual latest build
-            CHANNEL="weekly"
+          elif [[ "${MATRIX_CHANNEL}" == "stable" ]]; then
+            CHANNEL="stable"
             PUBLISH=true
-            VERSION_LABEL="weekly-${DATE_UTC}+${SHORT_SHA}"
-            RELEASE_KIND="weekly"
-          elif [[ "${EVENT_NAME}" == "schedule" ]]; then
-            # Daily upstream-check build (only runs when drift was detected) -> testing
+            VERSION_LABEL="stable-${DATE_UTC}+${SHORT_SHA}"
+            RELEASE_KIND="stable"
+          elif [[ "${MATRIX_CHANNEL}" == "testing" ]]; then
             CHANNEL="testing"
             PUBLISH=true
             VERSION_LABEL="testing-${DATE_UTC}+${SHORT_SHA}"
             RELEASE_KIND="testing"
-          elif [[ "${EVENT_NAME}" == "workflow_dispatch" && ( "${UNSTABLE_INPUT}" == "true" || "${REF_NAME}" == "experimental" ) ]]; then
-            # Manual unstable build (typically from experimental). Publishes :unstable tags; does not update latest/testing.
+          elif [[ "${MATRIX_CHANNEL}" == "unstable" ]]; then
             CHANNEL="unstable"
             PUBLISH=true
             VERSION_LABEL="unstable-${DATE_UTC}+${SHORT_SHA}"
             RELEASE_KIND="unstable"
-          elif [[ "${EVENT_NAME}" == "push" || "${EVENT_NAME}" == "workflow_dispatch" ]]; then
-            # Any build that is not the automatic weekly build -> testing
-            CHANNEL="testing"
-            PUBLISH=true
-            VERSION_LABEL="testing-${DATE_UTC}+${SHORT_SHA}"
-            RELEASE_KIND="testing"
           else
-            CHANNEL="testing"
-            PUBLISH=true
-            VERSION_LABEL="testing-${DATE_UTC}+${SHORT_SHA}"
-            RELEASE_KIND="testing"
+            echo "::error::Unknown matrix channel ${MATRIX_CHANNEL}"
+            exit 1
           fi
 
           {
@@ -207,6 +282,7 @@ jobs:
             echo "short_sha=${SHORT_SHA}"
             echo "date_utc=${DATE_UTC}"
             echo "file_version=${FILE_VERSION}"
+            echo "base_image=${MATRIX_BASE_IMAGE}"
           } >> "$GITHUB_OUTPUT"
 
       - name: Debug environment
@@ -268,6 +344,7 @@ jobs:
           IMAGE_DESC: ${{ steps.load-env.outputs.IMAGE_DESC }}
           DEFAULT_TAG: ${{ steps.load-env.outputs.DEFAULT_TAG }}
           VERSION_LABEL: ${{ steps.version.outputs.version_label }}
+          BASE_IMAGE: ${{ steps.version.outputs.base_image }}
         run: |
           set -euox pipefail
           LABELS=(
@@ -279,7 +356,7 @@ jobs:
             "--label" "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}"
             "--label" "org.opencontainers.image.revision=${GITHUB_SHA}"
           )
-          podman build "${LABELS[@]}" --pull=newer --tag "${IMAGE_NAME}:${DEFAULT_TAG}" --file Containerfile .
+          podman build "${LABELS[@]}" --pull=newer --build-arg "BASE_IMAGE=${BASE_IMAGE}" --tag "${IMAGE_NAME}:${DEFAULT_TAG}" --file Containerfile .
 
       - name: Rechunk with rpm-ostree
         id: rechunk
@@ -304,15 +381,12 @@ jobs:
           set -euo pipefail
           BUILD_TAGS=()
           case "${CHANNEL}" in
-            weekly)
-              # Automatic weekly build -> latest
-              BUILD_TAGS+=("latest")
-              BUILD_TAGS+=("weekly")
-              BUILD_TAGS+=("weekly-${DATE_UTC}")
+            stable)
+              BUILD_TAGS+=("stable")
+              BUILD_TAGS+=("stable-${DATE_UTC}")
               BUILD_TAGS+=("sha-${SHORT_SHA}")
               ;;
             testing)
-              # Any build that is not the automatic weekly build -> testing
               BUILD_TAGS+=("testing")
               BUILD_TAGS+=("testing-${DATE_UTC}")
               BUILD_TAGS+=("sha-${SHORT_SHA}")
@@ -377,9 +451,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "DEBUG: ALIAS_TAGS=${ALIAS_TAGS}"
-          PRIMARY_DIGEST_TAG="testing"
-          if [[ "${CHANNEL}" == "weekly" ]]; then PRIMARY_DIGEST_TAG="latest"; fi
-          if [[ "${CHANNEL}" == "unstable" ]]; then PRIMARY_DIGEST_TAG="unstable"; fi
+          PRIMARY_DIGEST_TAG="${CHANNEL}"
           if [[ "${CHANNEL}" == "semver" && -n "${SEMVER_TAG}" ]]; then PRIMARY_DIGEST_TAG="${SEMVER_TAG}"; fi
           for tag in ${ALIAS_TAGS}; do
             DESTINATION="${IMAGE_REGISTRY}/${IMAGE_NAME}:${tag}"
@@ -433,10 +505,9 @@ jobs:
           DIGEST: ${{ steps.push-image.outputs.digest }}
           DIGEST_TAG: ${{ steps.push-image.outputs.digest_tag }}
           REF_NAME: ${{ github.ref_name }}
+          BASE_IMAGE: ${{ steps.version.outputs.base_image }}
         run: |
           set -euo pipefail
-          # Use a locally tagged image (sha tag is always published). DEFAULT_TAG may not
-          # be present locally for testing/semver builds because Tag Image only keeps ALIAS_TAGS.
           IMG="${IMAGE_NAME}:sha-${SHORT_SHA}"
           if ! podman image exists "${IMG}" 2>/dev/null; then
             IMG="${IMAGE_NAME}:${DIGEST_TAG:-${DEFAULT_TAG}}"
@@ -444,7 +515,6 @@ jobs:
 
           BASE_OS_PRETTY=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${PRETTY_NAME:-unknown}"' | head -n1)
           BASE_OS_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${VERSION_ID:-${VERSION:-unknown}}"' | head -n1)
-          BASE_OS_NAME=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${NAME:-unknown}"' | head -n1)
           SURFACE_PKGS=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '
             for p in kernel-surface iptsd libwacom-surface surface-control surface-dtx-daemon; do
               printf "%s=%s\n" "$p" "$(rpm -q "$p" --qf "%{VERSION}-%{RELEASE}" 2>/dev/null || echo unknown)"
@@ -463,59 +533,49 @@ jobs:
           SURFACE_DTX_DAEMON="$(pkg_version surface-dtx-daemon)"
           SDX_VERSION="$(pkg_version sdx-control-centre)"
 
-          # Determine display version for rolling channels (Vx.y.z)
-          # - testing: increments patch from last known testing/latest display version
-          # - weekly/latest: takes current testing display version (so latest matches testing)
-          DISPLAY_VERSION=""
-          BASE_VER=""
-          for rel in testing latest; do
-            NAME_RAW="$(gh release view "$rel" --json name -q .name 2>/dev/null || true)"
-            if [[ "$NAME_RAW" =~ [Vv]([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
-              BASE_VER="V${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
-              break
-            fi
-          done
-          [[ -z "$BASE_VER" ]] && BASE_VER="V1.0.0"
+          BAZZITE_VERSION="unknown"
+          BAZZITE_DIGEST=""
+          if ! command -v skopeo >/dev/null 2>&1; then sudo apt-get update -qq && sudo apt-get install -y -qq skopeo >/dev/null || true; fi
+          if command -v skopeo >/dev/null 2>&1; then
+            BAZZITE_VERSION=$(skopeo inspect "docker://${BASE_IMAGE}" 2>/dev/null | jq -r '.Labels["org.opencontainers.image.version"] // .Labels["version"] // "unknown"' | head -n1)
+            BAZZITE_DIGEST=$(skopeo inspect "docker://${BASE_IMAGE}" 2>/dev/null | jq -r '.Digest // ""' | head -n1)
+          fi
+          if [[ -z "${BAZZITE_VERSION}" || "${BAZZITE_VERSION}" == "null" ]]; then BAZZITE_VERSION="unknown"; fi
+          if [[ -z "${BAZZITE_DIGEST}" || "${BAZZITE_DIGEST}" == "null" ]]; then BAZZITE_DIGEST="unknown"; fi
 
-          bump_patch() {
-            local v="${1#V}"; v="${v#v}"
-            local maj min pat
-            IFS=. read -r maj min pat <<< "$v"
-            echo "V${maj}.${min}.$((pat + 1))"
-          }
+          MARK_LATEST=false
+          PRERELEASE=false
+          TAG=""
+          TITLE=""
+          CHANNEL_NOTE=""
+          PRIMARY_IMAGE=""
 
-          if [[ "${RELEASE_KIND}" == "weekly" ]]; then
-            DISPLAY_VERSION="$BASE_VER"
-            TAG="latest"
-            TITLE="Bazzite-SDX ${DISPLAY_VERSION} (Latest Weekly)"
-            MARK_LATEST=true
-            PRERELEASE=false
-            PRIMARY_IMAGE="ghcr.io/nexgen-3d-printing/bazzite-sdx:latest"
-            CHANNEL_NOTE="Automatic weekly build. \`latest\` tracks the newest weekly build and takes the current testing display version at build time. Commit/change builds (non-weekly) publish \`testing\` tags with an incremented display version."
+          if [[ "${RELEASE_KIND}" == "stable" ]]; then
+            TAG="stable"
+            DISPLAY_VERSION="${BAZZITE_VERSION}"
+            TITLE="Bazzite-SDX ${DISPLAY_VERSION} (Stable)"
+            PRIMARY_IMAGE="ghcr.io/nexgen-3d-printing/bazzite-sdx:stable"
+            CHANNEL_NOTE="Stable channel build from \`ghcr.io/ublue-os/bazzite-dx:stable\`. Built automatically when upstream changes are detected in Bazzite-DX Stable, linux-surface packages, or SDX Control Centre. This channel was formerly published as \`latest\`; it is now \`stable\` (hard rename)."
           elif [[ "${RELEASE_KIND}" == "testing" ]]; then
-            DISPLAY_VERSION="$(bump_patch "$BASE_VER")"
             TAG="testing"
+            DISPLAY_VERSION="${BAZZITE_VERSION}"
             TITLE="Bazzite-SDX ${DISPLAY_VERSION} (Testing)"
-            MARK_LATEST=false
             PRERELEASE=true
             PRIMARY_IMAGE="ghcr.io/nexgen-3d-printing/bazzite-sdx:testing"
-            CHANNEL_NOTE="Testing channel build (not the automatic weekly build). Published from \`${REF_NAME}\` / ${SHORT_SHA}. Display version increments on each testing build; the weekly/latest build takes the current testing display version. Use for validation."
+            CHANNEL_NOTE="Testing channel build from \`ghcr.io/ublue-os/bazzite-dx:testing\`. Built automatically when upstream changes are detected in Bazzite-DX Testing, linux-surface packages, or SDX Control Centre. Use for validation before relying on stable."
           elif [[ "${RELEASE_KIND}" == "unstable" ]]; then
-            DISPLAY_VERSION="Unstable ${DATE_UTC}-${SHORT_SHA}"
             TAG="unstable"
+            DISPLAY_VERSION="unstable-${DATE_UTC}-${SHORT_SHA}"
             TITLE="Bazzite-SDX (Unstable / Experimental)"
-            MARK_LATEST=false
             PRERELEASE=true
             PRIMARY_IMAGE="ghcr.io/nexgen-3d-printing/bazzite-sdx:unstable"
-            CHANNEL_NOTE="Manual unstable/experimental build (typically from \`${REF_NAME}\`). Published only when explicitly triggered. Does not update \`latest\` or \`testing\`. Use for investigation; expect breakage."
+            CHANNEL_NOTE="Manual unstable/experimental build. Published only when explicitly triggered. Does not update \`stable\` or \`testing\`. Use for investigation; expect breakage."
           elif [[ "${RELEASE_KIND}" == "semver" ]]; then
-            DISPLAY_VERSION="${SEMVER_TAG}"
             TAG="${SEMVER_TAG}"
+            DISPLAY_VERSION="${SEMVER_TAG}"
             TITLE="Bazzite-SDX ${SEMVER_TAG}"
-            MARK_LATEST=false
-            PRERELEASE=false
             PRIMARY_IMAGE="ghcr.io/nexgen-3d-printing/bazzite-sdx:${SEMVER_TAG}"
-            CHANNEL_NOTE="Explicit SemVer release (coexists with weekly \`latest\` and \`testing\` channels). \`latest\` continues to track weekly builds."
+            CHANNEL_NOTE="Explicit SemVer release (pinned). Source of truth: git tag + \`VERSION\`."
           else
             echo "No release update for ${RELEASE_KIND}"
             exit 0
@@ -528,13 +588,17 @@ jobs:
             echo ""
             echo "Bazzite-DX with Linux Surface kernel support."
             echo ""
+            echo "> **Channel naming update:** \`Bazzite-SDX:latest\` has been renamed to \`Bazzite-SDX:stable\` (built from \`Bazzite-DX:stable\`). \`Bazzite-SDX:testing\` is built from \`Bazzite-DX:testing\`. Builds are now triggered by upstream changes (Bazzite-DX, linux-surface packages, SDX Control Centre) rather than a fixed weekly schedule."
+            echo ""
             echo "${CHANNEL_NOTE}"
             echo ""
             echo "### Versions / Image info"
             echo "- **Display version:** \`${DISPLAY_VERSION}\`"
             echo "- **Channel:** ${CHANNEL}"
             echo "- **Build version:** \`${VERSION_LABEL}\`"
-            if [[ "${RELEASE_KIND}" == "semver" ]]; then echo "- **SemVer tag:** \`${SEMVER_TAG}\` (source of truth: git tag + \`VERSION\`)"; fi
+            echo "- **Bazzite-DX base:** \`${BASE_IMAGE}\`"
+            echo "- **Bazzite version:** ${BAZZITE_VERSION}"
+            echo "- **Bazzite digest:** ${BAZZITE_DIGEST}"
             echo "- **Bazzite/base OS:** ${BASE_OS_PRETTY} (VERSION_ID: ${BASE_OS_VERSION})"
             echo "- **Surface kernel:** ${SURFACE_KERNEL}"
             echo "- **iptsd:** ${IPTSD}"
@@ -544,71 +608,24 @@ jobs:
             echo "- **SDX Control Centre:** ${SDX_VERSION}"
             echo "- **Image digest:** \`${DIGEST}\`"
             echo "- **Primary image:** \`${PRIMARY_IMAGE}\`"
-            echo "- **Weekly/latest:** \`ghcr.io/nexgen-3d-printing/bazzite-sdx:latest\`"
+            echo "- **Stable:** \`ghcr.io/nexgen-3d-printing/bazzite-sdx:stable\`"
             echo "- **Testing:** \`ghcr.io/nexgen-3d-printing/bazzite-sdx:testing\`"
             echo ""
-            echo "### NexGen3D SDX Portal"
-            echo "The image includes **NexGen3D SDX Portal**, a separate yafti-based portal alongside the original Bazzite Portal. It provides category tabs, per-app install actions, and full app descriptions, and runs Bazzite-SDX \`ujust\` recipes (apps are **not baked into the OS image**). Flatpak apps install **per user** (Bazzite-style, no sudo required for app installs). NexGen3D SDX Portal is configured to launch on first boot; Steam autostart is disabled by default in Bazzite-SDX."
-            echo ""
-            echo "**Launch:** open \`NexGen3D SDX Portal\` from the app menu (or run \`yafti_gtk.py /usr/share/yafti/nexgen3d-sdx.yml\`)."
-            echo ""
-            echo "**Portal features:**"
-            echo "- Separate from the upstream Bazzite Portal (configured to launch on first boot)"
-            echo "- Category tabs: Setup, AI Tools, Web Browsers, Creative Utilities, System Utilities, Media, System Management"
-            echo "- Per-app install options with full descriptions and source/install-method notes"
-            echo "- \"Install all core apps\" option + per-app \`ujust\` recipes"
-            echo "- System actions: check for updates (prompt before \`ujust update\`), switch channels/versions via bootc (\`latest\` weekly, \`testing\`, or specific SemVer/tag), run \`ujust benchmark\` (if available), show system info via \`fastfetch\`"
-            echo ""
-            echo "**Apps included / available via portal (install priority: Flatpak > AppImage > rpm-ostree layer > Docker, as applicable):**"
-            echo "- **AI Tools:** OpenCode desktop app (upstream AppImage integrated via Gear Lever, with stable/pre-release install options and GitHub update source), OpenCode CLI (official user installer), LM Studio (\`ai.lmstudio.lm-studio\`, user Flatpak/Flathub), Unsloth Desktop (AppImage, user install with stable/pre-release options), ArtCraft (upstream Flatpak bundle from \`storytold/artcraft\`, user install with stable/pre-release options; **warning:** requires an account and may require a subscription for some features/services), Craft Anything (upstream Flatpak bundle from \`storytold/craft-anything\`, user install with stable/pre-release options), REA / \`rea-agents\` (\`morluto/rea\`, user-local npm/npx CLI/MCP setup; requires supported Node.js/npm), Harbor (\`av/harbor\`, Docker/Compose setup), Odysseus (\`odysseus-dev/odysseus\`, Docker/Compose setup)"
-            echo "- **Web Browsers:** Brave Browser (\`com.brave.Browser\`, user Flatpak/Flathub)"
-            echo "- **Creative Utilities:** SolidCraft (\`io.tangencylabs.solidcraft\`, user Flatpak via SolidCraft repo), PhotoCraft (upstream Flatpak bundle from \`storytold/photocraft\`, user install with stable/pre-release options), PDFCraft (upstream Flatpak bundle from \`storytold/pdfcraft\`, user install with stable/pre-release options)"
-            echo "- **System Utilities:** Mission Center (\`io.missioncenter.MissionCenter\`, user Flatpak/Flathub), Gear Lever (\`it.mijorus.gearlever\`, user Flatpak/Flathub)"
-            echo "- **Media:** Plex Player/Plex Desktop (\`tv.plex.PlexDesktop\`, user Flatpak/Flathub), Plex HTPC (\`tv.plex.PlexHTPC\`, user Flatpak/Flathub), VLC (\`org.videolan.VLC\`, user Flatpak/Flathub), Delfin (\`cafe.avery.Delfin\`, user Flatpak/Flathub), Web App Hub (\`org.pvermeer.WebAppHub\`, user Flatpak/Flathub)"
-            echo ""
-            echo "### Quick install (core Bazzite-SDX apps)"
-            echo "After rebasing, install the core curated app set with:"
-            echo '```bash'
-            echo "ujust install-bazzite-sdx-flatpaks"
-            echo '```'
-            echo "Or use **NexGen3D SDX Portal** for per-app installs and additional tools."
-            echo ""
             echo "### Channels, switching & rollback (bootc)"
-            if [[ "${RELEASE_KIND}" == "testing" ]]; then
-              echo "- **Testing (this channel, non-weekly commit/manual builds):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:testing\`"
-              echo "- **Weekly/latest (takes current testing display version on each weekly build):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:latest\`"
-              echo "- **Pinned SemVer/specific tag (rollback or pin):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:vX.Y.Z\` (replace with a published tag)"
-              echo "- **Previous deployment rollback:** after rebooting into a bad deployment, \`sudo bootc rollback\` can revert to the previous deployment (different from switching to an arbitrary tag)."
-              echo "- **Portal:** NexGen3D SDX Portal → **System Management** includes actions to switch channels/versions (with confirmation; reboot required)."
-            elif [[ "${RELEASE_KIND}" == "semver" ]]; then
-              echo "- **Pinned SemVer release (this tag):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:${SEMVER_TAG}\`"
-              echo "- **Pinned SemVer/specific tag (rollback or pin):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:vX.Y.Z\` (replace with a published tag)"
-              echo "- **Previous deployment rollback:** after rebooting into a bad deployment, \`sudo bootc rollback\` can revert to the previous deployment (different from switching to an arbitrary tag)."
-              echo "- **Portal:** NexGen3D SDX Portal → **System Management** includes actions to switch channels/versions (with confirmation; reboot required)."
-            else
-              echo "- **Weekly/\`latest\` (automatic weekly build):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:latest\`"
-              echo "- **Testing (non-weekly commit/manual builds):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:testing\`"
-              echo "- **Pinned SemVer/specific tag (rollback or pin):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:vX.Y.Z\` (replace with a published tag)"
-              echo "- **Previous deployment rollback:** after rebooting into a bad deployment, \`sudo bootc rollback\` can revert to the previous deployment (different from switching to an arbitrary tag)."
-              echo "- **Portal:** NexGen3D SDX Portal → **System Management** includes actions to switch channels/versions (with confirmation; reboot required)."
-            fi
+            echo "- **Stable (tracks Bazzite-DX stable):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:stable\`"
+            echo "- **Testing (tracks Bazzite-DX testing):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:testing\`"
+            echo "- **Pinned SemVer/specific tag:** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:vX.Y.Z\`"
+            echo "- Reboot to apply. If the new deployment has issues, revert with \`sudo bootc rollback\` after reboot."
             echo ""
             echo "### Install / rebase"
             echo '```bash'
             echo "sudo bootc status"
             if [[ "${RELEASE_KIND}" == "testing" ]]; then
-              echo "# Testing channel (non-weekly commit/manual builds):"
               echo "sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:testing"
             elif [[ "${RELEASE_KIND}" == "semver" ]]; then
-              echo "# Pinned SemVer release:"
               echo "sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:${SEMVER_TAG}"
-              echo "# Specific version/tag (pin/rollback to another published tag):"
-              echo "# sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:vX.Y.Z"
             else
-              echo "# Weekly channel (latest):"
-              echo "sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:latest"
-              echo "# Testing channel:"
-              echo "# sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:testing"
+              echo "sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:stable"
             fi
             echo "sudo reboot"
             echo '```'
@@ -623,16 +640,12 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             if [[ "${PRERELEASE}" == "true" ]]; then
               gh release edit "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md --prerelease
-            elif [[ "${MARK_LATEST}" == "true" ]]; then
-              gh release edit "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md --latest
             else
               gh release edit "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md
             fi
           else
             if [[ "${PRERELEASE}" == "true" ]]; then
               gh release create "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md --prerelease
-            elif [[ "${MARK_LATEST}" == "true" ]]; then
-              gh release create "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md --latest
             else
               gh release create "$TAG" --title "$TITLE" --notes-file /tmp/release-notes.md
             fi
