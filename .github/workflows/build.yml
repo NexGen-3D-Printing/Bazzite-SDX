@@ -11,6 +11,7 @@ on:
   push:
     branches:
       - main
+      - testing
     tags:
       - 'v*'
   workflow_dispatch:
@@ -119,8 +120,9 @@ jobs:
             add_channel "testing"
           elif [[ "${EVENT_NAME}" == "push" && "${REF}" == refs/tags/v* ]]; then
             add_channel "stable"
-          elif [[ "${EVENT_NAME}" == "push" ]]; then
+          elif [[ "${EVENT_NAME}" == "push" && "${REF}" == "refs/heads/main" ]]; then
             add_channel "stable"
+          elif [[ "${EVENT_NAME}" == "push" && "${REF}" == "refs/heads/testing" ]]; then
             add_channel "testing"
           elif [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
             case "${INPUT_CHANNEL}" in
