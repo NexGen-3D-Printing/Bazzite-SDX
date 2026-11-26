@@ -173,7 +173,7 @@ jobs:
   build_push:
     name: Build and push (${{ matrix.channel }})
     needs: [check_upstream, plan]
-    if: needs.plan.outputs.has_builds == 'true'
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.has_builds == 'true'
     runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
