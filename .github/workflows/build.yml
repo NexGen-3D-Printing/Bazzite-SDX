@@ -158,7 +158,7 @@ jobs:
                 base="ghcr.io/ublue-os/bazzite-dx:testing"
                 ;;
               unstable)
-                base="ghcr.io/ublue-os/bazzite-dx:testing"
+                base="ghcr.io/ublue-os/bazzite-dx:unstable"
                 ;;
               *) echo "::error::Unknown channel $ch"; exit 1 ;;
             esac
@@ -392,7 +392,7 @@ jobs:
               BUILD_TAGS+=("sha-${SHORT_SHA}")
               ;;
             unstable)
-              # Manual experimental/unstable build (typically from experimental branch)
+              # Manual unstable build (only when explicitly triggered)
               BUILD_TAGS+=("unstable")
               BUILD_TAGS+=("unstable-${DATE_UTC}")
               BUILD_TAGS+=("sha-${SHORT_SHA}")
@@ -566,10 +566,10 @@ jobs:
           elif [[ "${RELEASE_KIND}" == "unstable" ]]; then
             TAG="unstable"
             DISPLAY_VERSION="unstable-${DATE_UTC}-${SHORT_SHA}"
-            TITLE="Bazzite-SDX (Unstable / Experimental)"
+            TITLE="Bazzite-SDX (Unstable)"
             PRERELEASE=true
             PRIMARY_IMAGE="ghcr.io/nexgen-3d-printing/bazzite-sdx:unstable"
-            CHANNEL_NOTE="Manual unstable/experimental build. Published only when explicitly triggered. Does not update \`stable\` or \`testing\`. Use for investigation; expect breakage."
+            CHANNEL_NOTE="Manual unstable build from \`ghcr.io/ublue-os/bazzite-dx:unstable\`. Published only when explicitly triggered. Does not update \`stable\` or \`testing\`. Use for investigation; expect breakage."
           elif [[ "${RELEASE_KIND}" == "semver" ]]; then
             TAG="${SEMVER_TAG}"
             DISPLAY_VERSION="${SEMVER_TAG}"
