@@ -1,9 +1,9 @@
 # Allow build scripts to be referenced without being copied into the final image
+ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite-dx:stable
 FROM scratch AS ctx
 COPY system_files /system_files
 
 # Base Image - Bazzite-DX Stable or Testing (selected by build arg)
-ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite-dx:stable
 FROM ${BASE_IMAGE}
 ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite-dx:stable
 
