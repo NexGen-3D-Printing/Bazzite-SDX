@@ -257,9 +257,18 @@ screens:
     - id: install
       label: Switch to testing
       script: ujust rebase-sdx-testing; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
+  - id: rebase-sdx-unstable
+    title: Switch to Unstable channel (unstable)
+    description: 'Switches (rebases) your Bazzite-SDX deployment to the unstable channel: ghcr.io/nexgen-3d-printing/bazzite-sdx:unstable. ''unstable'' tracks Bazzite-DX unstable and is built manually for testing/experimentation; it may include additional testing packages and can be less stable. Shows current bootc status, asks for confirmation before running ''sudo bootc switch'', and requires a reboot to apply. To go back, switch to ''stable'', ''testing'', or a specific version/tag, or use ''sudo bootc rollback'' after reboot if applicable.'
+    default: false
+    status_script: rpm-ostree status --json 2>/dev/null | python3 -c "import json,sys; d={}; \ntry:\n d=json.load(sys.stdin)\nexcept Exception:\n pass\nref=((d.get('deployments') or [{}])[0].get('container-image-reference') or ''); tag=ref.rsplit(':',1)[-1].split('@',1)[0] if ':' in ref else ''; print('active' if tag=='unstable' else 'inactive')"
+    options:
+    - id: install
+      label: Switch to unstable
+      script: ujust rebase-sdx-unstable; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
   - id: rebase-sdx-version
     title: Switch to specific version/tag (SemVer/rollback)
-    description: Switches (rebases) to a specific published Bazzite-SDX image tag. Useful for pinning a known-good release or rolling back/forward to a specific version (for example SemVer tags like v0.1.0), or other tags like stable-YYYYMMDD/testing-YYYYMMDD when available. Prompts for the tag, validates it, shows current bootc status, and asks for confirmation before running 'sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:<tag>'. Reboot required to apply. 'sudo bootc rollback' reverts to the previous deployment (not the same as choosing an arbitrary tag).
+    description: Switches (rebases) to a specific published Bazzite-SDX image tag. Useful for pinning a known-good release or rolling back/forward to a specific version (for example SemVer tags like v0.1.0), or other tags like stable-YYYYMMDD/testing-YYYYMMDD/unstable-YYYYMMDD when available. Prompts for the tag, validates it, shows current bootc status, and asks for confirmation before running 'sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:<tag>'. Reboot required to apply. 'sudo bootc rollback' reverts to the previous deployment (not the same as choosing an arbitrary tag).
     default: false
     script: ujust rebase-sdx-version; status=$?; echo; echo "Press Enter to close..."; read -r _; exit $status
   - id: run-sdx-benchmark

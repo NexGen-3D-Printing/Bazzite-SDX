@@ -726,6 +726,35 @@ rebase-sdx-testing:
     esac
     echo "Done."
 
+# Switch Bazzite-SDX to the unstable channel (ghcr.io/nexgen-3d-printing/bazzite-sdx:unstable)
+[group("Bazzite-SDX-System")]
+rebase-sdx-unstable:
+    #!/usr/bin/bash
+    set -euo pipefail
+    image="ghcr.io/nexgen-3d-printing/bazzite-sdx:unstable"
+    echo "This will switch (rebase) your system to: ${image}"
+    echo "Channel: unstable = tracks Bazzite-DX unstable (manual builds, may be unstable)."
+    echo "Unstable builds may include experimental changes and testing packages."
+    echo ""
+    echo "Current status:"
+    sudo bootc status || true
+    echo ""
+    echo "After switching, reboot to apply the new deployment."
+    echo "Tip: 'sudo bootc rollback' can revert to the previous deployment after reboot if needed."
+    echo ""
+    read -r -p "Proceed with 'sudo bootc switch ${image}'? [y/N] " ans
+    case "${ans}" in
+        y|Y|yes|YES)
+            sudo bootc switch "${image}"
+            echo ""
+            echo "Switch staged. Reboot when ready: sudo systemctl reboot"
+            ;;
+        *)
+            echo "No changes made."
+            ;;
+    esac
+    echo "Done."
+
 # Switch Bazzite-SDX to a specific image tag/version (e.g., v0.1.0 for SemVer rollback/pin)
 [group("Bazzite-SDX-System")]
 rebase-sdx-version:
@@ -733,7 +762,7 @@ rebase-sdx-version:
     set -euo pipefail
     base="ghcr.io/nexgen-3d-printing/bazzite-sdx"
     echo "Switch (rebase) Bazzite-SDX to a specific tag/version."
-    echo "Examples: v0.1.0 (SemVer/pinned), stable, testing, stable-20261109, testing-20261109"
+    echo "Examples: v0.1.0 (SemVer/pinned), stable, testing, unstable, stable-20261109, testing-20261109, unstable-20261109"
     echo "This can be used to pin a known-good release or roll forward/back to a specific published tag."
     echo ""
     echo "Current status:"

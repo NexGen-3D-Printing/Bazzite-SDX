@@ -26,12 +26,12 @@ RUN dnf5 install -y --allowerasing \
     surface-control \
     surface-dtx-daemon
 
-## Unstable-only: add kernel-surface-devel (matching installed kernel) + build tools
+## Testing/Unstable-only: add kernel-surface-devel (matching installed kernel) + build tools
 ## needed for linux-surface-power surface-power-check S3-S5 module testing (issue #2).
-RUN if [ "${BUILD_CHANNEL}" = "unstable" ]; then \
+RUN if [ "${BUILD_CHANNEL}" = "unstable" ] || [ "${BUILD_CHANNEL}" = "testing" ]; then \
       set -euo pipefail; \
       kver="$(rpm -q kernel-surface --qf '%{VERSION}-%{RELEASE}')"; \
-      echo "Installing unstable-only testing packages for kernel-surface ${kver}"; \
+      echo "Installing ${BUILD_CHANNEL}-only testing packages for kernel-surface ${kver}"; \
       dnf5 install -y "kernel-surface-devel-${kver}" make gcc; \
       rpm -q "kernel-surface-devel-${kver}" make gcc; \
     fi

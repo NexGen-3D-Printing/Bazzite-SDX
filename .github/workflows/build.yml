@@ -624,8 +624,8 @@ jobs:
             echo "- **Unstable:** \`ghcr.io/nexgen-3d-printing/bazzite-sdx:unstable\`"
             if [[ "${KERNEL_SURFACE_DEVEL}" != "not-installed" && "${KERNEL_SURFACE_DEVEL}" != "unknown" ]]; then
               echo ""
-              echo "### Unstable-only testing packages"
-              echo "These packages are intentionally included **only in Unstable** builds to support linux-surface-power \`surface-power-check\` S3-S5 module testing on Surface Pro 9 (issue #2). They are not included in Stable/Testing images."
+              echo "### Testing/Unstable testing packages"
+              echo "These packages are intentionally included in **Testing and Unstable** builds to support linux-surface-power \`surface-power-check\` S3-S5 module testing on Surface Pro 9 (issue #2). They are not included in Stable images."
               echo "- **kernel-surface-devel:** ${KERNEL_SURFACE_DEVEL} (must match installed kernel-surface)"
               echo "- **make:** ${MAKE_VERSION}"
               echo "- **gcc:** ${GCC_VERSION}"
