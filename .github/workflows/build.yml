@@ -48,9 +48,11 @@ jobs:
     outputs:
       stable_drift: ${{ steps.detect.outputs.stable_drift }}
       testing_drift: ${{ steps.detect.outputs.testing_drift }}
+      unstable_drift: ${{ steps.detect.outputs.unstable_drift }}
       drift: ${{ steps.detect.outputs.drift }}
       stable_bazzite_version: ${{ steps.detect.outputs.stable_bazzite_version }}
       testing_bazzite_version: ${{ steps.detect.outputs.testing_bazzite_version }}
+      unstable_bazzite_version: ${{ steps.detect.outputs.unstable_bazzite_version }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -104,6 +106,7 @@ jobs:
           INPUT_CHANNEL: ${{ inputs.channel || 'auto' }}
           STABLE_DRIFT: ${{ needs.check_upstream.outputs.stable_drift || 'false' }}
           TESTING_DRIFT: ${{ needs.check_upstream.outputs.testing_drift || 'false' }}
+          UNSTABLE_DRIFT: ${{ needs.check_upstream.outputs.unstable_drift || 'false' }}
         run: |
           set -euo pipefail
           channels=()
@@ -133,12 +136,14 @@ jobs:
               auto)
                 [[ "${STABLE_DRIFT}" == "true" ]] && add_channel "stable"
                 [[ "${TESTING_DRIFT}" == "true" ]] && add_channel "testing"
+                [[ "${UNSTABLE_DRIFT}" == "true" ]] && add_channel "unstable"
                 ;;
               *) echo "::error::Unknown channel ${INPUT_CHANNEL}"; exit 1 ;;
             esac
           elif [[ "${EVENT_NAME}" == "schedule" ]]; then
             [[ "${STABLE_DRIFT}" == "true" ]] && add_channel "stable"
             [[ "${TESTING_DRIFT}" == "true" ]] && add_channel "testing"
+            [[ "${UNSTABLE_DRIFT}" == "true" ]] && add_channel "unstable"
           fi
 
           if [[ ${#channels[@]} -eq 0 ]]; then
@@ -358,7 +363,7 @@ jobs:
             "--label" "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}"
             "--label" "org.opencontainers.image.revision=${GITHUB_SHA}"
           )
-          podman build "${LABELS[@]}" --pull=newer --build-arg "BASE_IMAGE=${BASE_IMAGE}" --tag "${IMAGE_NAME}:${DEFAULT_TAG}" --file Containerfile .
+          podman build "${LABELS[@]}" --pull=newer --build-arg "BASE_IMAGE=${BASE_IMAGE}" --build-arg "BUILD_CHANNEL=${CHANNEL}" --tag "${IMAGE_NAME}:${DEFAULT_TAG}" --file Containerfile .
 
       - name: Rechunk with rpm-ostree
         id: rechunk
@@ -518,8 +523,8 @@ jobs:
           BASE_OS_PRETTY=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${PRETTY_NAME:-unknown}"' | head -n1)
           BASE_OS_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${VERSION_ID:-${VERSION:-unknown}}"' | head -n1)
           SURFACE_PKGS=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '
-            for p in kernel-surface iptsd libwacom-surface surface-control surface-dtx-daemon; do
-              printf "%s=%s\n" "$p" "$(rpm -q "$p" --qf "%{VERSION}-%{RELEASE}" 2>/dev/null || echo unknown)"
+            for p in kernel-surface iptsd libwacom-surface surface-control surface-dtx-daemon kernel-surface-devel make gcc; do
+              printf "%s=%s\n" "$p" "$(rpm -q "$p" --qf "%{VERSION}-%{RELEASE}" 2>/dev/null || echo not-installed)"
             done
             printf "sdx-control-centre=%s\n" "$(rpm -q sdx-control-centre --qf "%{VERSION}" 2>/dev/null || echo unknown)"
           ' || true)
@@ -534,6 +539,9 @@ jobs:
           SURFACE_CONTROL="$(pkg_version surface-control)"
           SURFACE_DTX_DAEMON="$(pkg_version surface-dtx-daemon)"
           SDX_VERSION="$(pkg_version sdx-control-centre)"
+          KERNEL_SURFACE_DEVEL="$(pkg_version kernel-surface-devel)"
+          MAKE_VERSION="$(pkg_version make)"
+          GCC_VERSION="$(pkg_version gcc)"
 
           BAZZITE_VERSION="unknown"
           BAZZITE_DIGEST=""
@@ -612,10 +620,20 @@ jobs:
             echo "- **Primary image:** \`${PRIMARY_IMAGE}\`"
             echo "- **Stable:** \`ghcr.io/nexgen-3d-printing/bazzite-sdx:stable\`"
             echo "- **Testing:** \`ghcr.io/nexgen-3d-printing/bazzite-sdx:testing\`"
+            echo "- **Unstable:** \`ghcr.io/nexgen-3d-printing/bazzite-sdx:unstable\`"
+            if [[ "${KERNEL_SURFACE_DEVEL}" != "not-installed" && "${KERNEL_SURFACE_DEVEL}" != "unknown" ]]; then
+              echo ""
+              echo "### Unstable-only testing packages"
+              echo "These packages are intentionally included **only in Unstable** builds to support linux-surface-power \`surface-power-check\` S3-S5 module testing on Surface Pro 9 (issue #2). They are not included in Stable/Testing images."
+              echo "- **kernel-surface-devel:** ${KERNEL_SURFACE_DEVEL} (must match installed kernel-surface)"
+              echo "- **make:** ${MAKE_VERSION}"
+              echo "- **gcc:** ${GCC_VERSION}"
+            fi
             echo ""
             echo "### Channels, switching & rollback (bootc)"
             echo "- **Stable (tracks Bazzite-DX stable):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:stable\`"
             echo "- **Testing (tracks Bazzite-DX testing):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:testing\`"
+            echo "- **Unstable (manual, tracks Bazzite-DX unstable):** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:unstable\`"
             echo "- **Pinned SemVer/specific tag:** \`sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:vX.Y.Z\`"
             echo "- Reboot to apply. If the new deployment has issues, revert with \`sudo bootc rollback\` after reboot."
             echo ""
@@ -624,6 +642,8 @@ jobs:
             echo "sudo bootc status"
             if [[ "${RELEASE_KIND}" == "testing" ]]; then
               echo "sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:testing"
+            elif [[ "${RELEASE_KIND}" == "unstable" ]]; then
+              echo "sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:unstable"
             elif [[ "${RELEASE_KIND}" == "semver" ]]; then
               echo "sudo bootc switch ghcr.io/nexgen-3d-printing/bazzite-sdx:${SEMVER_TAG}"
             else

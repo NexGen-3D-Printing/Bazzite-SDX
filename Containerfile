@@ -3,9 +3,10 @@ ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite-dx:stable
 FROM scratch AS ctx
 COPY system_files /system_files
 
-# Base Image - Bazzite-DX Stable or Testing (selected by build arg)
+# Base Image - Bazzite-DX Stable, Testing, or Unstable (selected by build arg)
 FROM ${BASE_IMAGE}
 ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite-dx:stable
+ARG BUILD_CHANNEL=stable
 
 ### MODIFICATIONS
 ## Install Linux Surface kernel packages directly from the Surface Linux repository
@@ -24,6 +25,16 @@ RUN dnf5 install -y --allowerasing \
     libwacom-surface-data \
     surface-control \
     surface-dtx-daemon
+
+## Unstable-only: add kernel-surface-devel (matching installed kernel) + build tools
+## needed for linux-surface-power surface-power-check S3-S5 module testing (issue #2).
+RUN if [ "${BUILD_CHANNEL}" = "unstable" ]; then \
+      set -euo pipefail; \
+      kver="$(rpm -q kernel-surface --qf '%{VERSION}-%{RELEASE}')"; \
+      echo "Installing unstable-only testing packages for kernel-surface ${kver}"; \
+      dnf5 install -y "kernel-surface-devel-${kver}" make gcc; \
+      rpm -q "kernel-surface-devel-${kver}" make gcc; \
+    fi
 
 ## Install SDX Control Centre (built from NexGen-3D-Printing/SDX-Control-Centre)
 ## The newest upstream vX.Y.Z tag is resolved at build time so package updates are

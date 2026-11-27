@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
-"""Detect upstream drift for Bazzite-SDX stable and testing channels.
+"""Detect upstream drift for Bazzite-SDX stable, testing, and unstable channels.
 
-Compares versions recorded in the ``stable`` and ``testing`` release notes
-against current upstreams:
+Compares versions recorded in release notes against current upstreams:
 
-* Bazzite-DX base image (stable/testing) version + digest
+* Bazzite-DX base image (stable/testing/unstable) version + digest
 * linux-surface packages published for Fedora 45
 * newest SDX Control Centre release tag
+* Unstable-only: kernel-surface-devel (linux-surface repo), make, gcc
 
 Outputs (to $GITHUB_OUTPUT):
   stable_drift=true|false
   testing_drift=true|false
+  unstable_drift=true|false
   stable_bazzite_version=<version>
   testing_bazzite_version=<version>
+  unstable_bazzite_version=<version>
 
 Network or parse failures are reported as warnings and treated as "no drift"
 for that channel so a transient upstream outage cannot start a rebuild loop.
@@ -37,6 +39,7 @@ REPO_NS = {"r": "http://linux.duke.edu/metadata/repo"}
 BAZZITE_IMAGES = {
     "stable": "ghcr.io/ublue-os/bazzite-dx:stable",
     "testing": "ghcr.io/ublue-os/bazzite-dx:testing",
+    "unstable": "ghcr.io/ublue-os/bazzite-dx:unstable",
 }
 
 # rpm package name -> label used in the generated release notes
@@ -46,6 +49,14 @@ PACKAGES = {
     "libwacom-surface": "libwacom-surface",
     "surface-control": "surface-control",
     "surface-dtx-daemon": "surface-dtx-daemon",
+}
+# Extra packages tracked only for the Unstable channel (issue #2).
+UNSTABLE_SURFACE_PACKAGES = {
+    "kernel-surface-devel": "kernel-surface-devel",
+}
+UNSTABLE_FEDORA_PACKAGES = {
+    "make": "make",
+    "gcc": "gcc",
 }
 SDX_LABEL = "SDX Control Centre"
 BAZZITE_VERSION_LABEL = "Bazzite version"
@@ -59,9 +70,11 @@ def warn(message: str) -> None:
 def emit(
     stable_drift: bool,
     testing_drift: bool,
+    unstable_drift: bool,
     lines: list[str],
     stable_bazzite_version: str = "",
     testing_bazzite_version: str = "",
+    unstable_bazzite_version: str = "",
 ) -> None:
     summary = "\n".join(lines)
     print(summary)
@@ -77,11 +90,16 @@ def emit(
         with open(output_file, "a", encoding="utf-8") as handle:
             handle.write(f"stable_drift={'true' if stable_drift else 'false'}\n")
             handle.write(f"testing_drift={'true' if testing_drift else 'false'}\n")
-            handle.write(f"drift={'true' if (stable_drift or testing_drift) else 'false'}\n")
+            handle.write(f"unstable_drift={'true' if unstable_drift else 'false'}\n")
+            handle.write(
+                f"drift={'true' if (stable_drift or testing_drift or unstable_drift) else 'false'}\n"
+            )
             if stable_bazzite_version:
                 handle.write(f"stable_bazzite_version={stable_bazzite_version}\n")
             if testing_bazzite_version:
                 handle.write(f"testing_bazzite_version={testing_bazzite_version}\n")
+            if unstable_bazzite_version:
+                handle.write(f"unstable_bazzite_version={unstable_bazzite_version}\n")
 
 
 def rpmvercmp(left: str, right: str) -> int:
@@ -167,10 +185,11 @@ def upstream_packages() -> dict[str, str]:
         raise RuntimeError("primary metadata not listed in repomd.xml")
 
     primary = ET.fromstring(decompress_zstd(fetch(f"{REPO_BASE}/{primary_href}")))
+    wanted = {**PACKAGES, **UNSTABLE_SURFACE_PACKAGES}
     found: dict[str, list[str]] = {}
     for package in primary.findall("c:package", NS):
         name = package.findtext("c:name", namespaces=NS)
-        if name not in PACKAGES:
+        if name not in wanted:
             continue
         version = package.find("c:version", NS)
         if version is None:
@@ -200,6 +219,39 @@ def upstream_sdx() -> str:
         return tuple(int(part) for part in re.findall(r"\d+", tag))
 
     return max(tags, key=tag_key).lstrip("v")
+
+
+def upstream_fedora_packages_from_base(channel: str) -> dict[str, str]:
+    """Query Fedora package versions from the Bazzite-DX base image for a channel."""
+    image = BAZZITE_IMAGES[channel]
+    packages = list(UNSTABLE_FEDORA_PACKAGES.keys())
+    if not packages:
+        return {}
+    query = " ".join(packages)
+    cmd_fmt = " ".join([f"{p}=$(rpm -q {p} --qf '%{{VERSION}}-%{{RELEASE}}' 2>/dev/null || echo unknown)" for p in packages])
+    script = f"{cmd_fmt}; " + " ".join([f'echo "{p}=${{{p}}}"' for p in packages])
+    for runner in (["docker", "run", "--rm", "--entrypoint", "/bin/sh", f"{image}", "-lc", script],
+                   ["podman", "run", "--rm", "--entrypoint", "/bin/sh", f"{image}", "-lc", script]):
+        try:
+            result = subprocess.run(runner, capture_output=True, text=True, check=False, timeout=300)
+        except FileNotFoundError:
+            continue
+        except Exception as exc:  # noqa: BLE001
+            warn(f"could not query {image} for fedora packages via {runner[0]}: {exc}")
+            continue
+        if result.returncode != 0:
+            warn(f"{runner[0]} query for {image} failed: {result.stderr.strip()[:200]}")
+            continue
+        versions: dict[str, str] = {}
+        for line in result.stdout.splitlines():
+            if "=" in line:
+                k, v = line.split("=", 1)
+                k, v = k.strip(), v.strip()
+                if k in UNSTABLE_FEDORA_PACKAGES and v and v != "unknown":
+                    versions[k] = v
+        return versions
+    warn(f"no container runtime available to query Fedora packages from {image}")
+    return {}
 
 
 def upstream_bazzite(channel: str) -> dict[str, str]:
@@ -261,7 +313,14 @@ def recorded_versions(release_tag: str) -> dict[str, str]:
     )
     body = result.stdout
     recorded: dict[str, str] = {}
-    labels = [*PACKAGES.values(), SDX_LABEL, BAZZITE_VERSION_LABEL, BAZZITE_DIGEST_LABEL]
+    labels = [
+        *PACKAGES.values(),
+        *UNSTABLE_SURFACE_PACKAGES.values(),
+        *UNSTABLE_FEDORA_PACKAGES.values(),
+        SDX_LABEL,
+        BAZZITE_VERSION_LABEL,
+        BAZZITE_DIGEST_LABEL,
+    ]
     for label in labels:
         match = re.search(
             r"\*\*" + re.escape(label) + r":\*\*\s*([^\n]+)", body
@@ -355,6 +414,49 @@ def compare_bazzite(channel: str, recorded: dict[str, str]) -> tuple[bool, list[
     return changed, lines, version
 
 
+def compare_unstable_extras(
+    recorded: dict[str, str],
+    upstream: dict[str, str],
+) -> tuple[bool, list[str]]:
+    """Check unstable-only packages (kernel-surface-devel from linux-surface, make/gcc from base image)."""
+    drift = False
+    lines: list[str] = []
+    channel = "unstable"
+
+    for rpm_name, label in UNSTABLE_SURFACE_PACKAGES.items():
+        newest = upstream.get(rpm_name)
+        built = recorded.get(label)
+        if not newest:
+            lines.append(f"[{channel}] {label}: not found in upstream repository")
+            continue
+        if built is None or built in ("unknown", "not-installed"):
+            lines.append(f"[{channel}] {label}: not recorded yet (upstream {newest})")
+            continue
+        if built != newest:
+            drift = True
+            lines.append(f"[{channel}] CHANGED {label}: built {built} -> upstream {newest}")
+        else:
+            lines.append(f"[{channel}] ok {label}: {built}")
+
+    fedora_upstream = upstream_fedora_packages_from_base("unstable")
+    for rpm_name, label in UNSTABLE_FEDORA_PACKAGES.items():
+        newest = fedora_upstream.get(rpm_name)
+        built = recorded.get(label)
+        if not newest:
+            lines.append(f"[{channel}] {label}: not found in upstream base image")
+            continue
+        if built is None or built in ("unknown", "not-installed"):
+            lines.append(f"[{channel}] {label}: not recorded yet (upstream {newest})")
+            continue
+        if built != newest:
+            drift = True
+            lines.append(f"[{channel}] CHANGED {label}: built {built} -> upstream {newest}")
+        else:
+            lines.append(f"[{channel}] ok {label}: {built}")
+
+    return drift, lines
+
+
 def main() -> int:
     lines: list[str] = []
 
@@ -363,13 +465,13 @@ def main() -> int:
         sdx_upstream = upstream_sdx()
     except Exception as exc:  # noqa: BLE001
         warn(f"could not read common upstream versions: {exc}")
-        emit(False, False, ["upstream check failed; not triggering builds"])
+        emit(False, False, False, ["upstream check failed; not triggering builds"])
         return 0
 
     channel_results: dict[str, bool] = {}
     bazzite_versions: dict[str, str] = {}
 
-    for channel in ("stable", "testing"):
+    for channel in ("stable", "testing", "unstable"):
         try:
             recorded = recorded_versions_for(channel)
         except Exception as exc:  # noqa: BLE001
@@ -382,9 +484,14 @@ def main() -> int:
         lines.extend(common_lines)
         lines.extend(bazzite_lines)
 
+        extra_drift = False
+        if channel == "unstable":
+            extra_drift, extra_lines = compare_unstable_extras(recorded, upstream)
+            lines.extend(extra_lines)
+
         # If release notes are missing entirely, treat as drift so we create it.
         missing_notes = len(recorded) == 0
-        drift = common_drift or bazzite_drift or missing_notes
+        drift = common_drift or bazzite_drift or extra_drift or missing_notes
         if missing_notes:
             lines.append(f"[{channel}] release notes missing/unreadable -> rebuild required")
         channel_results[channel] = drift
@@ -393,9 +500,11 @@ def main() -> int:
     emit(
         channel_results.get("stable", False),
         channel_results.get("testing", False),
+        channel_results.get("unstable", False),
         lines,
         bazzite_versions.get("stable", ""),
         bazzite_versions.get("testing", ""),
+        bazzite_versions.get("unstable", ""),
     )
     return 0
 
