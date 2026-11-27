@@ -352,6 +352,7 @@ jobs:
           DEFAULT_TAG: ${{ steps.load-env.outputs.DEFAULT_TAG }}
           VERSION_LABEL: ${{ steps.version.outputs.version_label }}
           BASE_IMAGE: ${{ steps.version.outputs.base_image }}
+          CHANNEL: ${{ steps.version.outputs.channel }}
         run: |
           set -euox pipefail
           LABELS=(
