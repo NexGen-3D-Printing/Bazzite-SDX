@@ -36,6 +36,21 @@ RUN if [ "${BUILD_CHANNEL}" = "unstable" ] || [ "${BUILD_CHANNEL}" = "testing" ]
       rpm -q "kernel-surface-devel-${kver}" make gcc; \
     fi
 
+## Unstable-only: Plasma Mobile stack for viability testing.
+RUN if [ "${BUILD_CHANNEL}" = "unstable" ]; then \
+      set -euo pipefail; \
+      echo "Installing Unstable-only Plasma Mobile packages"; \
+      dnf5 install -y \
+        plasma-mobile \
+        plasma-mobile-sounds \
+        plasma-settings \
+        plasma-dialer \
+        spacebar \
+        maliit-keyboard \
+        maliit-framework; \
+      rpm -q plasma-mobile plasma-mobile-sounds plasma-settings plasma-dialer spacebar maliit-keyboard maliit-framework; \
+    fi
+
 ## Install SDX Control Centre (built from NexGen-3D-Printing/SDX-Control-Centre)
 ## The newest upstream vX.Y.Z tag is resolved at build time so package updates are
 ## picked up automatically (the daily upstream check triggers a rebuild when it changes).

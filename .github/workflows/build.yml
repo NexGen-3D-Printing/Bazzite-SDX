@@ -524,7 +524,7 @@ jobs:
           BASE_OS_PRETTY=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${PRETTY_NAME:-unknown}"' | head -n1)
           BASE_OS_VERSION=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '. /usr/lib/os-release 2>/dev/null; echo "${VERSION_ID:-${VERSION:-unknown}}"' | head -n1)
           SURFACE_PKGS=$(podman run --rm --entrypoint /bin/sh "${IMG}" -lc '
-            for p in kernel-surface iptsd libwacom-surface surface-control surface-dtx-daemon kernel-surface-devel make gcc; do
+            for p in kernel-surface iptsd libwacom-surface surface-control surface-dtx-daemon kernel-surface-devel make gcc plasma-mobile plasma-mobile-sounds plasma-settings plasma-dialer spacebar maliit-keyboard maliit-framework; do
               printf "%s=%s\n" "$p" "$(rpm -q "$p" --qf "%{VERSION}-%{RELEASE}" 2>/dev/null || echo not-installed)"
             done
             printf "sdx-control-centre=%s\n" "$(rpm -q sdx-control-centre --qf "%{VERSION}" 2>/dev/null || echo unknown)"
@@ -543,6 +543,13 @@ jobs:
           KERNEL_SURFACE_DEVEL="$(pkg_version kernel-surface-devel)"
           MAKE_VERSION="$(pkg_version make)"
           GCC_VERSION="$(pkg_version gcc)"
+          PLASMA_MOBILE_VERSION="$(pkg_version plasma-mobile)"
+          PLASMA_MOBILE_SOUNDS_VERSION="$(pkg_version plasma-mobile-sounds)"
+          PLASMA_SETTINGS_VERSION="$(pkg_version plasma-settings)"
+          PLASMA_DIALER_VERSION="$(pkg_version plasma-dialer)"
+          SPACEBAR_VERSION="$(pkg_version spacebar)"
+          MALIIT_KEYBOARD_VERSION="$(pkg_version maliit-keyboard)"
+          MALIIT_FRAMEWORK_VERSION="$(pkg_version maliit-framework)"
 
           BAZZITE_VERSION="unknown"
           BAZZITE_DIGEST=""
@@ -629,6 +636,18 @@ jobs:
               echo "- **kernel-surface-devel:** ${KERNEL_SURFACE_DEVEL} (must match installed kernel-surface)"
               echo "- **make:** ${MAKE_VERSION}"
               echo "- **gcc:** ${GCC_VERSION}"
+            fi
+            if [[ "${PLASMA_MOBILE_VERSION}" != "not-installed" && "${PLASMA_MOBILE_VERSION}" != "unknown" ]]; then
+              echo ""
+              echo "### Plasma Mobile (Unstable viability testing)"
+              echo "Plasma Mobile packages are included in **Unstable** builds for viability testing on Surface devices. These are not included in Stable/Testing images."
+              echo "- **plasma-mobile:** ${PLASMA_MOBILE_VERSION}"
+              echo "- **plasma-mobile-sounds:** ${PLASMA_MOBILE_SOUNDS_VERSION}"
+              echo "- **plasma-settings:** ${PLASMA_SETTINGS_VERSION}"
+              echo "- **plasma-dialer:** ${PLASMA_DIALER_VERSION}"
+              echo "- **spacebar:** ${SPACEBAR_VERSION}"
+              echo "- **maliit-keyboard:** ${MALIIT_KEYBOARD_VERSION}"
+              echo "- **maliit-framework:** ${MALIIT_FRAMEWORK_VERSION}"
             fi
             echo ""
             echo "### Channels, switching & rollback (bootc)"
